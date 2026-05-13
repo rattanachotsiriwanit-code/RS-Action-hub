@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RS Action Hub - Premium Edition</title>
+    <title>RS Action Hub - Premium Responsive</title>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -60,6 +60,8 @@
         .animate-in { animation: slideIn 0.3s ease-out; }
         .nav-item-active { border-left: 4px solid #3dcd58; background: rgba(61, 205, 88, 0.1); color: #3dcd58; }
         .soft-shadow { box-shadow: 0 10px 40px -10px rgba(0,0,0,0.05); }
+        /* ป้องกันการ Scroll เมื่อเปิดเมนูในมือถือ */
+        .no-scroll { overflow: hidden; }
     </style>
 </head>
 <body>
@@ -78,7 +80,9 @@
                 Target: <Fragment><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></Fragment>,
                 Info: <Fragment><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></Fragment>,
                 Clock: <Fragment><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></Fragment>,
-                Cloud: <Fragment><path d="M17.5 19c2.5 0 4.5-2 4.5-4.5 0-2.3-1.7-4.2-4-4.5C17.1 6.3 14 4 10.5 4 7.2 4 4.5 6.4 4.1 9.6 1.8 10.1 0 12.1 0 14.5 0 17 2 19 4.5 19h13z"/></Fragment>
+                Cloud: <Fragment><path d="M17.5 19c2.5 0 4.5-2 4.5-4.5 0-2.3-1.7-4.2-4-4.5C17.1 6.3 14 4 10.5 4 7.2 4 4.5 6.4 4.1 9.6 1.8 10.1 0 12.1 0 14.5 0 17 2 19 4.5 19h13z"/></Fragment>,
+                Menu: <Fragment><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></Fragment>,
+                X: <Fragment><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></Fragment>
             };
             return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{icons[name] || null}</svg>;
         };
@@ -92,6 +96,7 @@
             const [msg, setMsg] = useState(null);
             const [syncProgress, setSyncProgress] = useState(null);
             const [deleteConfirm, setDeleteConfirm] = useState(null);
+            const [isSidebarOpen, setIsSidebarOpen] = useState(false); // 🚩 State สำหรับ Mobile Sidebar
 
             const [newItem, setNewItem] = useState({
                 'Action Id': '',
@@ -118,6 +123,11 @@
                 };
                 init();
             }, []);
+
+            // ปิด Sidebar อัตโนมัติเมื่อเปลี่ยน View ในมือถือ
+            useEffect(() => {
+                setIsSidebarOpen(false);
+            }, [view]);
 
             const filteredTasks = useMemo(() => {
                 return allData.filter(t => {
@@ -195,15 +205,36 @@
             };
 
             return (
-                <div className="flex h-screen bg-white">
-                    <aside className="w-64 bg-schneiderSidebar flex flex-col shrink-0 z-20 border-r border-white/5">
-                        <div className="p-10 flex flex-col items-center text-center">
-                            <div className="w-12 h-12 bg-schneider rounded-lg flex items-center justify-center font-black italic shadow-lg mb-4">
-                                <span className="text-white text-xl">RS</span>
+                <div className="flex h-screen bg-white relative overflow-hidden">
+                    {/* 🚩 Backdrop for Mobile Sidebar */}
+                    {isSidebarOpen && (
+                        <div 
+                            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[25] md:hidden"
+                            onClick={() => setIsSidebarOpen(false)}
+                        />
+                    )}
+
+                    {/* 🚩 Sidebar: Responsive Classes */}
+                    <aside className={`
+                        fixed md:relative inset-y-0 left-0 w-64 bg-schneiderSidebar flex flex-col shrink-0 z-30 border-r border-white/5 
+                        transition-transform duration-300 ease-in-out
+                        ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+                    `}>
+                        <div className="p-8 md:p-10 flex flex-col items-center text-center relative">
+                            {/* Close button for mobile */}
+                            <button 
+                                onClick={() => setIsSidebarOpen(false)}
+                                className="absolute top-4 right-4 text-slate-500 md:hidden"
+                            >
+                                <Icon name="X" size={24} />
+                            </button>
+                            
+                            <div className="w-10 h-10 md:w-12 md:h-12 bg-schneider rounded-lg flex items-center justify-center font-black italic shadow-lg mb-4">
+                                <span className="text-white text-lg md:text-xl">RS</span>
                             </div>
-                            <h1 className="font-black italic uppercase tracking-tighter text-white text-lg leading-none">Action Hub</h1>
+                            <h1 className="font-black italic uppercase tracking-tighter text-white text-md md:text-lg leading-none">Action Hub</h1>
                         </div>
-                        <nav className="flex-1 py-4">
+                        <nav className="flex-1 py-4 px-2">
                             <SidebarBtn icon={<Icon name="Dashboard" />} label="Overview" active={view === 'dashboard'} onClick={() => setView('dashboard')} />
                             <SidebarBtn icon={<Icon name="List" />} label="Master List" active={view === 'list'} onClick={() => setView('list')} />
                             <SidebarBtn icon={<Icon name="Plus" />} label="Add Action" active={view === 'add'} onClick={() => setView('add')} />
@@ -217,62 +248,80 @@
                     </aside>
 
                     <main className="flex-1 flex flex-col overflow-hidden bg-bgLight">
-                        <header className="h-16 bg-white border-b border-slate-100 px-10 flex items-center justify-between z-10 shrink-0">
-                            <div className="flex items-center gap-4">
-                                <Icon name="Target" size={18} className="text-schneider" />
-                                <span className="text-sm font-bold text-slate-700 uppercase tracking-tight italic leading-none pt-1">Job Command Center</span>
+                        {/* 🚩 Header: Updated with Menu Button */}
+                        <header className="h-16 bg-white border-b border-slate-100 px-4 md:px-10 flex items-center justify-between z-10 shrink-0">
+                            <div className="flex items-center gap-3 md:gap-4">
+                                {/* Hamburger Button */}
+                                <button 
+                                    onClick={() => setIsSidebarOpen(true)}
+                                    className="p-2 text-slate-400 hover:text-schneider md:hidden"
+                                >
+                                    <Icon name="Menu" size={24} />
+                                </button>
+                                
+                                <Icon name="Target" size={18} className="text-schneider hidden xs:block" />
+                                <span className="text-xs md:text-sm font-bold text-slate-700 uppercase tracking-tight italic leading-none pt-1 truncate max-w-[150px] md:max-w-none">
+                                    Job Command Center
+                                </span>
                             </div>
                             <div className="relative">
                                 <Icon name="Search" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={14} />
-                                <input type="text" placeholder="Search operational intel..." className="pl-10 pr-4 py-2 bg-slate-50 border border-slate-100 rounded-md w-72 text-xs focus:ring-2 focus:ring-schneider/10 focus:border-schneider outline-none transition-all shadow-sm" value={search} onChange={(e) => setSearch(e.target.value)} />
+                                <input 
+                                    type="text" 
+                                    placeholder="Search..." 
+                                    className="pl-10 pr-4 py-2 bg-slate-50 border border-slate-100 rounded-md w-32 xs:w-48 md:w-72 text-xs focus:ring-2 focus:ring-schneider/10 focus:border-schneider outline-none transition-all shadow-sm" 
+                                    value={search} 
+                                    onChange={(e) => setSearch(e.target.value)} 
+                                />
                             </div>
                         </header>
 
-                        <div className="flex-1 overflow-y-auto p-10 custom-scroll relative">
-                            {msg && <div className="fixed top-20 right-8 z-[100] px-6 py-3 bg-slate-800 text-white rounded shadow-2xl font-bold text-xs animate-in border-l-4 border-schneider uppercase tracking-wider">{msg}</div>}
+                        <div className="flex-1 overflow-y-auto p-4 md:p-10 custom-scroll relative">
+                            {msg && <div className="fixed top-20 right-4 md:right-8 z-[100] px-4 md:px-6 py-3 bg-slate-800 text-white rounded shadow-2xl font-bold text-[10px] md:text-xs animate-in border-l-4 border-schneider uppercase tracking-wider">{msg}</div>}
                             {syncProgress && <div className="fixed inset-0 z-[100] bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center text-schneider p-10 text-center">
-                                <div className="text-2xl font-black italic animate-pulse uppercase tracking-tighter">{syncProgress}</div>
+                                <div className="text-xl md:text-2xl font-black italic animate-pulse uppercase tracking-tighter">{syncProgress}</div>
                             </div>}
 
                             {view === 'dashboard' ? (
-                                <div className="max-w-6xl mx-auto space-y-12 animate-in">
-                                    <div className="flex justify-between items-end border-b border-slate-200 pb-5">
+                                <div className="max-w-6xl mx-auto space-y-6 md:space-y-12 animate-in">
+                                    <div className="flex flex-col md:flex-row md:justify-between md:items-end border-b border-slate-200 pb-5 gap-2">
                                         <div className="flex flex-col">
-                                            <h3 className="text-xl font-black text-slate-800 uppercase italic tracking-tighter">Performance Intelligence</h3>
-                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1 italic">Personal Dashboard - 2026 Edition</p>
+                                            <h3 className="text-lg md:text-xl font-black text-slate-800 uppercase italic tracking-tighter">Performance Intelligence</h3>
+                                            <p className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1 italic">Personal Dashboard - 2026</p>
                                         </div>
-                                        <div className="text-[10px] font-bold text-slate-400 uppercase italic">Cloud Sync: {meta?.lastUpload ? new Date(meta.lastUpload).toLocaleString('th-TH') : 'Ready'}</div>
+                                        <div className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase italic">Sync: {meta?.lastUpload ? new Date(meta.lastUpload).toLocaleDateString('th-TH') : 'Ready'}</div>
                                     </div>
 
-                                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                                    {/* 🚩 Stat Cards: Mobile Responsive Grid */}
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
                                         <StatCard label="TOTAL (2026)" value={stats.total} color="bg-dashIndigo" />
                                         <StatCard label="PENDING" value={stats.open} color="bg-dashAmber" />
                                         <StatCard label="PROGRESS" value={stats.progress} color="bg-dashBlue" />
                                         <StatCard label="SUCCESS" value={stats.closed} color="bg-dashGreen" />
                                     </div>
 
-                                    <div className="bg-white p-12 rounded-[2rem] border border-slate-100 soft-shadow flex flex-col items-center justify-center text-center">
-                                        <div className="w-16 h-16 bg-schneider/10 text-schneider rounded-2xl flex items-center justify-center mb-6">
-                                            <Icon name="Cloud" size={32} />
+                                    <div className="bg-white p-8 md:p-12 rounded-[1.5rem] md:rounded-[2rem] border border-slate-100 soft-shadow flex flex-col items-center justify-center text-center">
+                                        <div className="w-12 h-12 md:w-16 md:h-16 bg-schneider/10 text-schneider rounded-2xl flex items-center justify-center mb-6">
+                                            <Icon name="Cloud" size={28} />
                                         </div>
-                                        <h4 className="font-bold text-slate-800 uppercase italic mb-2 tracking-tight">Personalized Performance Hub</h4>
-                                        <p className="text-xs text-slate-400 max-w-sm italic">Tracking system synchronized for Rattanachot Siriwanit.</p>
+                                        <h4 className="font-bold text-slate-800 uppercase italic mb-2 tracking-tight text-sm md:text-base">Personalized Performance Hub</h4>
+                                        <p className="text-[10px] md:text-xs text-slate-400 max-w-sm italic">Tracking system synchronized for Rattanachot Siriwanit.</p>
                                     </div>
                                 </div>
                             ) : view === 'add' ? (
-                                <div className="max-w-2xl mx-auto py-8 animate-in">
-                                    <div className="bg-white rounded-[2rem] soft-shadow border border-slate-100 p-12">
-                                        <h3 className="text-xl font-bold uppercase italic text-slate-800 mb-8 border-b border-slate-50 pb-4">Job Deployment</h3>
-                                        <form onSubmit={handleAddItem} className="space-y-6">
-                                            <div className="grid grid-cols-2 gap-4">
+                                <div className="max-w-2xl mx-auto py-4 md:py-8 animate-in">
+                                    <div className="bg-white rounded-[1.5rem] md:rounded-[2rem] soft-shadow border border-slate-100 p-6 md:p-12">
+                                        <h3 className="text-lg md:text-xl font-bold uppercase italic text-slate-800 mb-6 md:border-b border-slate-50 md:pb-4 text-center md:text-left">Job Deployment</h3>
+                                        <form onSubmit={handleAddItem} className="space-y-4 md:space-y-6">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 <FormInput label="Job ID" val={newItem['Action Id']} onChange={v => setNewItem({...newItem, 'Action Id': v})} placeholder="ID-202X" />
                                                 <FormInput label="Objective" val={newItem.Title} onChange={v => setNewItem({...newItem, 'Title': v})} placeholder="Action Name" />
                                             </div>
                                             <div className="space-y-1">
                                                 <label className="text-[9px] font-bold text-slate-400 uppercase italic ml-1">Action Detail</label>
-                                                <textarea className="w-full p-4 bg-slate-50 border border-slate-100 rounded-xl text-xs focus:border-schneider outline-none transition h-32 italic" placeholder="..." value={newItem.Description} onChange={e => setNewItem({...newItem, Description: e.target.value})} />
+                                                <textarea className="w-full p-4 bg-slate-50 border border-slate-100 rounded-xl text-xs focus:border-schneider outline-none transition h-24 md:h-32 italic" placeholder="..." value={newItem.Description} onChange={e => setNewItem({...newItem, Description: e.target.value})} />
                                             </div>
-                                            <div className="grid grid-cols-2 gap-4">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 <FormInput label="Line name" val={newItem.Line} onChange={v => setNewItem({...newItem, Line: v})} placeholder="Line Identifier" />
                                                 <div className="space-y-1">
                                                     <label className="text-[9px] font-bold text-slate-400 uppercase italic ml-1">Initial Status</label>
@@ -289,35 +338,39 @@
                                 </div>
                             ) : (
                                 <div className="max-w-6xl mx-auto space-y-4 animate-in">
-                                    <div className="bg-white border border-slate-100 soft-shadow overflow-hidden divide-y divide-slate-100 rounded-[1.5rem]">
+                                    <div className="bg-white border border-slate-100 soft-shadow overflow-hidden divide-y divide-slate-100 rounded-[1rem] md:rounded-[1.5rem]">
                                         {filteredTasks.length === 0 ? (
-                                            <div className="p-32 text-center text-slate-200 font-bold uppercase italic text-sm">No operational data found</div>
+                                            <div className="p-20 md:p-32 text-center text-slate-200 font-bold uppercase italic text-xs md:text-sm">No operational data found</div>
                                         ) : filteredTasks.map(t => (
                                             <div key={t._id} className="group flex flex-col">
-                                                <div onClick={() => setExpandedId(expandedId === t._id ? null : t._id)} className={`p-6 flex items-center justify-between cursor-pointer hover:bg-slate-50 transition-colors ${expandedId === t._id ? 'bg-schneider/5' : ''}`}>
-                                                    <div className="flex items-center gap-8 min-w-0 flex-1">
-                                                        <div className="flex flex-col shrink-0 w-24">
-                                                            <span className={`text-[7px] font-black italic uppercase mb-0.5 ${t.Source === 'Manual Entry' ? 'text-amber-500' : 'text-schneider'}`}>{t.Source || 'SIM2'}</span>
-                                                            <span className="text-[10px] font-bold text-slate-300 italic uppercase">ID: {t['Action Id']?.slice(-10)}</span>
+                                                <div onClick={() => setExpandedId(expandedId === t._id ? null : t._id)} className={`p-4 md:p-6 flex items-center justify-between cursor-pointer hover:bg-slate-50 transition-colors ${expandedId === t._id ? 'bg-schneider/5' : ''}`}>
+                                                    <div className="flex items-center gap-4 md:gap-8 min-w-0 flex-1">
+                                                        <div className="flex flex-col shrink-0 w-16 md:w-24">
+                                                            <span className={`text-[6px] md:text-[7px] font-black italic uppercase mb-0.5 ${t.Source === 'Manual Entry' ? 'text-amber-500' : 'text-schneider'}`}>{t.Source || 'SIM2'}</span>
+                                                            <span className="text-[8px] md:text-[10px] font-bold text-slate-300 italic uppercase truncate">ID: {t['Action Id']?.slice(-10)}</span>
                                                         </div>
-                                                        <h4 className="text-sm font-bold italic uppercase text-slate-700 truncate tracking-tight leading-tight group-hover:text-schneider transition-colors">{t.Title || 'Untitled Action'}</h4>
+                                                        <h4 className="text-xs md:text-sm font-bold italic uppercase text-slate-700 truncate tracking-tight leading-tight group-hover:text-schneider transition-colors">
+                                                            {t.Title || 'Untitled Action'}
+                                                        </h4>
                                                     </div>
-                                                    <div className="flex items-center gap-4 no-print shrink-0">
-                                                        <div className={`px-4 py-1.5 rounded text-[8px] font-black uppercase italic tracking-widest ${t.Status?.toLowerCase().includes('open') ? 'bg-amber-100 text-amber-700' : t.Status?.toLowerCase().includes('progress') ? 'bg-blue-100 text-blue-700' : 'bg-schneider/10 text-schneiderDark'}`}>{t.Status}</div>
-                                                        <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ type: 'single', id: t._id }); }} className="p-2 text-slate-200 hover:text-rose-500 transition-colors"><Icon name="Trash" size={14} /></button>
+                                                    <div className="flex items-center gap-2 md:gap-4 no-print shrink-0">
+                                                        <div className={`px-2 md:px-4 py-1 md:py-1.5 rounded text-[6px] md:text-[8px] font-black uppercase italic tracking-widest ${t.Status?.toLowerCase().includes('open') ? 'bg-amber-100 text-amber-700' : t.Status?.toLowerCase().includes('progress') ? 'bg-blue-100 text-blue-700' : 'bg-schneider/10 text-schneiderDark'}`}>
+                                                            {t.Status?.split(' ')[0]}
+                                                        </div>
+                                                        <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ type: 'single', id: t._id }); }} className="p-1 md:p-2 text-slate-200 hover:text-rose-500 transition-colors"><Icon name="Trash" size={14} /></button>
                                                     </div>
                                                 </div>
-                                                <div className={`overflow-hidden transition-all duration-300 ${expandedId === t._id ? 'max-h-[1200px] border-t border-slate-50 bg-slate-50/10' : 'max-h-0'}`}>
-                                                    <div className="p-10 grid grid-cols-1 lg:grid-cols-2 gap-10">
-                                                        <div className="space-y-6">
-                                                            <div className="p-6 bg-white border border-slate-100 italic text-slate-500 text-xs whitespace-pre-wrap leading-relaxed shadow-sm border-l-4 border-schneider">
+                                                <div className={`overflow-hidden transition-all duration-300 ${expandedId === t._id ? 'max-h-[1500px] border-t border-slate-50 bg-slate-50/10' : 'max-h-0'}`}>
+                                                    <div className="p-4 md:p-10 grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-10">
+                                                        <div className="space-y-4 md:space-y-6">
+                                                            <div className="p-4 md:p-6 bg-white border border-slate-100 italic text-slate-500 text-[10px] md:text-xs whitespace-pre-wrap leading-relaxed shadow-sm border-l-4 border-schneider">
                                                                 {t.Description || t['Action Description'] || '--- NO DETAIL ---'}
                                                             </div>
-                                                            <div className="grid grid-cols-2 gap-3">
-                                                                <DetailRow label="In Charge" val={t.In_Charge || t.Raiser || t.Owner} />
+                                                            <div className="grid grid-cols-1 xs:grid-cols-2 gap-3">
+                                                                <DetailRow label="In Charge" val={t.In_Charge || t.Raiser} />
                                                                 <DetailRow label="Line name" val={t.Line || t.Area} />
                                                             </div>
-                                                            <div className="grid grid-cols-3 gap-3">
+                                                            <div className="grid grid-cols-2 xs:grid-cols-3 gap-3">
                                                                 <DetailRow label="Date" val={t['Opening Date']} />
                                                                 <DetailRow label="Start" val={t.OpenedAt ? new Date(t.OpenedAt).toLocaleDateString('th-TH') : '---'} />
                                                                 <DetailRow label="Success" val={t.ClosedAt ? new Date(t.ClosedAt).toLocaleDateString('th-TH') : '---'} />
@@ -325,20 +378,30 @@
                                                         </div>
                                                         <div className="flex flex-col gap-4">
                                                             <div className="flex-1 flex flex-col">
-                                                                <h5 className="text-[8px] font-bold text-schneider uppercase tracking-widest italic mb-2 ml-1">Follow-up Summary</h5>
-                                                                <textarea className="w-full flex-1 p-6 bg-white border border-slate-200 rounded-xl text-xs outline-none shadow-sm focus:border-schneider transition italic" placeholder="..." value={t.Note || ''} onChange={async (e) => {
-                                                                    const val = e.target.value;
-                                                                    await window.SIM2.setDoc(window.SIM2.doc(window.SIM2.db, ...path, t._id), { Note: val }, { merge: true });
-                                                                }} />
+                                                                <h5 className="text-[7px] md:text-[8px] font-bold text-schneider uppercase tracking-widest italic mb-2 ml-1">Follow-up Summary</h5>
+                                                                <textarea 
+                                                                    className="w-full flex-1 p-4 md:p-6 bg-white border border-slate-200 rounded-xl text-[10px] md:text-xs outline-none shadow-sm focus:border-schneider transition italic h-24 md:h-auto" 
+                                                                    placeholder="..." 
+                                                                    value={t.Note || ''} 
+                                                                    onChange={async (e) => {
+                                                                        const val = e.target.value;
+                                                                        await window.SIM2.setDoc(window.SIM2.doc(window.SIM2.db, ...path, t._id), { Note: val }, { merge: true });
+                                                                    }} 
+                                                                />
                                                             </div>
-                                                            <button onClick={async () => {
-                                                                const s = (t.Status || '').toLowerCase();
-                                                                const next = s.includes('open') ? 'In Progress' : s.includes('progress') ? 'Closed' : 'Open';
-                                                                const up = { Status: next };
-                                                                if (next === 'Closed') up.ClosedAt = new Date().toISOString();
-                                                                else up.OpenedAt = new Date().toISOString();
-                                                                await window.SIM2.setDoc(window.SIM2.doc(window.SIM2.db, ...path, t._id), up, { merge: true });
-                                                            }} className="w-full py-4 bg-slate-800 text-white rounded font-bold uppercase italic hover:bg-schneider hover:text-white transition-all text-[10px] tracking-widest uppercase">Cycle Status</button>
+                                                            <button 
+                                                                onClick={async () => {
+                                                                    const s = (t.Status || '').toLowerCase();
+                                                                    const next = s.includes('open') ? 'In Progress' : s.includes('progress') ? 'Closed' : 'Open';
+                                                                    const up = { Status: next };
+                                                                    if (next === 'Closed') up.ClosedAt = new Date().toISOString();
+                                                                    else up.OpenedAt = new Date().toISOString();
+                                                                    await window.SIM2.setDoc(window.SIM2.doc(window.SIM2.db, ...path, t._id), up, { merge: true });
+                                                                }} 
+                                                                className="w-full py-3 md:py-4 bg-slate-800 text-white rounded font-bold uppercase italic hover:bg-schneider hover:text-white transition-all text-[9px] md:text-[10px] tracking-widest"
+                                                            >
+                                                                Cycle Status
+                                                            </button>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -350,11 +413,12 @@
                         </div>
                     </main>
 
+                    {/* Delete Modal: Responsive */}
                     {deleteConfirm && (
-                        <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-slate-900/40 backdrop-blur-sm">
-                            <div className="bg-white rounded-2xl p-10 max-w-sm w-full shadow-2xl text-center animate-in border border-slate-100">
-                                <h3 className="text-lg font-bold uppercase italic text-slate-800 mb-2">Confirm Delete</h3>
-                                <p className="text-slate-400 font-medium italic text-[11px] mb-8">Permanently remove this action from cloud storage?</p>
+                        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+                            <div className="bg-white rounded-2xl p-8 md:p-10 max-w-sm w-full shadow-2xl text-center animate-in border border-slate-100">
+                                <h3 className="text-base md:text-lg font-bold uppercase italic text-slate-800 mb-2">Confirm Delete</h3>
+                                <p className="text-slate-400 font-medium italic text-[10px] md:text-[11px] mb-8">Permanently remove this action?</p>
                                 <div className="flex gap-3">
                                     <button onClick={() => setDeleteConfirm(null)} className="flex-1 py-3 bg-slate-50 text-slate-400 rounded font-bold uppercase text-[10px]">Abort</button>
                                     <button onClick={confirmDelete} className="flex-1 py-3 bg-rose-600 text-white rounded font-bold uppercase text-[10px] shadow-lg shadow-rose-200">Delete</button>
@@ -367,31 +431,36 @@
         };
 
         const SidebarBtn = ({ icon, label, active, onClick }) => (
-            <button onClick={onClick} className={`w-full flex items-center gap-4 px-8 py-4 transition-all duration-300 border-l-4 border-transparent ${active ? 'nav-item-active text-white' : 'text-slate-500 hover:text-white hover:bg-white/5'}`}>
+            <button onClick={onClick} className={`w-full flex items-center gap-3 md:gap-4 px-6 md:px-8 py-3 md:py-4 transition-all duration-300 border-l-4 border-transparent ${active ? 'nav-item-active text-white' : 'text-slate-500 hover:text-white hover:bg-white/5'}`}>
                 <span className={active ? 'scale-110' : 'opacity-30'}>{icon}</span>
-                <span className="font-bold text-[10px] uppercase tracking-wider italic leading-none">{label}</span>
+                <span className="font-bold text-[9px] md:text-[10px] uppercase tracking-wider italic leading-none">{label}</span>
             </button>
         );
 
         const StatCard = ({ label, value, color }) => (
-            <div className="bg-white p-10 rounded-[2.5rem] border border-slate-100 soft-shadow flex flex-col group overflow-hidden relative text-center">
-                <div className={`absolute top-0 left-0 w-full h-2 ${color} opacity-80 group-hover:h-3 transition-all`} />
-                <div className="text-5xl font-black text-slate-800 tracking-tighter italic leading-none tabular-nums mt-4 mb-2 group-hover:scale-110 transition-transform origin-center leading-none">{value}</div>
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest italic">{label}</p>
+            <div className="bg-white p-6 md:p-10 rounded-[1.5rem] md:rounded-[2.5rem] border border-slate-100 soft-shadow flex flex-col group overflow-hidden relative text-center">
+                <div className={`absolute top-0 left-0 w-full h-1.5 md:h-2 ${color} opacity-80 group-hover:h-2.5 transition-all`} />
+                <div className="text-3xl md:text-5xl font-black text-slate-800 tracking-tighter italic leading-none tabular-nums mt-2 md:mt-4 mb-1 md:mb-2 group-hover:scale-105 transition-transform origin-center">{value}</div>
+                <p className="text-[7px] md:text-[9px] font-black text-slate-400 uppercase tracking-widest italic">{label}</p>
             </div>
         );
 
         const FormInput = ({ label, val, onChange, placeholder }) => (
             <div className="space-y-1">
-                <label className="text-[9px] font-bold text-slate-400 uppercase italic ml-1">{label}</label>
-                <input className="w-full p-3 bg-slate-50 border border-slate-100 rounded-xl text-[11px] font-bold italic uppercase outline-none focus:border-schneider transition shadow-sm" placeholder={placeholder} value={val} onChange={(e) => onChange(e.target.value)} />
+                <label className="text-[8px] md:text-[9px] font-bold text-slate-400 uppercase italic ml-1">{label}</label>
+                <input 
+                    className="w-full p-2.5 md:p-3 bg-slate-50 border border-slate-100 rounded-xl text-[10px] md:text-[11px] font-bold italic uppercase outline-none focus:border-schneider transition shadow-sm" 
+                    placeholder={placeholder} 
+                    value={val} 
+                    onChange={(e) => onChange(e.target.value)} 
+                />
             </div>
         );
 
         const DetailRow = ({ label, val }) => (
-            <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex flex-col gap-1 overflow-hidden">
-                <span className="text-[7px] font-black text-slate-400 uppercase italic leading-none tracking-widest">{label}</span>
-                <span className="text-[10px] font-bold text-slate-700 truncate italic leading-tight">{val || '---'}</span>
+            <div className="bg-white p-3 md:p-4 rounded-xl border border-slate-100 shadow-sm flex flex-col gap-0.5 md:gap-1 overflow-hidden">
+                <span className="text-[6px] md:text-[7px] font-black text-slate-400 uppercase italic leading-none tracking-widest">{label}</span>
+                <span className="text-[9px] md:text-[10px] font-bold text-slate-700 truncate italic leading-tight">{val || '---'}</span>
             </div>
         );
 
