@@ -352,7 +352,7 @@ export default function App() {
                                     <p className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1 italic">Personal Dashboard - 2026 Edition</p>
                                 </div>
                                 <div className="flex items-center gap-4">
-                                    <div className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase italic hidden sm:block">Cloud Sync: {meta?.lastUpload ? new Date(meta.lastUpload).toLocaleString('th-TH') : 'Ready'}</div>
+                                    <div className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase italic hidden sm:block">Cloud Sync: {meta?.lastUpload ? `${formatDate(meta.lastUpload)} ${new Date(meta.lastUpload).toLocaleTimeString('en-GB', {hour: '2-digit', minute:'2-digit'})}` : 'Ready'}</div>
                                     <button 
                                         onClick={handleGenerateSummary}
                                         disabled={isAiLoading}
