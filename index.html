@@ -4,7 +4,7 @@ import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged }
 import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, writeBatch } from 'firebase/firestore';
 
 // --- Firebase Configuration ---
-const firebaseConfig = {
+const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
   apiKey: "AIzaSyBpb35n86yKm-etaqI9ilvPosBe4OyDogs",
   authDomain: "sim2-management-rattanachot.firebaseapp.com",
   projectId: "sim2-management-rattanachot",
@@ -17,13 +17,19 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
-const appId = 'sim2-mgmt-rattanachot';
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'sim2-mgmt-rattanachot';
 
 const formatDate = (dateStr) => {
     if (!dateStr) return '---';
     const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return dateStr; // ถ้าแปลงไม่ได้ให้คืนค่าเดิม
+    if (isNaN(d.getTime())) return dateStr; 
     return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ /g, '-');
+};
+
+const calculateDays = (start, end) => {
+    if (!start || !end) return '---';
+    const diff = new Date(end) - new Date(start);
+    return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24))) + ' วัน';
 };
 
 // --- Gemini API Logic ---
@@ -109,10 +115,8 @@ export default function App() {
             try {
                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                     try {
-                        // Attempt to login with custom token first
                         await signInWithCustomToken(auth, __initial_auth_token);
                     } catch (tokenError) {
-                        // Fallback to anonymous login if the token mismatches the custom Firebase config
                         console.warn("Custom token mismatch, falling back to anonymous auth:", tokenError);
                         await signInAnonymously(auth);
                     }
@@ -263,12 +267,6 @@ export default function App() {
             setMsg("Action Removed");
         } catch (e) { setMsg("Delete Failed"); }
         setDeleteConfirm(null);
-    };
-
-    const calculateDays = (start, end) => {
-        if (!start || !end) return '---';
-        const diff = new Date(end) - new Date(start);
-        return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24))) + ' วัน';
     };
 
     return (
