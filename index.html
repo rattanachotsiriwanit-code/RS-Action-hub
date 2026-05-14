@@ -192,7 +192,7 @@
             const [view, setView] = useState('dashboard');
             const [search, setSearch] = useState('');
             const [statusFilter, setStatusFilter] = useState('All');
-            const [lineFilter, setLineFilter] = useState('All'); // NEW: Line Filter State
+            const [lineFilter, setLineFilter] = useState('All'); 
             const [expandedId, setExpandedId] = useState(null);
             const [msg, setMsg] = useState(null);
             const [syncProgress, setSyncProgress] = useState(null);
@@ -231,10 +231,8 @@
 
             useEffect(() => setIsSidebarOpen(false), [view]);
 
-            // Logic to get Line Names with Open Counts
             const lineOptions = useMemo(() => {
                 const counts = {};
-                // Filter only my data first
                 const myTasks = allData.filter(t => {
                     const nameFields = String(t.In_Charge || t.Owner || t.Raiser || t.Responsible || t.OwnerName || t.Rattanachot || '').toLowerCase();
                     return nameFields.includes('rattanachot') || nameFields.includes('siriwanit') || nameFields.includes('รัตนโชติ');
@@ -248,7 +246,6 @@
                     }
                 });
 
-                // Only include lines that have open items
                 return Object.entries(counts)
                     .map(([name, count]) => ({ name, count }))
                     .sort((a, b) => b.count - a.count);
@@ -350,9 +347,49 @@
                 if (!userApiKey) { setShowApiKeyModal(true); return; }
                 setIsAiLoading(true);
                 try {
-                    const activeTasks = filteredTasks.filter(t => t.Status !== 'Closed').map(t => `- [${t.Status}] ${t.Title}: ${t.Description?.substring(0, 80)}...`).join("\n");
-                    const prompt = `สรุปงานอุตสาหกรรมสั้นๆ ภาษาไทย: \n${activeTasks}`;
-                    const summary = await fetchGemini(prompt, userApiKey, "คุณคือผู้ช่วยสรุปรายงานระดับผู้บริหาร");
+                    // Prepare data specifically for line criticality analysis
+                    const openTasks = filteredTasks.filter(t => {
+                        const s = String(t.Status || '').toLowerCase();
+                        return s.includes('open') || s.includes('progress');
+                    });
+                    
+                    const lineAnalysis = {};
+                    openTasks.forEach(t => {
+                        const line = t.Line || t.Area || 'Unknown';
+                        if (!lineAnalysis[line]) lineAnalysis[line] = { count: 0, actions: [] };
+                        lineAnalysis[line].count += 1;
+                        // เพิ่มรายละเอียดงานเข้าไปให้ AI วิเคราะห์แบบลงลึก
+                        const shortDesc = t.Description ? t.Description.replace(/\n/g, ' ').substring(0, 100) : 'ไม่มีรายละเอียด';
+                        lineAnalysis[line].actions.push(`- [${t.Status}] ${t.Title} (ข้อมูล: ${shortDesc}...)`);
+                    });
+
+                    let dataForAi = "";
+                    const sortedLines = Object.entries(lineAnalysis).sort((a, b) => b[1].count - a[1].count);
+                    
+                    // Top 5 lines details
+                    sortedLines.slice(0, 5).forEach(([line, data]) => {
+                        dataForAi += `Line: ${line} (ค้างอยู่: ${data.count} items)\n${data.actions.join('\n')}\n\n`;
+                    });
+
+                    // Summarize remaining lines
+                    if (sortedLines.length > 5) {
+                        let remainingCount = 0;
+                        sortedLines.slice(5).forEach(([_, data]) => {
+                            remainingCount += data.count;
+                        });
+                        dataForAi += `\nนอกจากนี้ ยังมีงานค้างกระจายอยู่ตาม Line อื่นๆ อีกรวม ${remainingCount} items`;
+                    }
+
+                    // เปลี่ยน Prompt ให้เน้น Action หน้างานจริง
+                    const prompt = `จากข้อมูลงานค้างหน้างาน (Open/In Progress) แยกตาม Line ด้านล่างนี้:
+\n${dataForAi}
+คุณคือพี่เลี้ยงวิศวกร ให้เขียน "ไกด์ไลน์การปฏิบัติงานจริง" ให้คนหน้างานเอาไปทำต่อได้เลย โดย:
+1. เลือก Line ที่วิกฤติที่สุด ระบุจำนวน Item
+2. แนะนำวิธีแก้ปัญหา "ระดับปฏิบัติการ (Actionable)" ให้กับปัญหาหลักๆ ของ Line นั้น (อ้างอิงจาก Title และข้อมูลงาน) แนะนำเลยว่าต้องไปเช็คอะไร ปรับตั้งค่าตรงไหน ประสานงานใคร 
+(ห้ามตอบกว้างๆ แบบ "ผู้บริหารควรเพิ่มงบ/โยกคน" ให้ตอบสิ่งที่ช่าง/วิศวกรเดินไปทำได้เลย)
+3. ทิ้งท้ายด้วยยอดสรุป Item ของ Line อื่นๆ ที่เหลือรวมกัน`;
+                    
+                    const summary = await fetchGemini(prompt, userApiKey, "คุณคือรุ่นพี่วิศวกรหน้างานประสบการณ์สูง ตอบตรงๆ ไม่ต้องเกริ่น ไม่อวย เน้นบอกวิธีแก้ปัญหาทางเทคนิค 1-2-3 ให้รุ่นน้องเอาไปลุยต่อ");
                     setAiSummary(summary);
                 } catch (error) { 
                     setMsg("AI Error: Check API Key"); 
@@ -502,7 +539,6 @@
                             </div>
                             
                             <div className="flex items-center gap-2">
-                                {/* NEW: Line Name Filter Dropdown */}
                                 <div className="relative">
                                     <select 
                                         className="appearance-none pl-4 pr-10 py-2 bg-white border border-slate-200 rounded-md text-[11px] font-bold uppercase italic text-slate-700 focus:border-[#3dcd58] outline-none transition shadow-sm cursor-pointer"
@@ -539,7 +575,7 @@
                                         <div className="flex items-center gap-4">
                                             <button onClick={handleGenerateSummary} disabled={isAiLoading} className="bg-white border border-slate-200 text-[#3dcd58] hover:bg-[#3dcd58]/10 px-4 py-2 rounded-lg font-bold text-[10px] flex items-center gap-2 uppercase tracking-widest active:scale-95 transition-all disabled:opacity-50 shadow-sm">
                                                 <Icon name="Sparkle" size={14} className={isAiLoading ? "animate-spin" : ""} />
-                                                {isAiLoading ? "Analyzing..." : "✨ AI Executive Summary"}
+                                                {isAiLoading ? "Analyzing..." : "✨ AI Operation Guide"}
                                             </button>
                                         </div>
                                     </div>
@@ -548,7 +584,7 @@
                                         <div className="gradient-ai p-6 md:p-8 rounded-[1.5rem] animate-in">
                                             <div className="flex items-center gap-2 mb-4">
                                                 <Icon name="Sparkle" size={20} className="text-[#3dcd58]" />
-                                                <span className="font-black text-xs md:text-sm text-slate-800 uppercase tracking-widest italic">Executive AI Summary</span>
+                                                <span className="font-black text-xs md:text-sm text-slate-800 uppercase tracking-widest italic">Operational Action Guide (เจาะลึกหน้างาน)</span>
                                             </div>
                                             <div className="text-xs md:text-sm text-slate-700 leading-relaxed italic whitespace-pre-line">{aiSummary}</div>
                                         </div>
