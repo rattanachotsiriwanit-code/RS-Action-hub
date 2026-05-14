@@ -95,7 +95,8 @@
                 Menu: <Fragment><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></Fragment>,
                 X: <Fragment><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></Fragment>,
                 Sparkle: <Fragment><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></Fragment>,
-                Settings: <Fragment><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></Fragment>
+                Settings: <Fragment><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></Fragment>,
+                Camera: <Fragment><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></Fragment>
             };
             return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{icons[name] || null}</svg>;
         };
@@ -487,6 +488,37 @@
                 setMsg("Cost Updated");
             };
 
+            const handleImageUpload = (e, id) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                setSyncProgress("อัปโหลดรูปแป๊บ...");
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.onload = async () => {
+                        const canvas = document.createElement('canvas');
+                        const MAX_WIDTH = 800; // บีบอัดรูปไม่ให้เกิน 800px ดาต้าเบสจะได้ไม่ตู้ม
+                        let scaleSize = 1;
+                        if (img.width > MAX_WIDTH) scaleSize = MAX_WIDTH / img.width;
+                        canvas.width = img.width * scaleSize;
+                        canvas.height = img.height * scaleSize;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        const base64 = canvas.toDataURL('image/jpeg', 0.7); // ย่อ Quality ลงมาเหลือ 70%
+                        try {
+                            await setDoc(doc(db, ...publicPath, 'actions', id), { Image: base64 }, { merge: true });
+                            setMsg("แนบรูปเรียบร้อย!");
+                        } catch(err) {
+                            setMsg("อัปโหลดพลาด ลองใหม่นะ");
+                        }
+                        setSyncProgress(null);
+                        setTimeout(() => setMsg(null), 3000);
+                    };
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            };
+
             return (
                 <div className="flex h-screen bg-white relative overflow-hidden font-['Sarabun']">
                     <style dangerouslySetInnerHTML={{__html: `
@@ -721,9 +753,23 @@
                                                             </div>
                                                         </div>
                                                         <div className="flex flex-col gap-4">
-                                                            <div className="flex-1 flex flex-col">
-                                                                <h5 className="text-[10px] md:text-xs font-bold text-[#3dcd58] uppercase tracking-widest italic mb-2 ml-1">Follow-up Summary</h5>
+                                                            <div className="flex-1 flex flex-col gap-2">
+                                                                <h5 className="text-[10px] md:text-xs font-bold text-[#3dcd58] uppercase tracking-widest italic mb-1 ml-1">Follow-up Summary</h5>
                                                                 <textarea className="w-full flex-1 p-4 md:p-5 bg-white border border-slate-200 rounded-xl text-xs md:text-sm outline-none shadow-sm focus:border-[#3dcd58] transition italic h-24 md:h-auto" placeholder="Type summary here..." value={t.Note || ''} onChange={async (e) => await setDoc(doc(db, ...publicPath, 'actions', t._id), { Note: e.target.value }, { merge: true })} />
+                                                                
+                                                                {t.Image && (
+                                                                    <div className="relative w-full h-32 md:h-48 rounded-xl overflow-hidden border border-slate-200 shadow-sm group/img mt-2">
+                                                                        <img src={t.Image} alt="Action Attachment" className="w-full h-full object-cover" />
+                                                                        <button onClick={async () => await setDoc(doc(db, ...publicPath, 'actions', t._id), { Image: null }, { merge: true })} className="absolute top-2 right-2 p-1.5 bg-rose-500/80 hover:bg-rose-600 text-white rounded-full opacity-0 group-hover/img:opacity-100 transition-opacity">
+                                                                            <Icon name="X" size={14} />
+                                                                        </button>
+                                                                    </div>
+                                                                )}
+                                                                
+                                                                <label className="cursor-pointer flex items-center justify-center gap-2 w-full py-2 mt-1 bg-slate-50 border border-dashed border-slate-300 text-slate-500 rounded-lg text-[10px] md:text-xs font-bold hover:bg-slate-100 hover:border-[#3dcd58] hover:text-[#3dcd58] transition active:scale-95">
+                                                                    <Icon name="Camera" size={14} /> แนบรูปถ่ายหน้างาน
+                                                                    <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e, t._id)} />
+                                                                </label>
                                                             </div>
                                                             <button onClick={async () => {
                                                                 const s = (t.Status || '').toLowerCase();
