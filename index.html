@@ -162,6 +162,21 @@
             </div>
         );
 
+        // รายชื่อ Line ทั้งหมดจากไฟล์ Master
+        const MASTER_LINE_NAMES = [
+            "D Auto Pole assembly machine 1", "D Auto Pole assembly manual 1",
+            "D Auto Thermal (W03-W07) No.1", "D Auto coil (W01+02) No.1", "D Auto coil (W01+02) No.2",
+            "D Auto coil (W01+02) No.3", "D Auto coil (W01+02) No.4", "D Auto coil (W01+02) No.5",
+            "D Finishing 1", "D Finishing 2", "D Finishing 3", "D Finishing 4", "D Finishing 5",
+            "D Finishing 6", "D M5 Finishing 2", "D M5 Finishing 3", "D M5 Finishing 4","SA Pole assy",
+            "D M5 Finishing 5", "D M5 Finishing 6","SA Cut&Fuse","SA Mag Yoke","SA Manual sub assembly Qovs","SA Manual sub assembly Rocket",
+            "D Thermal W03-W06 Line 1", "D Thermal W03-W06 Line 2", "D Thermal W03-W06 Line 3",
+            "D Thermal W03-W06 Line 4", "D Thermal W07 Manual", "D Thermal W07 Semi auto", "D Welding Coil",
+            "SA Auto Pole assembly machine 1","SA Contact Press Spring",
+            "SA Auto Pole assembly machine 2", "SA Auto Pole assembly manual 1", "SA Auto Pole assembly manual 2",
+            "SA Pole assy 1", "SA Pole assy 2", "SA Pole assy 3", "SA Pole assy 4"
+        ];
+
         const App = ({ fb }) => {
             const { initializeApp, getAuth, signInAnonymously, onAuthStateChanged, initializeFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, writeBatch, getFirestore } = fb;
             
@@ -503,7 +518,10 @@
 
             const handleAddItem = async (e) => {
                 e.preventDefault();
-                if (!newItem['Action Id'] || !newItem.Title) return;
+                if (!newItem['Action Id'] || !newItem.Title || !newItem.Line) {
+                    setMsg("กรุณากรอกข้อมูลและเลือก Line ให้ครบ");
+                    return;
+                }
                 setSyncProgress("Deploying Action...");
                 try {
                     const cleanId = newItem['Action Id'].toUpperCase().replace(/[^a-zA-Z0-9-]/g, '-').trim();
@@ -746,10 +764,24 @@
                                             </div>
                                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                                 <FormInput label="Cost (THB)" val={newItem.Cost} onChange={v => setNewItem({...newItem, Cost: v})} placeholder="0" />
-                                                <FormInput label="Line name" val={newItem.Line} onChange={v => setNewItem({...newItem, Line: v})} placeholder="Line Identifier" />
+                                                
+                                                <div className="space-y-1">
+                                                    <label className="text-[10px] md:text-xs font-bold text-slate-400 uppercase italic ml-1">Line name</label>
+                                                    <select 
+                                                        className="w-full p-2.5 md:p-3 bg-slate-50 border border-slate-100 rounded-xl text-xs md:text-sm font-bold italic outline-none focus:border-[#3dcd58] transition shadow-sm cursor-pointer" 
+                                                        value={newItem.Line} 
+                                                        onChange={e => setNewItem({...newItem, Line: e.target.value})}
+                                                    >
+                                                        <option value="" disabled>-- เลือก Line --</option>
+                                                        {MASTER_LINE_NAMES.map(line => (
+                                                            <option key={line} value={line}>{line}</option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+
                                                 <div className="space-y-1">
                                                     <label className="text-[10px] md:text-xs font-bold text-slate-400 uppercase italic ml-1">Status</label>
-                                                    <select className="w-full p-3 bg-slate-50 border border-slate-100 rounded-xl text-xs md:text-sm font-bold uppercase italic outline-none" value={newItem.Status} onChange={e => setNewItem({...newItem, Status: e.target.value})}>
+                                                    <select className="w-full p-2.5 md:p-3 bg-slate-50 border border-slate-100 rounded-xl text-xs md:text-sm font-bold uppercase italic outline-none focus:border-[#3dcd58] transition shadow-sm cursor-pointer" value={newItem.Status} onChange={e => setNewItem({...newItem, Status: e.target.value})}>
                                                         <option value="Open">OPEN</option><option value="In Progress">IN PROGRESS</option><option value="Closed">CLOSED</option>
                                                     </select>
                                                 </div>
