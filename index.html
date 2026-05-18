@@ -305,13 +305,12 @@
 
             const costData = useMemo(() => {
                 const months2026 = Array(12).fill(0);
-                const closedItems2026 = Array(12).fill(0); // ตัวแปรเก็บจำนวน Item ที่ปิด
+                const closedItems2026 = Array(12).fill(0);
                 const currentYear = 2026;
                 let totalSpent2026 = 0;
                 let totalClosed2026 = 0;
 
                 filteredTasks.forEach(t => {
-                    // ใช้ Closure Date ตัดสินว่างานนี้ตกอยู่ในเดือนไหน
                     const targetDateStr = t['Closure Date'] || t.ClosedAt || t['Due Date'] || t['Due Date R/S*'] || t['Opening Date'] || t.OpenedAt || new Date().toISOString();
                     const d = new Date(targetDateStr);
                     
@@ -319,7 +318,6 @@
                         const month = d.getMonth();
                         const status = String(t.Status || '').toLowerCase();
                         
-                        // ถ้าระบุว่ามี Cost ก็บวกเงินเข้าไป
                         const costStr = String(t.Cost || t.Budget || '0').replace(/[^0-9.-]+/g, "");
                         const cost = parseFloat(costStr) || 0;
                         if (cost > 0) {
@@ -327,7 +325,6 @@
                             totalSpent2026 += cost;
                         }
 
-                        // ถ้างบถูกปิด (Closed) ให้นับจำนวนงานไว้ด้วย
                         if (status.includes('closed') || status === 'close') {
                             closedItems2026[month] += 1;
                             totalClosed2026 += 1;
@@ -343,7 +340,6 @@
                         label: monthNames[idx],
                         val,
                         closedCount: closedItems2026[idx],
-                        // ถ้ามีเงินให้ยืดกราฟตามเงิน, ถ้าไม่มีเงินแต่มีงานปิด ให้ยืดกราฟมารอรับป้ายไว้ 4% (เนียนๆ)
                         height: val > 0 ? Math.max((val / maxVal) * 100, 4) : (closedItems2026[idx] > 0 ? 4 : 0)
                     })),
                     totalSpent: totalSpent2026,
@@ -435,30 +431,54 @@
                 reader.onload = async (ev) => {
                     try {
                         const cleanText = ev.target.result.replace(/^\uFEFF/, '').trim();
+                        
+                        // New robust CSV Parser supporting newlines in quotes
                         const parseCSV = (text) => {
-                            const lines = text.split('\n');
-                            const delimiter = lines[0].indexOf(';') !== -1 ? ';' : ',';
-                            return lines.map(line => {
-                                const row = [];
-                                let cur = '', inQuote = false;
-                                for (let i = 0; i < line.length; i++) {
-                                    const char = line[i];
-                                    if (char === '"') inQuote = !inQuote;
-                                    else if (char === delimiter && !inQuote) { row.push(cur.trim().replace(/^"|"$/g, '')); cur = ''; }
-                                    else cur += char;
+                            const rows = [];
+                            let row = [];
+                            let cur = '';
+                            let inQuote = false;
+                            
+                            const firstLineEnd = text.indexOf('\n');
+                            const firstLine = firstLineEnd !== -1 ? text.substring(0, firstLineEnd) : text;
+                            const delimiter = firstLine.indexOf(';') !== -1 ? ';' : ',';
+
+                            for (let i = 0; i < text.length; i++) {
+                                const char = text[i];
+                                
+                                if (char === '"') {
+                                    inQuote = !inQuote;
+                                } else if (char === delimiter && !inQuote) {
+                                    row.push(cur.trim().replace(/^"|"$/g, ''));
+                                    cur = '';
+                                } else if (char === '\n' && !inQuote) {
+                                    row.push(cur.trim().replace(/^"|"$/g, ''));
+                                    if (row.length > 1 || row[0] !== '') rows.push(row);
+                                    row = [];
+                                    cur = '';
+                                } else if (char === '\r' && !inQuote) {
+                                    // ignore \r
+                                } else {
+                                    cur += char;
                                 }
+                            }
+                            if (cur !== '' || row.length > 0) {
                                 row.push(cur.trim().replace(/^"|"$/g, ''));
-                                return row;
-                            });
+                                if (row.length > 1 || row[0] !== '') rows.push(row);
+                            }
+                            return rows;
                         };
+
                         const rows = parseCSV(cleanText);
                         const hIdx = rows.findIndex(r => r.some(c => String(c).toLowerCase().includes('id')));
                         const headers = rows[hIdx].map(h => h.trim());
                         let idIdx = headers.findIndex(h => h.toLowerCase() === 'action id');
                         if (idIdx === -1) idIdx = headers.findIndex(h => h.toLowerCase().includes('id'));
+                        
                         const dataRows = rows.slice(hIdx + 1).filter(r => r[idIdx]);
                         const batchLimit = 300; 
                         let successCount = 0;
+                        
                         for (let i = 0; i < dataRows.length; i += batchLimit) {
                             const chunk = dataRows.slice(i, i + batchLimit);
                             const batch = writeBatch(db);
@@ -475,7 +495,7 @@
                         }
                         await setDoc(doc(db, ...publicPath, 'metadata', 'sync_info'), { lastUpload: new Date().toISOString() }, { merge: true });
                         setMsg(`Sync Complete: ${successCount} Items`);
-                    } catch (err) { setMsg("Sync Failed"); }
+                    } catch (err) { console.error(err); setMsg("Sync Failed"); }
                     setSyncProgress(null); setTimeout(() => setMsg(null), 3000);
                 };
                 reader.readAsText(file);
@@ -516,14 +536,14 @@
                     const img = new Image();
                     img.onload = async () => {
                         const canvas = document.createElement('canvas');
-                        const MAX_WIDTH = 800; // บีบอัดรูปไม่ให้เกิน 800px ดาต้าเบสจะได้ไม่ตู้ม
+                        const MAX_WIDTH = 800;
                         let scaleSize = 1;
                         if (img.width > MAX_WIDTH) scaleSize = MAX_WIDTH / img.width;
                         canvas.width = img.width * scaleSize;
                         canvas.height = img.height * scaleSize;
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                        const base64 = canvas.toDataURL('image/jpeg', 0.7); // ย่อ Quality ลงมาเหลือ 70%
+                        const base64 = canvas.toDataURL('image/jpeg', 0.7);
                         try {
                             await setDoc(doc(db, ...publicPath, 'actions', id), { Image: base64 }, { merge: true });
                             setMsg("แนบรูปเรียบร้อย!");
@@ -612,7 +632,10 @@
 
                         <div className="flex-1 overflow-y-auto p-4 md:p-10 custom-scroll relative">
                             {msg && <div className="fixed top-20 right-4 md:right-8 z-[100] px-4 md:px-6 py-3 bg-slate-800 text-white rounded shadow-2xl font-bold text-xs animate-in border-l-4 border-[#3dcd58] uppercase tracking-wider">{msg}</div>}
-                            
+                            {syncProgress && <div className="fixed inset-0 z-[100] bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center text-[#3dcd58] p-10 text-center">
+                                <div className="text-xl md:text-2xl font-black italic animate-pulse uppercase tracking-tighter">{syncProgress}</div>
+                            </div>}
+
                             {view === 'dashboard' ? (
                                 <div className="max-w-6xl mx-auto space-y-6 md:space-y-12 animate-in">
                                     <div className="flex flex-col md:flex-row md:justify-between md:items-end border-b border-slate-200 pb-5 gap-4">
@@ -669,7 +692,6 @@
                                         <div className="flex items-end h-48 md:h-64 gap-1 sm:gap-2 lg:gap-4 mt-8 relative pt-12 pb-6">
                                             {costData.chart.map((c, i) => {
                                                 const isCurrent = i === new Date().getMonth();
-                                                // เลือกสีแท่งกราฟ: เดือนปัจจุบัน = เขียว, มี Cost = แดง, ไม่มี Cost แต่มีงาน = เทาอ่อนๆ 
                                                 const barColor = isCurrent ? 'bg-[#3dcd58]' : (c.val > 0 ? 'bg-rose-400' : (c.closedCount > 0 ? 'bg-slate-200' : 'bg-transparent'));
                                                 
                                                 return (
@@ -682,7 +704,6 @@
                                                                 </div>
                                                             )}
                                                             
-                                                            {/* Tooltip โชว์คู่ทั้ง 2 ค่า ให้เนียนๆ */}
                                                             <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute -top-14 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[9px] md:text-[10px] px-2.5 py-1.5 rounded font-bold whitespace-nowrap z-20 pointer-events-none shadow-md flex flex-col items-center gap-1">
                                                                 <span>{c.val.toLocaleString()} THB</span>
                                                                 {c.closedCount > 0 && <span className="text-[#3dcd58] text-[8px] bg-white/10 px-1.5 py-0.5 rounded-sm">✓ {c.closedCount} Closed</span>}
@@ -692,7 +713,6 @@
                                                         </div>
                                                         <div className={`text-[10px] md:text-xs uppercase font-bold mt-2 italic ${isCurrent ? 'text-[#3dcd58] scale-110' : 'text-slate-400'}`}>{c.label}</div>
                                                         
-                                                        {/* Badge สำหรับโชว์จำนวน Item ข้างใต้ชื่อเดือน */}
                                                         <div className="h-4 mt-1 flex items-center justify-center">
                                                             {c.closedCount > 0 && (
                                                                 <div className="text-[8px] md:text-[9px] font-black text-emerald-600 bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 rounded shadow-sm">
