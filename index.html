@@ -168,7 +168,7 @@
             "D Auto Thermal (W03-W07) No.1", "D Auto coil (W01+02) No.1", "D Auto coil (W01+02) No.2",
             "D Auto coil (W01+02) No.3", "D Auto coil (W01+02) No.4", "D Auto coil (W01+02) No.5",
             "D Finishing 1", "D Finishing 2", "D Finishing 3", "D Finishing 4", "D Finishing 5",
-            "D Finishing 6", "D M5 Finishing 2", "D M5 Finishing 3", "D M5 Finishing 4",
+            "D Finishing 6", "D M5 Finishing 2", "D M5 Finishing 3", "D M5 Finishing 4","SA Pole assy",
             "D M5 Finishing 5", "D M5 Finishing 6","SA Cut&Fuse","SA Mag Yoke","SA Manual sub assembly Qovs","SA Manual sub assembly Rocket",
             "D Thermal W03-W06 Line 1", "D Thermal W03-W06 Line 2", "D Thermal W03-W06 Line 3",
             "D Thermal W03-W06 Line 4", "D Thermal W07 Manual", "D Thermal W07 Semi auto", "D Welding Coil",
@@ -209,6 +209,7 @@
             const [search, setSearch] = useState('');
             const [statusFilter, setStatusFilter] = useState('All');
             const [lineFilter, setLineFilter] = useState('All'); 
+            const [sortBy, setSortBy] = useState('default');
             const [expandedId, setExpandedId] = useState(null);
             const [msg, setMsg] = useState(null);
             const [syncProgress, setSyncProgress] = useState(null);
@@ -289,6 +290,26 @@
                 }
 
                 return tasks.sort((a, b) => {
+                    if (sortBy === 'open_desc') return new Date(b['Opening Date'] || b.OpenedAt || 0) - new Date(a['Opening Date'] || a.OpenedAt || 0);
+                    if (sortBy === 'open_asc') return new Date(a['Opening Date'] || a.OpenedAt || 0) - new Date(b['Opening Date'] || b.OpenedAt || 0);
+                    
+                    const getDue = (t) => {
+                        const d = t['Due Date'] || t['Due Date R/S*'] || t.DueDate;
+                        return d ? new Date(d).getTime() : null;
+                    };
+                    
+                    if (sortBy === 'due_asc') {
+                        const dA = getDue(a) || Infinity;
+                        const dB = getDue(b) || Infinity;
+                        return dA - dB;
+                    }
+                    if (sortBy === 'due_desc') {
+                        const dA = getDue(a) || -Infinity;
+                        const dB = getDue(b) || -Infinity;
+                        return dB - dA;
+                    }
+
+                    // default sort
                     const statusA = (a.Status || '').toLowerCase();
                     const statusB = (b.Status || '').toLowerCase();
                     const isClosedA = statusA.includes('closed');
@@ -299,7 +320,7 @@
                     const dateB = new Date(b['Opening Date'] || b.OpenedAt || 0);
                     return dateB - dateA;
                 });
-            }, [allData, search, statusFilter, lineFilter]);
+            }, [allData, search, statusFilter, lineFilter, sortBy]);
 
             const stats = useMemo(() => {
                 const total = filteredTasks.length;
@@ -792,12 +813,30 @@
                                 </div>
                             ) : (
                                 <div className="max-w-6xl mx-auto space-y-4 animate-in">
-                                    <div className="flex gap-2 mb-4 overflow-x-auto pb-2 custom-scroll">
-                                        {['All', 'Open', 'In Progress', 'Closed'].map(status => (
-                                            <button key={status} onClick={() => setStatusFilter(status)} className={`px-5 py-2.5 rounded-full text-xs font-bold uppercase italic tracking-widest whitespace-nowrap transition-all shadow-sm ${statusFilter === status ? 'bg-slate-800 text-white' : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-50'}`}>
-                                                {status}
-                                            </button>
-                                        ))}
+                                    <div className="flex flex-col sm:flex-row gap-2 mb-4 justify-between items-start sm:items-center">
+                                        <div className="flex gap-2 overflow-x-auto pb-2 sm:pb-0 custom-scroll w-full sm:w-auto">
+                                            {['All', 'Open', 'In Progress', 'Closed'].map(status => (
+                                                <button key={status} onClick={() => setStatusFilter(status)} className={`px-5 py-2.5 rounded-full text-xs font-bold uppercase italic tracking-widest whitespace-nowrap transition-all shadow-sm ${statusFilter === status ? 'bg-slate-800 text-white' : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-50'}`}>
+                                                    {status}
+                                                </button>
+                                            ))}
+                                        </div>
+                                        <div className="relative shrink-0 w-full sm:w-auto">
+                                            <select 
+                                                className="w-full sm:w-auto appearance-none pl-4 pr-10 py-2.5 bg-white border border-slate-200 rounded-full text-xs font-bold uppercase italic text-slate-700 focus:border-[#3dcd58] outline-none transition shadow-sm cursor-pointer"
+                                                value={sortBy}
+                                                onChange={(e) => setSortBy(e.target.value)}
+                                            >
+                                                <option value="default">Sort: Default</option>
+                                                <option value="open_desc">Open Date (Newest)</option>
+                                                <option value="open_asc">Open Date (Oldest)</option>
+                                                <option value="due_asc">Due Date (Nearest)</option>
+                                                <option value="due_desc">Due Date (Farthest)</option>
+                                            </select>
+                                            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                            </div>
+                                        </div>
                                     </div>
 
                                     <div className="bg-white border border-slate-100 soft-shadow overflow-hidden divide-y divide-slate-100 rounded-[1rem]">
@@ -811,9 +850,19 @@
                                                             <span className={`text-[10px] md:text-xs font-black italic uppercase mb-1 ${t.Source === 'Manual Entry' ? 'text-amber-500' : 'text-[#3dcd58]'}`}>{t.Source || 'SIM2'}</span>
                                                             <span className="text-xs font-bold text-slate-400 italic">ID: {t['Action Id']?.slice(-10)}</span>
                                                         </div>
-                                                        <h4 className={`text-sm md:text-base font-bold italic uppercase pr-1 tracking-tight leading-tight transition-colors ${t.Status?.toLowerCase().includes('closed') ? 'text-slate-400 line-through' : 'text-slate-700 group-hover:text-[#3dcd58]'}`}>{t.Title || 'Untitled Action'}</h4>
+                                                        <div className="flex flex-col min-w-0 flex-1 gap-1">
+                                                            <h4 className={`text-sm md:text-base font-bold italic uppercase pr-1 tracking-tight leading-tight transition-colors ${t.Status?.toLowerCase().includes('closed') ? 'text-slate-400 line-through' : 'text-slate-700 group-hover:text-[#3dcd58]'}`}>{t.Title || 'Untitled Action'}</h4>
+                                                            <div className="flex flex-wrap items-center gap-2 mt-0.5">
+                                                                <span className="text-[9px] md:text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded shadow-sm italic flex items-center gap-1">
+                                                                    Open: {formatDate(t['Opening Date'] || t.OpenedAt)}
+                                                                </span>
+                                                                <span className="text-[9px] md:text-[10px] font-bold text-rose-500 bg-rose-50 border border-rose-100 px-2 py-0.5 rounded shadow-sm italic flex items-center gap-1">
+                                                                    Due: {formatDate(t['Due Date'] || t['Due Date R/S*'] || t.DueDate)}
+                                                                </span>
+                                                            </div>
+                                                        </div>
                                                     </div>
-                                                    <div className="flex items-center gap-3 md:gap-5 shrink-0">
+                                                    <div className="flex items-center gap-3 md:gap-5 shrink-0 ml-2">
                                                         <div className={`px-3 md:px-4 py-1.5 md:py-2 rounded text-[10px] md:text-xs font-black uppercase italic tracking-widest ${t.Status?.toLowerCase().includes('open') ? 'bg-amber-100 text-amber-700' : t.Status?.toLowerCase().includes('progress') ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-500'}`}>{t.Status?.split(' ')[0]}</div>
                                                         <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ type: 'single', id: t._id }); }} className="p-2 text-slate-200 hover:text-rose-500 transition-colors"><Icon name="Trash" size={16} /></button>
                                                     </div>
