@@ -218,6 +218,12 @@
 
             const [editingCostId, setEditingCostId] = useState(null);
             const [tempCost, setTempCost] = useState('');
+            
+            const [editingDescId, setEditingDescId] = useState(null);
+            const [tempDesc, setTempDesc] = useState('');
+
+            const [editingDueDateId, setEditingDueDateId] = useState(null);
+            const [tempDueDate, setTempDueDate] = useState('');
 
             const [userApiKey, setUserApiKey] = useState(localStorage.getItem('gemini_api_key') || '');
             const [showApiKeyModal, setShowApiKeyModal] = useState(false);
@@ -577,7 +583,8 @@
                         ...newItem, 
                         'Due Date': finalDueDate,
                         Source: 'Manual Entry', 
-                        'Action Id': cleanId 
+                        'Action Id': cleanId,
+                        editCount: 0
                     }, { merge: true });
                     
                     setMsg("Success");
@@ -597,6 +604,27 @@
                 await setDoc(doc(db, ...publicPath, 'actions', id), { Cost: tempCost }, { merge: true });
                 setEditingCostId(null);
                 setMsg("Cost Updated");
+            };
+
+            const saveDescEdit = async (t) => {
+                const currentCount = t.editCount || 0;
+                await setDoc(doc(db, ...publicPath, 'actions', t._id), { 
+                    Description: tempDesc,
+                    editCount: currentCount + 1
+                }, { merge: true });
+                setEditingDescId(null);
+                setMsg("Description Updated");
+            };
+
+            const saveDueDateEdit = async (t) => {
+                const finalDate = tempDueDate ? new Date(tempDueDate).toISOString() : '';
+                const currentCount = t.dueDateEditCount || 0;
+                await setDoc(doc(db, ...publicPath, 'actions', t._id), { 
+                    'Due Date': finalDate,
+                    dueDateEditCount: currentCount + 1
+                }, { merge: true });
+                setEditingDueDateId(null);
+                setMsg("Due Date Updated");
             };
 
             const handleImageUpload = (e, id) => {
@@ -746,22 +774,9 @@
                                                 <h4 className="font-bold text-slate-800 uppercase italic tracking-tight text-sm md:text-base">Cost Analysis (2026)</h4>
                                                 <p className="text-[10px] md:text-xs text-slate-400 italic uppercase mt-1">Monthly expenditure tracking</p>
                                             </div>
-                                            <div className="text-right">
-                                                <div className="text-2xl md:text-3xl font-black text-slate-800 italic tabular-nums leading-none">
-                                                    {costData.totalSpent.toLocaleString()} <span className="text-sm text-slate-400">THB</span>
-                                                </div>
-                                                <div className="flex items-center justify-end gap-2 mt-2">
-                                                    <span className="text-[10px] md:text-xs font-bold text-[#3dcd58] uppercase tracking-widest italic">Total 2026 Spent</span>
-                                                    {costData.totalClosed > 0 && (
-                                                        <span className="text-[9px] font-bold text-emerald-700 bg-emerald-100 px-2.5 py-0.5 rounded shadow-sm italic">
-                                                            ✓ {costData.totalClosed} Items Closed
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </div>
                                         </div>
                                         
-                                        <div className="flex items-end h-48 md:h-64 gap-1 sm:gap-2 lg:gap-4 mt-8 relative pt-12 pb-6">
+                                        <div className="flex items-end h-48 md:h-64 gap-1 sm:gap-2 lg:gap-4 mt-8 relative pt-12 pb-6 border-b border-slate-100 mb-4">
                                             {costData.chart.map((c, i) => {
                                                 const isCurrent = i === new Date().getMonth();
                                                 const barColor = isCurrent ? 'bg-[#3dcd58]' : (c.val > 0 ? 'bg-rose-400' : (c.closedCount > 0 ? 'bg-slate-200' : 'bg-transparent'));
@@ -795,6 +810,22 @@
                                                     </div>
                                                 );
                                             })}
+                                        </div>
+
+                                        <div className="flex flex-col sm:flex-row justify-between items-center sm:items-end gap-2 pt-2">
+                                            <div className="flex items-center gap-2">
+                                                {costData.totalClosed > 0 && (
+                                                    <span className="text-[10px] md:text-xs font-bold text-emerald-700 bg-emerald-100 px-3 py-1 rounded-full shadow-sm italic flex items-center gap-1">
+                                                        <Icon name="Target" size={12} /> {costData.totalClosed} Items Closed
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className="text-right">
+                                                <span className="text-[10px] md:text-xs font-bold text-[#3dcd58] uppercase tracking-widest italic mr-2">Total 2026 Spent:</span>
+                                                <span className="text-2xl md:text-3xl font-black text-slate-800 italic tabular-nums leading-none">
+                                                    {costData.totalSpent.toLocaleString()} <span className="text-sm text-slate-400">THB</span>
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -913,11 +944,43 @@
                                                 <div className={`overflow-hidden transition-all duration-300 ${expandedId === t._id ? 'max-h-[1500px] border-t border-slate-50' : 'max-h-0'}`}>
                                                     <div className="p-5 md:p-10 grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
                                                         <div className="space-y-4 md:space-y-6">
-                                                            <div className="p-5 bg-white border italic text-slate-600 text-xs md:text-sm whitespace-pre-wrap leading-relaxed shadow-sm border-l-4 border-[#3dcd58]">
-                                                                {t.Description || '--- NO DETAIL ---'}
-                                                                <div className="mt-5 pt-5 border-t border-slate-100"><AiNextStep title={t.Title} description={t.Description} setMsg={setMsg} fetchGemini={fetchGemini} userApiKey={userApiKey} setShowApiKeyModal={setShowApiKeyModal}/></div>
+                                                            
+                                                            <div className="relative group/desc">
+                                                                {editingDescId === t._id ? (
+                                                                    <div className="p-4 bg-white border border-[#3dcd58] shadow-md rounded-xl flex flex-col gap-2">
+                                                                        <textarea 
+                                                                            autoFocus 
+                                                                            className="w-full text-xs md:text-sm text-slate-700 italic outline-none min-h-[100px] resize-y" 
+                                                                            value={tempDesc} 
+                                                                            onChange={(e) => setTempDesc(e.target.value)} 
+                                                                        />
+                                                                        <div className="flex justify-end gap-2 mt-2">
+                                                                            <button onClick={() => setEditingDescId(null)} className="px-3 py-1.5 text-[10px] font-bold text-slate-500 bg-slate-100 rounded hover:bg-slate-200">CANCEL</button>
+                                                                            <button onClick={() => saveDescEdit(t)} className="px-3 py-1.5 text-[10px] font-bold text-white bg-[#3dcd58] rounded hover:bg-[#2fa847]">SAVE</button>
+                                                                        </div>
+                                                                    </div>
+                                                                ) : (
+                                                                    <div 
+                                                                        className="p-5 bg-white border italic text-slate-600 text-xs md:text-sm whitespace-pre-wrap leading-relaxed shadow-sm border-l-4 border-[#3dcd58] cursor-text hover:bg-slate-50 transition-colors relative"
+                                                                        onClick={() => { setEditingDescId(t._id); setTempDesc(t.Description || ''); }}
+                                                                    >
+                                                                        <div className="absolute top-2 right-2 flex items-center gap-2">
+                                                                            {t.editCount > 0 && (
+                                                                                <span className="text-[9px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded shadow-sm">
+                                                                                    Edited {t.editCount}x
+                                                                                </span>
+                                                                            )}
+                                                                            <span className="opacity-0 group-hover/desc:opacity-100 text-[10px] font-bold text-[#3dcd58] bg-[#3dcd58]/10 px-2 py-1 rounded transition-opacity">
+                                                                                Click to Edit
+                                                                            </span>
+                                                                        </div>
+                                                                        <div className="pr-16">{t.Description || '--- NO DETAIL ---'}</div>
+                                                                        <div className="mt-5 pt-5 border-t border-slate-100" onClick={(e) => e.stopPropagation()}><AiNextStep title={t.Title} description={t.Description} setMsg={setMsg} fetchGemini={fetchGemini} userApiKey={userApiKey} setShowApiKeyModal={setShowApiKeyModal}/></div>
+                                                                    </div>
+                                                                )}
                                                             </div>
-                                                            <div className="grid grid-cols-1 xs:grid-cols-3 gap-3 md:gap-4">
+
+                                                            <div className="grid grid-cols-2 xs:grid-cols-4 gap-3 md:gap-4">
                                                                 <DetailRow label="Raiser" val={t.Raiser || t.In_Charge} />
                                                                 <DetailRow label="Line name" val={t.Line || t.Area} />
                                                                 <div className="bg-white p-3 md:p-4 rounded-xl border border-slate-100 shadow-sm flex flex-col gap-1 cursor-text group/cost relative" onClick={() => { setEditingCostId(t._id); setTempCost(t.Cost || t.Budget || ''); }}>
@@ -929,6 +992,21 @@
                                                                         <input autoFocus className="w-full text-xs md:text-sm font-bold text-slate-700 italic outline-none border-b border-[#3dcd58] bg-transparent" value={tempCost} onChange={(e) => setTempCost(e.target.value)} onBlur={() => saveCostEdit(t._id)} onKeyDown={(e) => { if(e.key === 'Enter') saveCostEdit(t._id) }} />
                                                                     ) : (
                                                                         <span className="text-xs md:text-sm font-bold text-slate-700 italic break-words">{t.Cost || t.Budget || '---'}</span>
+                                                                    )}
+                                                                </div>
+                                                                <div className="bg-white p-3 md:p-4 rounded-xl border border-slate-100 shadow-sm flex flex-col gap-1 cursor-text group/due relative" onClick={() => { 
+                                                                    setEditingDueDateId(t._id); 
+                                                                    const rawDate = t['Due Date'] || t['Due Date R/S*'] || t.DueDate;
+                                                                    setTempDueDate(rawDate && !isNaN(new Date(rawDate).getTime()) ? new Date(rawDate).toISOString().split('T')[0] : ''); 
+                                                                }}>
+                                                                    <span className="text-[10px] md:text-xs font-black text-rose-500 uppercase italic flex items-center justify-between">
+                                                                        <span>Due Date {t.dueDateEditCount > 0 && <span className="ml-1 text-[8px] bg-rose-50 border border-rose-100 text-rose-500 px-1 py-0.5 rounded shadow-sm">({t.dueDateEditCount}x)</span>}</span>
+                                                                        {editingDueDateId !== t._id && <span className="opacity-0 group-hover/due:opacity-100 text-[9px] text-slate-300">Edit</span>}
+                                                                    </span>
+                                                                    {editingDueDateId === t._id ? (
+                                                                        <input type="date" autoFocus className="w-full text-xs md:text-sm font-bold text-slate-700 italic outline-none border-b border-rose-500 bg-transparent" value={tempDueDate} onChange={(e) => setTempDueDate(e.target.value)} onBlur={() => saveDueDateEdit(t)} onKeyDown={(e) => { if(e.key === 'Enter') saveDueDateEdit(t) }} />
+                                                                    ) : (
+                                                                        <span className="text-xs md:text-sm font-bold text-slate-700 italic break-words">{formatYearStyle(t['Due Date'] || t['Due Date R/S*'] || t.DueDate) || '---'}</span>
                                                                     )}
                                                                 </div>
                                                             </div>
