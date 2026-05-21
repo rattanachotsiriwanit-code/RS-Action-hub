@@ -231,6 +231,28 @@
             });
             const publicPath = ['artifacts', appId, 'public', 'data'];
 
+            // ฟังก์ชันแสกนหาเลข ID ล่าสุด แล้วบวกเพิ่มอัตโนมัติ (Format: 2026-xxx)
+            const generateNextId = () => {
+                let maxNum = 0;
+                allData.forEach(t => {
+                    const id = String(t['Action Id'] || '').trim().toUpperCase();
+                    if (id.startsWith('2026-')) {
+                        const numPart = parseInt(id.replace('2026-', ''), 10);
+                        if (!isNaN(numPart) && numPart > maxNum) {
+                            maxNum = numPart;
+                        }
+                    }
+                });
+                return `2026-${String(maxNum + 1).padStart(3, '0')}`;
+            };
+
+            // ออโต้รันเลข ID ทันทีที่เปิดหน้า Add Action
+            useEffect(() => {
+                if (view === 'add' && newItem['Action Id'] === '') {
+                    setNewItem(prev => ({ ...prev, 'Action Id': generateNextId() }));
+                }
+            }, [view, allData]);
+
             useEffect(() => {
                 signInAnonymously(auth).catch(console.error);
                 const unsubscribe = onAuthStateChanged(auth, setUser);
