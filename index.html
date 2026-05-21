@@ -227,7 +227,7 @@
             const [isAiLoading, setIsAiLoading] = useState(false);
 
             const [newItem, setNewItem] = useState({
-                'Action Id': '', 'Title': '', 'Description': '', 'Cost': '', 'Opening Date': new Date().toISOString(), 'Status': 'Open', 'In_Charge': 'Rattanachot Siriwanit', 'Line': '' 
+                'Action Id': '', 'Title': '', 'Description': '', 'Cost': '', 'Opening Date': new Date().toISOString(), 'Due Date': '', 'Status': 'Open', 'In_Charge': 'Rattanachot Siriwanit', 'Line': '' 
             });
             const publicPath = ['artifacts', appId, 'public', 'data'];
 
@@ -568,9 +568,20 @@
                 setSyncProgress("Deploying Action...");
                 try {
                     const cleanId = newItem['Action Id'].toUpperCase().replace(/[^a-zA-Z0-9-]/g, '-').trim();
-                    await setDoc(doc(db, ...publicPath, 'actions', cleanId), { ...newItem, Source: 'Manual Entry', 'Action Id': cleanId }, { merge: true });
+                    // ถ้าไม่ได้เลือก Due Date ให้ใช้วันที่ปัจจุบันบวกไป 7 วัน
+                    const defaultDueDate = new Date();
+                    defaultDueDate.setDate(defaultDueDate.getDate() + 7);
+                    const finalDueDate = newItem['Due Date'] ? new Date(newItem['Due Date']).toISOString() : defaultDueDate.toISOString();
+
+                    await setDoc(doc(db, ...publicPath, 'actions', cleanId), { 
+                        ...newItem, 
+                        'Due Date': finalDueDate,
+                        Source: 'Manual Entry', 
+                        'Action Id': cleanId 
+                    }, { merge: true });
+                    
                     setMsg("Success");
-                    setNewItem({ 'Action Id': '', 'Title': '', 'Description': '', 'Cost': '', 'Opening Date': new Date().toISOString(), 'Status': 'Open', 'In_Charge': 'Rattanachot Siriwanit', 'Line': '' });
+                    setNewItem({ 'Action Id': '', 'Title': '', 'Description': '', 'Cost': '', 'Opening Date': new Date().toISOString(), 'Due Date': '', 'Status': 'Open', 'In_Charge': 'Rattanachot Siriwanit', 'Line': '' });
                     setView('list');
                 } catch (e) { setMsg("Failed"); }
                 setSyncProgress(null); setTimeout(() => setMsg(null), 3000);
@@ -805,7 +816,7 @@
                                                 <label className="text-[10px] md:text-xs font-bold text-slate-400 uppercase italic ml-1">Action Detail</label>
                                                 <textarea className="w-full p-4 bg-slate-50 border border-slate-100 rounded-xl text-xs md:text-sm focus:border-[#3dcd58] outline-none transition h-24 italic" value={newItem.Description} onChange={e => setNewItem({...newItem, Description: e.target.value})} />
                                             </div>
-                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                                                 <FormInput label="Cost (THB)" val={newItem.Cost} onChange={v => setNewItem({...newItem, Cost: v})} placeholder="0" />
                                                 
                                                 <div className="space-y-1">
@@ -820,6 +831,16 @@
                                                             <option key={line} value={line}>{line}</option>
                                                         ))}
                                                     </select>
+                                                </div>
+
+                                                <div className="space-y-1">
+                                                    <label className="text-[10px] md:text-xs font-bold text-slate-400 uppercase italic ml-1">Due Date</label>
+                                                    <input 
+                                                        type="date" 
+                                                        className="w-full p-2.5 md:p-3 bg-slate-50 border border-slate-100 rounded-xl text-xs md:text-sm font-bold italic uppercase outline-none focus:border-[#3dcd58] transition shadow-sm" 
+                                                        value={newItem['Due Date']} 
+                                                        onChange={(e) => setNewItem({...newItem, 'Due Date': e.target.value})} 
+                                                    />
                                                 </div>
 
                                                 <div className="space-y-1">
