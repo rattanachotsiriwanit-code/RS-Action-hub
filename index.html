@@ -1,9 +1,8 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="th">
 <head>
     <meta charset="UTF-8">
-    <!-- ป้องกันการซูมเข้าอัตโนมัติบน iPhone โดยเฉพาะเวลาแตะแป้นพิมพ์ด้วย maximum-scale=1.0 -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RS Action Hub - Command Center</title>
     
     <!-- React & Babel Standalone CDN -->
@@ -12,100 +11,34 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
 
-    <!-- Google Fonts: Prompt & Inter -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght=300;400;600;800;900&family=Prompt:ital,wght=0,300;0,400;0,700;1,800&display=swap" rel="stylesheet">
+    <!-- Google Fonts: IBM Plex Sans Thai & Inter for Modern Tech Aesthetic -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-    <!-- Firebase v10 Compat CDN -->
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-
-    <script>
-        window.SIM2_FB = null;
-        
-        function initFirebaseBridge() {
-            if (typeof firebase !== 'undefined') {
-                window.SIM2_FB = { 
-                    initializeApp: (config) => {
-                        if (firebase.apps.length) return firebase.app();
-                        return firebase.initializeApp(config);
-                    }, 
-                    getAuth: (app) => firebase.auth(app), 
-                    signInAnonymously: (auth) => auth.signInAnonymously(), 
-                    signInWithCustomToken: (auth, token) => auth.signInWithCustomToken(token), 
-                    onAuthStateChanged: (auth, callback) => auth.onAuthStateChanged(callback), 
-                    getFirestore: (app) => firebase.firestore(app), 
-                    initializeFirestore: (app, settings) => {
-                        const db = firebase.firestore(app);
-                        try { if (settings) db.settings(settings); } catch (e) {}
-                        return db;
-                    }, 
-                    collection: (db, ...paths) => db.collection(paths.join('/')), 
-                    doc: (db, ...paths) => db.doc(paths.join('/')), 
-                    setDoc: (docRef, data, options) => docRef.set(data, options || {}), 
-                    deleteDoc: (docRef) => docRef.delete(), 
-                    onSnapshot: (ref, next, error) => {
-                        return ref.onSnapshot((snap) => {
-                            if (snap) {
-                                try {
-                                    const existsVal = !!snap.exists;
-                                    Object.defineProperty(snap, 'exists', {
-                                        value: () => existsVal,
-                                        configurable: true,
-                                        enumerable: true,
-                                        writable: true
-                                    });
-                                } catch (e) {}
-
-                                if (snap.docs && Array.isArray(snap.docs)) {
-                                    snap.docs.forEach(docSnap => {
-                                        try {
-                                            const docExists = !!docSnap.exists;
-                                            Object.defineProperty(docSnap, 'exists', {
-                                                value: () => docExists,
-                                                configurable: true,
-                                                enumerable: true,
-                                                writable: true
-                                            });
-                                        } catch (e) {}
-                                    });
-                                }
-                            }
-                            next(snap);
-                        }, error);
-                    }, 
-                    writeBatch: (db) => {
-                        const batch = db.batch();
-                        return {
-                            set: (docRef, data, options) => batch.set(docRef, data, options || {}),
-                            update: (docRef, data) => batch.update(docRef, data),
-                            delete: (docRef) => batch.delete(docRef),
-                            commit: () => batch.commit()
-                        };
-                    } 
-                };
-            } else {
-                setTimeout(initFirebaseBridge, 50);
-            }
-        }
-        initFirebaseBridge();
-    </script>
+    <!-- Custom CSS for Scrollbars & Base Fonts -->
     <style>
-        /* ปรับแต่ง Scrollbar ซ่อนเพื่อไม่ให้รกพื้นที่ในจอมือถือ */
-        .custom-scroll::-webkit-scrollbar {
-            height: 4px;
-            width: 4px;
+        body {
+            font-family: 'Inter', 'IBM Plex Sans Thai', sans-serif;
+            background-color: #030712; /* ultra-dark slate */
+            color: #f3f4f6;
         }
-        .custom-scroll::-webkit-scrollbar-track {
-            background: rgba(0,0,0,0.1);
+        /* Custom Modern Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
         }
-        .custom-scroll::-webkit-scrollbar-thumb {
+        ::-webkit-scrollbar-track {
+            background: #0b0f19;
+        }
+        ::-webkit-scrollbar-thumb {
             background: #1e293b;
-            border-radius: 99px;
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #334155;
         }
     </style>
 </head>
-<body class="bg-[#0b0f19] text-slate-100 select-none">
+<body class="bg-[#030712] text-slate-100 overflow-hidden">
     <div id="root"></div>
 
     <script id="react-code-holder" type="text/plain">
@@ -125,11 +58,24 @@
             "SA Auto Pole assembly machine 2", "SA Auto Pole assembly manual 1", "SA Auto Pole assembly manual 2",
             "SA Pole assy 1", "SA Pole assy 2", "SA Pole assy 3", "SA Pole assy 4"
         ];
-        
-        const waitForFirebase = (callback) => {
-            if (window.SIM2_FB) callback(window.SIM2_FB);
-            else setTimeout(() => waitForFirebase(callback), 50);
-        };
+
+        const INITIAL_SAMPLE_DATA = [
+            {
+                _id: "2026-001",
+                "Action Id": "2026-001",
+                "Title": "ติดตั้งเซนเซอร์ตรวจจับความร้อนเครื่องจักร No.1",
+                "Description": "ทำการติดตั้งตัวเซนเซอร์วัดอุณหภูมิความร้อนในส่วน D Auto Thermal เพื่อส่งข้อมูลแจ้งเตือนเมื่อระบบมีความร้อนสูงเกินปกติ",
+                "Cost": "18500",
+                "Opening Date": "2026-06-15T08:00:00.000Z",
+                "Due Date": "2026-06-25T17:00:00.000Z",
+                "Status": "In Progress",
+                "In_Charge": "Rattanachot Siriwanit",
+                "Line": "D Auto Thermal (W03-W07) No.1",
+                "Attachment": "",
+                "Note": "อยู่ระหว่างประกอบชุดคอนโทรลเลอร์",
+                "Source": "System Sample"
+            }
+        ];
 
         const formatDate = (dateStr) => {
             if (!dateStr) return '---';
@@ -140,7 +86,7 @@
 
         const GEMINI_MODEL = "gemini-2.5-flash-preview-09-2025";
         
-        const fetchGemini = async (prompt, userKey, systemPrompt = "You are an expert industrial engineering project manager.") => {
+        const fetchGemini = async (prompt, userKey, systemPrompt = "คุณคือผู้ช่วยจัดการโครงการอุตสาหกรรมมืออาชีพ") => {
             if (!userKey) throw new Error("NO_API_KEY");
             let retries = 0;
             const delays = [1000, 2000, 4000, 8000, 16000];
@@ -164,7 +110,7 @@
 
         const Icon = ({ name, size = 18, className = "" }) => {
             const icons = {
-                Dashboard: <Fragment><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="11" width="7" height="10" rx="1"/><rect x="3" y="15" width="7" height="6" rx="1"/></Fragment>,
+                Dashboard: <Fragment><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="11" width="7" height="10" rx="1.5"/><rect x="3" y="15" width="7" height="6" rx="1.5"/></Fragment>,
                 List: <Fragment><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></Fragment>,
                 Plus: <Fragment><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></Fragment>,
                 Search: <Fragment><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></Fragment>,
@@ -178,11 +124,9 @@
                 Calendar: <Fragment><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></Fragment>,
                 Lock: <Fragment><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></Fragment>,
                 LogOut: <Fragment><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></Fragment>,
-                Eye: <Fragment><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></Fragment>,
-                Mobile: <Fragment><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></Fragment>,
-                Copy: <Fragment><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></Fragment>
+                Eye: <Fragment><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></Fragment>
             };
-            return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={className}>{icons[name] || null}</svg>;
+            return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{icons[name] || null}</svg>;
         };
 
         const AiNextStep = ({ title, description, setMsg, fetchGemini, userApiKey, setShowApiKeyModal, isReadOnly }) => {
@@ -193,23 +137,27 @@
                 if (!userApiKey) { setShowApiKeyModal(true); return; }
                 setLoading(true);
                 try {
-                    const prompt = 'The task is: "' + title + '". Description: "' + description + '". Suggest 3 actionable and direct engineering next steps in Thai. Keep it highly practical and concise.';
-                    const result = await fetchGemini(prompt, userApiKey, "You are a senior production floor manager who gives direct advice.");
+                    const prompt = 'งานคือ "' + title + '". คำอธิบาย: "' + description + '". ช่วยแนะนำ 3 ขั้นตอนปฏิบัติการเชิงวิศวรรกรรมสั้นๆ ภาษาไทย';
+                    const result = await fetchGemini(prompt, userApiKey, "คุณคือผู้เชี่ยวชาญโรงงานและช่างเทคนิคอาวุโส");
                     setSuggestion(result);
                 } catch (e) { 
                     if(e.message === "NO_API_KEY") setShowApiKeyModal(true);
-                    else setMsg("AI Recommendation Failed: " + e.message); 
+                    else setMsg("AI Insight failed: " + e.message); 
                 }
                 setLoading(false);
             };
             return (
-                <div className="flex flex-col items-end w-full">
-                    <button onClick={getSteps} disabled={loading} className="text-xs font-black text-[#00E676] flex items-center gap-1.5 hover:text-[#00c853] transition-colors active:scale-95 disabled:opacity-50 tracking-wider py-1.5">
-                        <Icon name="Sparkle" size={14} className={loading ? "animate-spin" : ""} />
-                        {suggestion ? "ซ่อนขั้นตอนการทำงาน" : "ขั้นตอนปฏิบัติการโดย AI"}
+                <div className="flex flex-col items-start w-full">
+                    <button 
+                        onClick={getSteps} 
+                        disabled={loading} 
+                        className="text-xs font-semibold text-teal-400 flex items-center gap-2 hover:text-teal-300 transition-colors active:scale-95 disabled:opacity-50"
+                    >
+                        <Icon name="Sparkle" size={14} className={loading ? "animate-spin" : "text-teal-400"} />
+                        {suggestion ? "ซ่อนขั้นตอนปฏิบัติการ" : "ขั้นตอนปฏิบัติการโดย AI"}
                     </button>
                     {suggestion && (
-                        <div className="mt-3 p-4 bg-[#0a0d14] border border-[#00E676]/20 rounded-lg text-xs md:text-sm text-slate-300 italic animate-in w-full text-left whitespace-pre-line border-l-4 border-l-[#00E676]">
+                        <div className="mt-3 p-4 bg-slate-900/60 border border-teal-500/20 rounded-xl text-xs md:text-sm text-slate-300 leading-relaxed animate-fadeIn w-full text-left whitespace-pre-line border-l-4 border-l-teal-500 shadow-lg">
                             {suggestion}
                         </div>
                     )}
@@ -218,38 +166,56 @@
         };
 
         const SidebarBtn = ({ icon, label, active, onClick }) => (
-            <button onClick={onClick} className={'w-full flex items-center gap-3 md:gap-4 px-6 md:px-8 py-4 transition-all duration-300 border-l-4 ' + (active ? 'border-[#00E676] bg-emerald-950/10 text-[#00E676]' : 'border-transparent text-slate-400 hover:text-white hover:bg-white/5')}>
-                <span className={active ? 'scale-110' : 'opacity-40'}>{icon}</span>
-                <span className="font-black text-xs md:text-sm uppercase tracking-widest italic leading-none">{label}</span>
+            <button 
+                onClick={onClick} 
+                className={'w-full flex items-center gap-3.5 px-6 py-3.5 rounded-xl transition-all duration-200 ' + 
+                    (active 
+                        ? 'bg-gradient-to-r from-teal-500/15 to-emerald-500/5 text-teal-400 font-semibold border-l-4 border-teal-500' 
+                        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/40 border-l-4 border-transparent'
+                    )}
+            >
+                <span className={active ? 'text-teal-400 scale-105 transition-transform' : 'opacity-60'}>{icon}</span>
+                <span className="text-xs font-medium tracking-wide uppercase">{label}</span>
             </button>
         );
 
         const StatCard = ({ label, value, color }) => (
-            <div className="bg-[#121824] p-4 md:p-8 rounded-xl border border-slate-800/80 shadow-2xl flex flex-col group overflow-hidden relative text-left">
+            <div className="bg-[#0f172a] p-6 rounded-2xl border border-slate-800/80 shadow-lg flex flex-col group overflow-hidden relative text-left">
                 <div className={'absolute top-0 left-0 w-full h-1 ' + color} />
-                <span className="text-[9px] md:text-xs font-black text-slate-500 uppercase tracking-widest italic">{label}</span>
-                <div className="text-2xl md:text-5xl font-black text-white tracking-tighter italic leading-none tabular-nums mt-2 mb-1 group-hover:scale-105 transition-transform duration-300 origin-left">{value}</div>
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{label}</span>
+                <div className="text-3xl font-bold text-white tracking-tight leading-none mt-3 mb-1 group-hover:scale-105 transition-transform duration-300 origin-left tabular-nums">
+                    {value}
+                </div>
             </div>
         );
 
-        // ⚡ เพิ่ม text-base และ md:text-sm เพื่อป้องกัน iOS ซูมคีย์บอร์ดเวลาเปิดพิมพ์
         const FormInput = ({ label, val, onChange, placeholder, type="text" }) => (
-            <div className="space-y-1">
-                <label className="text-[10px] md:text-xs font-black text-slate-400 uppercase italic ml-1 tracking-wider">{label}</label>
-                <input type={type} className="w-full p-3 bg-slate-900 border border-slate-800 rounded-lg text-base md:text-sm font-bold text-white outline-none focus:border-[#00E676] focus:ring-1 focus:ring-[#00E676]/20 transition shadow-inner" placeholder={placeholder} value={val} onChange={(e) => onChange(e.target.value)} />
+            <div className="space-y-1.5">
+                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">{label}</label>
+                <input 
+                    type={type} 
+                    className="w-full p-3 bg-slate-950/70 border border-slate-800/85 rounded-xl text-xs md:text-sm font-medium text-white placeholder-slate-600 focus:placeholder-slate-500 outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500/10 transition-all duration-200" 
+                    placeholder={placeholder} 
+                    value={val} 
+                    onChange={(e) => onChange(e.target.value)} 
+                />
             </div>
         );
 
         const DetailRow = ({ label, val, isClickable, onClick, actionLabel, isLight }) => (
             <div 
-                className={'p-3 md:p-4 rounded-xl border shadow-sm flex flex-col gap-1 overflow-hidden transition-all group ' + (isLight ? 'bg-white border-slate-200 text-slate-800' : 'bg-slate-900 border-slate-800 text-slate-200') + (isClickable ? ' cursor-pointer hover:border-[#00E676]/40' : '')}
+                className={'p-4 rounded-xl border flex flex-col gap-1 overflow-hidden transition-all duration-150 ' + 
+                    (isLight 
+                        ? 'bg-slate-900/40 border-slate-800 hover:bg-slate-900/60 ' 
+                        : 'bg-slate-950/30 border-slate-800/70 hover:bg-slate-950/50 ') + 
+                    (isClickable ? 'cursor-pointer hover:border-teal-500/40' : '')}
                 onClick={isClickable ? onClick : undefined}
             >
-                <span className="text-[10px] md:text-xs font-black text-slate-400 uppercase italic leading-none tracking-widest flex justify-between items-center">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex justify-between items-center">
                     <span>{label}</span>
-                    {isClickable && <span className="text-[8px] text-[#00E676] opacity-0 group-hover:opacity-100 transition-opacity font-bold">{actionLabel || '✏️ แก้ไข'}</span>}
+                    {isClickable && <span className="text-[9px] text-teal-400 opacity-70 font-semibold">{actionLabel || '✏️ EDIT'}</span>}
                 </span>
-                <span className="text-xs md:text-sm font-bold italic leading-tight pr-1 break-words">{val || '---'}</span>
+                <span className="text-xs md:text-sm font-medium text-slate-300 leading-tight pr-1 break-words">{val || '---'}</span>
             </div>
         );
 
@@ -267,33 +233,45 @@
             };
 
             return (
-                <div className="min-h-screen flex items-center justify-center p-4 relative bg-[#06080e] overflow-hidden font-['Prompt']">
-                    <div className="absolute top-0 left-0 w-full h-[3px] bg-[#00E676]/35 shadow-[0_0_15px_#00E676] z-[2] animate-pulse" />
+                <div className="min-h-screen flex items-center justify-center p-4 relative bg-radial-gradient from-slate-900 to-slate-950 overflow-hidden">
+                    {/* Glowing Modern Scanner Background Effect */}
+                    <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-teal-500/40 to-transparent shadow-[0_0_15px_#14b8a6] animate-pulse z-[2]" style={{
+                        animation: 'scannerMove 5s infinite ease-in-out'
+                    }} />
+                    <style>{`
+                        @keyframes scannerMove {
+                            0% { top: 0%; }
+                            50% { top: 100%; }
+                            100% { top: 0%; }
+                        }
+                    `}</style>
                     
-                    <div className="w-full max-w-md bg-[#0c0f16]/95 border border-[#00E676]/25 rounded-2xl p-6 md:p-8 shadow-[0_0_50px_rgba(0,230,118,0.1)] relative z-10 backdrop-blur-md">
-                        <div className="flex flex-col items-center text-center mb-6">
-                            <div className="w-14 h-14 bg-gradient-to-tr from-[#00E676] to-[#00b0ff] rounded-xl flex items-center justify-center font-black italic shadow-lg mb-4 shadow-[#00E676]/15">
+                    <div className="w-full max-w-md bg-[#090d16]/80 border border-slate-800 rounded-3xl p-8 md:p-10 shadow-2xl relative z-10 backdrop-blur-xl">
+                        <div className="flex flex-col items-center text-center mb-8">
+                            <div className="w-14 h-14 bg-gradient-to-tr from-teal-500 to-emerald-400 rounded-2xl flex items-center justify-center shadow-lg shadow-teal-500/10 mb-4">
                                 <Icon name="Lock" size={26} className="text-slate-950" />
                             </div>
-                            <h2 className="text-xl font-black uppercase italic tracking-widest text-white leading-none">Rattanachot Task</h2>
-                            <span className="text-[9px] font-black text-rose-500 uppercase tracking-widest mt-2 bg-rose-950/20 px-2.5 py-1 border border-rose-900/30 rounded-md">SECURE OPERATIONAL CLEARANCE</span>
+                            <h2 className="text-xl font-bold tracking-tight text-white leading-none">Rattanachot Task</h2>
+                            <span className="text-[9px] font-bold text-teal-400 uppercase tracking-widest mt-2 bg-teal-950/40 px-3 py-1 border border-teal-800/30 rounded-full">
+                                Secure Operational Access
+                            </span>
                         </div>
 
                         {errorMsg && (
-                            <div className="mb-4 p-3 bg-rose-950/40 border border-rose-800/60 rounded-lg text-xs text-rose-400 font-bold italic">
+                            <div className="mb-5 p-3.5 bg-red-950/20 border border-red-800/30 rounded-xl text-xs text-red-400 font-medium">
                                 ⚠️ {errorMsg}
                             </div>
                         )}
 
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <FormInput 
-                                label="OPERATIONAL USERNAME" 
+                                label="Operational Username" 
                                 val={username} 
                                 onChange={setUsername} 
                                 placeholder="SESAXXXXXX" 
                             />
                             <FormInput 
-                                label="CLEARANCE PASSWORD" 
+                                label="Clearance Password" 
                                 val={password} 
                                 onChange={setPassword} 
                                 placeholder="••••••••" 
@@ -303,19 +281,21 @@
                             <button 
                                 type="submit" 
                                 disabled={loading}
-                                className="w-full py-4 bg-gradient-to-r from-emerald-600 to-[#00E676] text-slate-950 rounded-lg font-black uppercase italic shadow-lg hover:opacity-90 transition-all text-xs tracking-widest disabled:opacity-50"
+                                className="w-full py-3.5 mt-2 bg-gradient-to-r from-teal-500 to-emerald-500 text-slate-950 rounded-xl font-bold uppercase text-xs tracking-wider hover:opacity-95 transition-all duration-200 shadow-lg shadow-teal-500/10 active:scale-[0.98] disabled:opacity-50"
                             >
-                                {loading ? "AUTHORIZING..." : "UNLOCK OPERATIONAL CONTROL"}
+                                {loading ? "AUTHORIZING..." : "UNLOCK CONTROL SYSTEM"}
                             </button>
                         </form>
 
-                        <div className="mt-6 pt-4 border-t border-slate-900 flex flex-col gap-3">
-                            <div className="text-center text-[10px] text-slate-500 font-bold uppercase tracking-wider">OR SIGN IN GUEST ROUTE</div>
+                        <div className="mt-8 pt-6 border-t border-slate-900 flex flex-col gap-3">
+                            <div className="text-center text-[10px] text-slate-500 font-semibold uppercase tracking-widest">
+                                Or bypass via general monitor
+                            </div>
                             <button 
                                 onClick={onGuestAccess}
-                                className="w-full py-3 bg-slate-900 hover:bg-slate-850 text-slate-300 rounded-lg border border-slate-800/80 font-black uppercase italic text-xs tracking-widest flex items-center justify-center gap-2 transition active:scale-95"
+                                className="w-full py-3 bg-slate-900/60 hover:bg-slate-900 text-slate-300 rounded-xl border border-slate-800/60 font-semibold text-xs tracking-wide flex items-center justify-center gap-2 transition active:scale-[0.98]"
                             >
-                                <Icon name="Eye" size={14} className="text-blue-400" /> GUEST ACCESS (VIEW ONLY)
+                                <Icon name="Eye" size={14} className="text-teal-400" /> GUEST ACCESS (READ-ONLY)
                             </button>
                         </div>
                     </div>
@@ -323,58 +303,20 @@
             );
         };
 
-        const App = ({ fb }) => {
-            const { initializeApp, getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, initializeFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, writeBatch, getFirestore } = fb;
-            
-            const firebaseConfig = useMemo(() => {
-                if (typeof __firebase_config !== 'undefined' && __firebase_config) {
-                    try {
-                        return JSON.parse(__firebase_config);
-                    } catch (e) {
-                        console.error("Failed to parse config:", e);
-                    }
-                }
-                return {
-                  apiKey: "AIzaSyBpb35n86yKm-etaqI9ilvPosBe4OyDogs",
-                  authDomain: "sim2-management-rattanachot.firebaseapp.com",
-                  projectId: "sim2-management-rattanachot",
-                  storageBucket: "sim2-management-rattanachot.firebasestorage.app",
-                  messagingSenderId: "1050876853626",
-                  appId: "1:1050876853626:web:a9cfa2b91416426a686ac3",
-                  measurementId: "G-KE7P699K7N"
-                };
-            }, []);
-
-            const app = useMemo(() => initializeApp(firebaseConfig), [firebaseConfig]);
-            const auth = useMemo(() => getAuth(app), [app]);
-            const db = useMemo(() => {
-                try { return initializeFirestore(app, { experimentalForceLongPolling: true }); } catch(e) { return getFirestore(app); }
-            }, [app]);
-            
-            const appId = useMemo(() => {
-                if (typeof __app_id !== 'undefined' && __app_id) {
-                    return __app_id;
-                }
-                const urlParams = new URLSearchParams(window.location.search);
-                const queryAppId = urlParams.get('appId');
-                if (queryAppId) return queryAppId;
-
-                const pathParts = window.location.pathname.split('/');
-                const artIdx = pathParts.indexOf('artifacts');
-                if (artIdx !== -1 && pathParts[artIdx + 1]) {
-                    return pathParts[artIdx + 1];
-                }
-                return 'sim2-mgmt-rattanachot';
-            }, []);
-
-            const [session, setSession] = useState(() => {
-                try { return sessionStorage.getItem('rs_task_session') || null; } catch(e) { return null; }
-            });
-            const [fbUser, setFbUser] = useState(null); 
+        const App = () => {
+            const [session, setSession] = useState(sessionStorage.getItem('rs_task_session') || null);
             const [authError, setAuthError] = useState('');
 
-            const [allData, setAllData] = useState([]);
-            const [meta, setMeta] = useState(null);
+            // 💾 ฐานข้อมูล Local Storage
+            const [allData, setAllData] = useState(() => {
+                const local = localStorage.getItem('rs_local_actions_db_v3');
+                return local ? JSON.parse(local) : INITIAL_SAMPLE_DATA;
+            });
+
+            // ☁️ Google Sheets API Setup
+            const [sheetUrl, setSheetUrl] = useState(() => localStorage.getItem('rs_google_sheet_api_url') || '');
+            const [isCloudSyncing, setIsCloudSyncing] = useState(false);
+
             const [view, setView] = useState('dashboard');
             const [search, setSearch] = useState('');
             const [statusFilter, setStatusFilter] = useState('All');
@@ -385,7 +327,7 @@
             const [syncProgress, setSyncProgress] = useState(null);
             const [deleteConfirm, setDeleteConfirm] = useState(null);
             const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-            const [showShareModal, setShowShareModal] = useState(false);
+            const [showSettingsModal, setShowSettingsModal] = useState(false);
 
             const currentYearValue = 2026;
             const [selectedYear, setSelectedYear] = useState(currentYearValue);
@@ -403,9 +345,7 @@
             const [tempAttachment, setTempAttachment] = useState('');
             const [previewUrl, setPreviewUrl] = useState(null);
 
-            const [userApiKey, setUserApiKey] = useState(() => {
-                try { return localStorage.getItem('gemini_api_key') || ''; } catch(e) { return ''; }
-            });
+            const [userApiKey, setUserApiKey] = useState(localStorage.getItem('gemini_api_key') || '');
             const [showApiKeyModal, setShowApiKeyModal] = useState(false);
             const [tempApiKey, setTempApiKey] = useState('');
 
@@ -415,51 +355,92 @@
             const [newItem, setNewItem] = useState({
                 'Action Id': '', 'Title': '', 'Description': '', 'Cost': '', 'Opening Date': new Date().toISOString(), 'Due Date': '', 'Status': 'Open', 'In_Charge': 'Rattanachot Siriwanit', 'Line': '', 'Attachment': '' 
             });
-            const publicPath = ['artifacts', appId, 'public', 'data'];
 
             const isReadOnly = session === 'guest';
+
+            useEffect(() => {
+                localStorage.setItem('rs_local_actions_db_v3', JSON.stringify(allData));
+            }, [allData]);
+
+            useEffect(() => {
+                if (sheetUrl && session) {
+                    pullFromGoogleSheets();
+                }
+            }, [sheetUrl, session]);
+
+            const showToast = (txt) => {
+                setMsg(txt);
+                setTimeout(() => setMsg(null), 3000);
+            };
+
+            const pullFromGoogleSheets = async () => {
+                if (!sheetUrl) return;
+                setIsCloudSyncing(true);
+                try {
+                    const response = await fetch(sheetUrl);
+                    if (response.ok) {
+                        const cloudData = await response.json();
+                        if (Array.isArray(cloudData) && cloudData.length > 0) {
+                            const mapped = cloudData.map(row => ({
+                                ...row,
+                                _id: row._id || row['Action Id']
+                            }));
+                            setAllData(mapped);
+                            showToast("ซิงค์ดึงข้อมูลจาก Google Sheets สำเร็จ!");
+                        }
+                    }
+                } catch(e) {
+                    console.error("Failed to pull from sheets:", e);
+                    showToast("ไม่สามารถดึงข้อมูลจาก Sheets ได้ (ตรวจสอบสิทธิ์ URL)");
+                }
+                setIsCloudSyncing(false);
+            };
+
+            const pushToGoogleSheets = async (action, dataPayload) => {
+                if (!sheetUrl) return;
+                setIsCloudSyncing(true);
+                try {
+                    const cleanPayload = { ...dataPayload };
+                    if (cleanPayload.Image && cleanPayload.Image.length > 20000) {
+                        delete cleanPayload.Image;
+                    }
+
+                    await fetch(sheetUrl, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action, data: cleanPayload })
+                    });
+                    showToast("บันทึกข้อมูลเข้า Google Sheets สำเร็จ!");
+                } catch(e) {
+                    console.error("Push failed:", e);
+                }
+                setIsCloudSyncing(false);
+            };
 
             const handleLogin = (username, password) => {
                 setAuthError('');
                 if (username.toUpperCase() === 'SESA650194' && password === '3010075') {
                     setSession('admin');
-                    try { sessionStorage.setItem('rs_task_session', 'admin'); } catch(e){}
-                    setMsg('Access Granted - Welcome Admin');
+                    sessionStorage.setItem('rs_task_session', 'admin');
+                    showToast('ยินดีต้อนรับเข้าสู่ระบบควบคุมวิศวกรรม');
                 } else {
-                    setAuthError('Invalid operational username or password.');
+                    setAuthError('รหัสผ่านผู้ดูแลระบบควบคุมไม่ถูกต้อง');
                 }
             };
 
             const handleGuestAccess = () => {
                 setSession('guest');
-                try { sessionStorage.setItem('rs_task_session', 'guest'); } catch(e){}
-                setMsg('Guest viewing mode activated.');
+                sessionStorage.setItem('rs_task_session', 'guest');
+                showToast('โหมดรับชมข้อมูลทั่วไปเปิดใช้งานแล้ว');
                 if (view === 'add') setView('dashboard');
             };
 
             const handleSignOut = () => {
                 setSession(null);
-                try { sessionStorage.removeItem('rs_task_session'); } catch(e){}
-                setAllData([]);
-                setMsg('Security room locked.');
+                sessionStorage.removeItem('rs_task_session');
+                showToast('ออกจากระบบอย่างปลอดภัย');
             };
-
-            useEffect(() => {
-                const initAuth = async () => {
-                    try {
-                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                            await signInWithCustomToken(auth, __initial_auth_token);
-                        } else {
-                            await signInAnonymously(auth);
-                        }
-                    } catch (e) {
-                        console.error("Firebase auth bridge failed:", e);
-                    }
-                };
-                initAuth();
-                const unsubscribe = onAuthStateChanged(auth, setFbUser);
-                return () => unsubscribe();
-            }, [auth]);
 
             const availableYearsList = useMemo(() => {
                 const years = new Set([currentYearValue, currentYearValue + 1, currentYearValue - 1]);
@@ -492,24 +473,6 @@
                     setNewItem(prev => ({ ...prev, 'Action Id': generateNextId() }));
                 }
             }, [view, allData]);
-
-            useEffect(() => {
-                if (!session || !fbUser) return;
-                const actionsCol = collection(db, ...publicPath, 'actions');
-                const unsubData = onSnapshot(actionsCol, 
-                    (snap) => {
-                        const items = snap.docs.map(doc => ({ ...doc.data(), _id: doc.id }));
-                        setAllData(items);
-                    },
-                    (err) => console.error("Snapshot error:", err)
-                );
-                const metaDoc = doc(db, ...publicPath, 'metadata', 'sync_info');
-                const unsubMeta = onSnapshot(metaDoc, 
-                    (docSnap) => { if (docSnap.exists()) setMeta(docSnap.data()); },
-                    (err) => console.error("Metadata snapshot error:", err)
-                );
-                return () => { unsubData(); unsubMeta(); };
-            }, [session, fbUser, db, appId]);
 
             useEffect(() => setIsSidebarOpen(false), [view]);
 
@@ -647,8 +610,8 @@
                 };
             }, [myTasksRaw, selectedYear]);
 
-            const saveApiKey = () => { try { localStorage.setItem('gemini_api_key', tempApiKey); } catch(e){} setUserApiKey(tempApiKey); setShowApiKeyModal(false); setMsg("API Key Saved Local!"); };
-            const clearApiKey = () => { try { localStorage.removeItem('gemini_api_key'); } catch(e){} setUserApiKey(''); setTempApiKey(''); };
+            const saveApiKey = () => { localStorage.setItem('gemini_api_key', tempApiKey); setUserApiKey(tempApiKey); setShowApiKeyModal(false); showToast("API Key Saved!"); };
+            const clearApiKey = () => { localStorage.removeItem('gemini_api_key'); setUserApiKey(''); setTempApiKey(''); };
 
             const handleGenerateSummary = async () => {
                 if (myAllTasks.length === 0) return;
@@ -667,27 +630,27 @@
                     Object.entries(lineAnalysis).sort((a,b)=>b[1].count-a[1].count).slice(0,5).forEach(([line, data]) => {
                         dataForAi += 'Line: ' + line + ' (' + data.count + ' items):\n' + data.actions.join('\n') + '\n\n';
                     });
-                    const summary = await fetchGemini('Data:\n\n' + dataForAi + '\nGive 3 highly practical operational steps in Thai to fix these production bottlenecks immediately.', userApiKey);
+                    const summary = await fetchGemini('ข้อมูลคอขวดสะสมไลน์ผลิต:\n\n' + dataForAi + '\nแนะนำวิธีลดเวลาคอขวดการผลิต 3 ข้อกระชับสไตล์โรงงานญี่ปุ่น', userApiKey);
                     setAiSummary(summary);
-                } catch (error) { setMsg("AI Analytics Error"); }
+                } catch (error) { showToast("AI Summary Error"); }
                 setIsAiLoading(false);
             };
 
             const handleSuggestDescription = async () => {
-                if (!newItem.Title) { setMsg("Please fill in the Job Objective first."); return; }
+                if (!newItem.Title) { showToast("ระบุหัวข้อเพื่อวิเคราะห์"); return; }
                 if (!userApiKey) { setShowApiKeyModal(true); return; }
                 setIsAiLoading(true);
                 try {
-                    const suggested = await fetchGemini('Describe action steps briefly in Thai for industrial engineering job: "' + newItem.Title + '"', userApiKey);
+                    const suggested = await fetchGemini('ช่วยเขียนอธิบายขั้นตอนดำเนินการวิศวกรรมการผลิตสั้นๆ สำหรับชื่องาน: "' + newItem.Title + '"', userApiKey);
                     setNewItem(prev => ({ ...prev, Description: suggested }));
-                } catch (error) { setMsg("AI Generation Error"); }
+                } catch (error) { showToast("AI Describe Failed"); }
                 setIsAiLoading(false);
             };
 
-            const handleUpload = (e) => {
-                if (isReadOnly || !fbUser) return;
+            const handleUploadCSV = (e) => {
+                if (isReadOnly) return;
                 const file = e.target.files[0]; if (!file) return;
-                setSyncProgress("Syncing with Cloud...");
+                setSyncProgress("กำลังอ่านไฟล์ CSV...");
                 const reader = new FileReader();
                 reader.onload = async (ev) => {
                     try {
@@ -708,20 +671,30 @@
                         if (idIdx === -1) idIdx = headers.findIndex(h => h.toLowerCase().includes('id'));
                         
                         const dataRows = rows.slice(hIdx + 1).filter(r => r[idIdx]);
-                        let successCount = 0; const batch = writeBatch(db);
+                        const updated = [...allData];
                         dataRows.forEach(r => {
                             const cleanId = String(r[idIdx]).toUpperCase().replace(/[^a-zA-Z0-9-]/g, '-').trim();
                             if (cleanId.length > 1) {
-                                const obj = { Source: 'SIM2' };
+                                const obj = { _id: cleanId, Source: 'SIM2 CSV' };
                                 headers.forEach((h, idx) => { if (h && r[idx] !== undefined) obj[h.replace(/[./*\[\]#$]/g, '_')] = r[idx]; });
-                                batch.set(doc(db, ...publicPath, 'actions', cleanId), obj, { merge: true });
-                                successCount++;
+                                
+                                const matchIdx = updated.findIndex(t => t._id === cleanId);
+                                if (matchIdx !== -1) {
+                                    updated[matchIdx] = { ...updated[matchIdx], ...obj };
+                                } else {
+                                    updated.push(obj);
+                                }
                             }
                         });
-                        await batch.commit();
-                        await setDoc(doc(db, ...publicPath, 'metadata', 'sync_info'), { lastUpload: new Date().toISOString() }, { merge: true });
-                        setMsg('Sync Complete: ' + successCount + ' Items');
-                    } catch (err) { setMsg("Sync Failed"); }
+                        setAllData(updated);
+                        showToast(`นำเข้าเสร็จเรียบร้อยแล้ว ${dataRows.length} รายการ`);
+                        
+                        if (sheetUrl) {
+                            for (let rowObj of updated) {
+                                await pushToGoogleSheets('upsert', rowObj);
+                            }
+                        }
+                    } catch (err) { showToast("Sync CSV Failed"); }
                     setSyncProgress(null);
                 };
                 reader.readAsText(file);
@@ -731,88 +704,144 @@
                 e.preventDefault();
                 if (isReadOnly) return;
                 
-                if (!fbUser) { setMsg("Waiting for operational cloud access..."); return; }
-                if (!newItem['Action Id'] || !newItem.Title || !newItem.Line) { setMsg("Please fill in all mandatory fields."); return; }
+                if (!newItem['Action Id'] || !newItem.Title || !newItem.Line) { showToast("กรุณากรอกข้อมูลสำคัญให้ครบ"); return; }
 
                 const cleanId = newItem['Action Id'].toUpperCase().replace(/[^a-zA-Z0-9-]/g, '-').trim();
-                if (!cleanId) { setMsg("Invalid character inside ID."); return; }
+                const defaultDueDate = new Date(); 
+                defaultDueDate.setDate(defaultDueDate.getDate() + 7);
+                const finalDueDate = newItem['Due Date'] ? new Date(newItem['Due Date']).toISOString() : defaultDueDate.toISOString();
+                
+                const taskObj = { 
+                    ...newItem, 
+                    _id: cleanId,
+                    'Due Date': finalDueDate, 
+                    Source: 'Manual Entry', 
+                    'Action Id': cleanId, 
+                    editCount: 0 
+                };
 
-                setSyncProgress("Deploying Action...");
-                try {
-                    const defaultDueDate = new Date(); 
-                    defaultDueDate.setDate(defaultDueDate.getDate() + 7);
-                    const finalDueDate = newItem['Due Date'] ? new Date(newItem['Due Date']).toISOString() : defaultDueDate.toISOString();
-                    
-                    await setDoc(doc(db, ...publicPath, 'actions', cleanId), { 
-                        ...newItem, 
-                        'Due Date': finalDueDate, 
-                        Source: 'Manual Entry', 
-                        'Action Id': cleanId, 
-                        editCount: 0 
-                    }, { merge: true });
-                    
-                    setMsg("Operational job deployed.");
-                    setNewItem({ 
-                        'Action Id': '', 
-                        'Title': '', 
-                        'Description': '', 
-                        'Cost': '', 
-                        'Opening Date': new Date().toISOString(), 
-                        'Due Date': '', 
-                        'Status': 'Open', 
-                        'In_Charge': 'Rattanachot Siriwanit', 
-                        'Line': '', 
-                        'Attachment': '' 
-                    });
-                    setView('list');
-                } catch (e) { 
-                    console.error("Failed to set doc:", e);
-                    setMsg("Failed to deploy task: " + e.message); 
+                const updated = [taskObj, ...allData.filter(t => t._id !== cleanId)];
+                setAllData(updated);
+                showToast("บันทึกข้อมูลและเซ็ตงานเข้าคิวโรงงานสำเร็จ!");
+
+                if (sheetUrl) {
+                    await pushToGoogleSheets('upsert', taskObj);
                 }
-                setSyncProgress(null);
+
+                setNewItem({ 
+                    'Action Id': '', 'Title': '', 'Description': '', 'Cost': '', 'Opening Date': new Date().toISOString(), 'Due Date': '', 'Status': 'Open', 'In_Charge': 'Rattanachot Siriwanit', 'Line': '', 'Attachment': '' 
+                });
+                setView('list');
             };
 
-            const confirmDelete = async () => { if (isReadOnly || !fbUser) return; await deleteDoc(doc(db, ...publicPath, 'actions', deleteConfirm.id)); setMsg("Action Removed"); setDeleteConfirm(null); };
-            const saveCostEdit = async (id) => { if (isReadOnly || !fbUser) return; await setDoc(doc(db, ...publicPath, 'actions', id), { Cost: tempCost }, { merge: true }); setEditingCostId(null); setMsg("Cost Updated"); };
-            const saveDescEdit = async (t) => { if (isReadOnly || !fbUser) return; await setDoc(doc(db, ...publicPath, 'actions', t._id), { Description: tempDesc, editCount: (t.editCount || 0) + 1 }, { merge: true }); setEditingDescId(null); setMsg("Description Updated"); };
-            const saveDueDateEdit = async (t) => { if (isReadOnly || !fbUser) return; await setDoc(doc(db, ...publicPath, 'actions', t._id), { 'Due Date': tempDueDate ? new Date(tempDueDate).toISOString() : '', dueDateEditCount: (t.dueDateEditCount || 0) + 1 }, { merge: true }); setEditingDueDateId(null); setMsg("Due Date Updated"); };
+            const confirmDelete = async () => { 
+                if (isReadOnly) return; 
+                setAllData(allData.filter(t => t._id !== deleteConfirm.id));
+                showToast("ลบ Action ดำเนินการเสร็จสิ้น"); 
+                
+                if (sheetUrl) {
+                    await pushToGoogleSheets('delete', { _id: deleteConfirm.id });
+                }
+                setDeleteConfirm(null); 
+            };
+
+            const saveCostEdit = async (id, val) => {
+                if (isReadOnly) return;
+                const updated = allData.map(t => t._id === id ? { ...t, Cost: val } : t);
+                setAllData(updated);
+                setEditingCostId(null);
+                const match = updated.find(t => t._id === id);
+                if (match && sheetUrl) {
+                    await pushToGoogleSheets('upsert', match);
+                }
+            };
+
+            const saveDescEdit = async (id, val) => {
+                if (isReadOnly) return;
+                const updated = allData.map(t => t._id === id ? { ...t, Description: val, editCount: (t.editCount || 0) + 1 } : t);
+                setAllData(updated);
+                setEditingDescId(null);
+                const match = updated.find(t => t._id === id);
+                if (match && sheetUrl) {
+                    await pushToGoogleSheets('upsert', match);
+                }
+            };
+
+            const saveDueDateEdit = async (id, val) => {
+                if (isReadOnly) return;
+                const finalD = val ? new Date(val).toISOString() : '';
+                const updated = allData.map(t => t._id === id ? { ...t, 'Due Date': finalD } : t);
+                setAllData(updated);
+                setEditingDueDateId(null);
+                const match = updated.find(t => t._id === id);
+                if (match && sheetUrl) {
+                    await pushToGoogleSheets('upsert', match);
+                }
+            };
+
+            const saveNoteEdit = async (id, val) => {
+                if (isReadOnly) return;
+                setAllData(allData.map(t => t._id === id ? { ...t, Note: val } : t));
+            };
+
+            const triggerNoteSave = async (id) => {
+                const match = allData.find(t => t._id === id);
+                if (match && sheetUrl) {
+                    await pushToGoogleSheets('upsert', match);
+                }
+            };
+
+            const cycleStatus = async (id) => {
+                if (isReadOnly) return;
+                const updated = allData.map(t => {
+                    if (t._id === id) {
+                        const s = String(t.Status).toLowerCase();
+                        const next = s.includes('open') ? 'In Progress' : s.includes('progress') ? 'Closed' : 'Open';
+                        return { ...t, Status: next };
+                    }
+                    return t;
+                });
+                setAllData(updated);
+                const match = updated.find(t => t._id === id);
+                if (match && sheetUrl) {
+                    await pushToGoogleSheets('upsert', match);
+                }
+            };
 
             const handleImageUpload = (e, id) => {
-                if (isReadOnly || !fbUser) return;
+                if (isReadOnly) return;
                 const file = e.target.files[0]; if (!file) return;
-                setSyncProgress("Processing photo upload...");
+                setSyncProgress("กำลังบีบอัดรูปถ่ายหน้างาน...");
                 const reader = new FileReader();
                 reader.onload = (event) => {
                     const img = new Image();
                     img.onload = async () => {
-                        const canvas = document.createElement('canvas'); const MAX_WIDTH = 800; let scaleSize = 1;
+                        const canvas = document.createElement('canvas'); const MAX_WIDTH = 400; let scaleSize = 1;
                         if (img.width > MAX_WIDTH) scaleSize = MAX_WIDTH / img.width;
                         canvas.width = img.width * scaleSize; canvas.height = img.height * scaleSize;
                         canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-                        try {
-                            await setDoc(doc(db, ...publicPath, 'actions', id), { Image: canvas.toDataURL('image/jpeg', 0.7) }, { merge: true });
-                            setMsg("Job photo uploaded!");
-                        } catch(err) { setMsg("Upload failed"); }
+                        
+                        const base64Img = canvas.toDataURL('image/jpeg', 0.5);
+                        const updated = allData.map(t => t._id === id ? { ...t, Image: base64Img } : t);
+                        setAllData(updated);
+                        showToast("อัปโหลดรูปภาพหลักฐานเสร็จสิ้น!");
                         setSyncProgress(null);
+
+                        const match = updated.find(t => t._id === id);
+                        if (match && sheetUrl) {
+                            await pushToGoogleSheets('upsert', match);
+                        }
                     };
                     img.src = event.target.result;
                 };
                 reader.readAsDataURL(file);
             };
 
-            const shareUrl = useMemo(() => {
-                const base = window.location.href.split('?')[0];
-                return `${base}?appId=${appId}`;
-            }, [appId]);
-
-            const copyShareLink = () => {
-                const tempEl = document.createElement('textarea');
-                tempEl.value = shareUrl;
-                document.body.appendChild(tempEl);
-                tempEl.select();
-                try { document.execCommand('copy'); } catch(e){}
-                document.body.removeChild(tempEl);
-                setMsg("Share link copied to clipboard!");
+            const saveCloudSettings = (url) => {
+                localStorage.setItem('rs_google_sheet_api_url', url.trim());
+                setSheetUrl(url.trim());
+                setShowSettingsModal(false);
+                showToast("ลิงก์ Google Sheets บันทึกเสร็จเรียบร้อย!");
             };
 
             if (!session) {
@@ -820,48 +849,64 @@
             }
 
             return (
-                <div className="flex h-screen bg-[#080b11] relative overflow-hidden font-['Prompt'] text-slate-100">
+                <div className="flex h-screen bg-[#030712] relative overflow-hidden font-sans text-slate-100">
+                    {/* Responsive Sidebar Overlay */}
                     {isSidebarOpen && <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[25] md:hidden" onClick={() => setIsSidebarOpen(false)} />}
 
-                    <aside className={`fixed md:relative inset-y-0 left-0 w-64 bg-[#0c0f16] flex flex-col shrink-0 z-30 border-r border-slate-900 transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
-                        <div className="p-8 flex flex-col items-center text-center relative border-b border-slate-900">
-                            <button onClick={() => setIsSidebarOpen(false)} className="absolute top-4 right-4 text-slate-500 md:hidden"><Icon name="X" size={24} /></button>
-                            <div className="w-12 h-12 bg-gradient-to-tr from-[#00E676] to-[#00b0ff] rounded-xl flex items-center justify-center font-black italic shadow-lg mb-3 shadow-[#00E676]/10">
-                                <span className="text-slate-950 text-xl font-bold tracking-tighter">RS</span>
+                    <aside className={`fixed md:relative inset-y-0 left-0 w-64 bg-[#090d16] flex flex-col shrink-0 z-30 border-r border-slate-900 transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
+                        <div className="p-8 flex flex-col items-center text-center relative border-b border-slate-900/60">
+                            <button onClick={() => setIsSidebarOpen(false)} className="absolute top-4 right-4 text-slate-500 hover:text-slate-300 md:hidden"><Icon name="X" size={24} /></button>
+                            <div className="w-12 h-12 bg-gradient-to-tr from-teal-500 to-emerald-400 rounded-2xl flex items-center justify-center font-bold shadow-lg mb-3 shadow-teal-500/10">
+                                <span className="text-slate-950 text-xl font-bold tracking-tight">RS</span>
                             </div>
-                            <h1 className="font-black italic uppercase tracking-widest text-white text-md leading-none">Rattanachot Task</h1>
-                            <span className={'text-[9px] font-black uppercase tracking-wider mt-2 px-2.5 py-1 rounded-md border border-slate-800 ' + (isReadOnly ? 'text-blue-400 bg-blue-950/20 border-blue-900/30' : 'text-[#00E676] bg-emerald-950/20 border-emerald-900/30')}>
+                            <h1 className="font-semibold text-white text-base leading-none">Rattanachot Task</h1>
+                            <span className={'text-[9px] font-bold uppercase tracking-widest mt-2.5 px-3 py-1 rounded-full border ' + (isReadOnly ? 'text-teal-400 bg-teal-950/20 border-teal-900/30' : 'text-emerald-400 bg-emerald-950/20 border-emerald-900/30')}>
                                 {isReadOnly ? 'READ-ONLY GUEST' : 'SECURE ADMIN'}
                             </span>
                         </div>
                         
-                        <nav className="flex-1 py-6 px-2 space-y-1">
+                        <nav className="flex-1 py-6 px-3 space-y-1 overflow-y-auto">
                             <SidebarBtn icon={<Icon name="Dashboard" />} label="Overview" active={view === 'dashboard'} onClick={() => setView('dashboard')} />
                             <SidebarBtn icon={<Icon name="List" />} label="Master List" active={view === 'list'} onClick={() => setView('list')} />
-                            {!isReadOnly && <SidebarBtn icon={<Icon name="Plus" />} label="Add Job" active={view === 'add'} onClick={() => setView('add')} />}
+                            {!isReadOnly && <SidebarBtn icon={<Icon name="Plus" />} label="Add Action" active={view === 'add'} onClick={() => setView('add')} />}
                         </nav>
 
-                        {/* Mobile Sync Panel */}
-                        <div className="p-4 border-t border-slate-900/60 bg-[#090c13] flex flex-col gap-2">
+                        {/* ☁️ Cloud Sync Panel */}
+                        <div className="p-4 border-t border-slate-900 bg-[#060a12]/50 flex flex-col gap-2">
+                            <div className="flex items-center justify-between text-[10px] font-bold tracking-widest text-slate-500">
+                                <span>DATABASE CLOUD</span>
+                                <span className={sheetUrl ? "text-teal-400" : "text-amber-500"}>
+                                    {sheetUrl ? "CONNECTED" : "LOCAL-ONLY"}
+                                </span>
+                            </div>
                             <button 
-                                onClick={() => setShowShareModal(true)}
-                                className="w-full py-2.5 bg-slate-950 border border-slate-800 hover:border-[#00E676] rounded-lg text-xs font-black uppercase italic text-[#00E676] flex items-center justify-center gap-2 transition"
+                                onClick={() => {
+                                    if (sheetUrl) {
+                                        pullFromGoogleSheets();
+                                    } else {
+                                        setShowSettingsModal(true);
+                                    }
+                                }}
+                                disabled={isCloudSyncing}
+                                className="w-full py-2.5 bg-slate-950 border border-slate-800 hover:border-teal-500/40 rounded-xl text-xs font-semibold text-teal-400 flex items-center justify-center gap-2 transition duration-150 disabled:opacity-50"
                             >
-                                <Icon name="Mobile" size={14} /> Mobile Sync
+                                <Icon name="Cloud" size={14} className={isCloudSyncing ? "animate-spin" : ""} />
+                                {isCloudSyncing ? "SYNCING..." : sheetUrl ? "รีเฟรชข้อมูลคลาวด์" : "เชื่อม Google Sheets"}
                             </button>
                         </div>
 
-                        <div className="p-4 border-t border-slate-900/60 bg-[#090c13] flex flex-col gap-1.5">
-                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest italic flex items-center gap-1">
-                                <Icon name="Calendar" size={12} className="text-[#00E676]" /> FISCAL YEAR
+                        {/* Fiscal Year Controller */}
+                        <div className="p-4 border-t border-slate-900 bg-[#060a12]/50 flex flex-col gap-1.5">
+                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                                <Icon name="Calendar" size={12} className="text-teal-400" /> FISCAL YEAR
                             </span>
                             <div className="relative">
                                 <select 
-                                    className="w-full appearance-none pl-4 pr-10 py-2.5 bg-slate-950 border border-slate-800 rounded-lg text-xs font-black uppercase italic text-[#00E676] focus:border-[#00E676] outline-none transition cursor-pointer tracking-wider"
+                                    className="w-full pl-4 pr-8 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs font-semibold text-teal-400 focus:border-teal-500 outline-none transition cursor-pointer"
                                     value={selectedYear}
                                     onChange={(e) => {
                                         setSelectedYear(Number(e.target.value));
-                                        setMsg(`Switched to FY ${e.target.value}`);
+                                        showToast(`FY ${e.target.value} Activated`);
                                     }}
                                 >
                                     {availableYearsList.map(yr => (
@@ -871,235 +916,354 @@
                             </div>
                         </div>
                         
-                        <div className="p-4 border-t border-slate-900 flex flex-col gap-2 bg-[#0a0d14]">
+                        {/* Control Buttons */}
+                        <div className="p-4 border-t border-slate-900 flex flex-col gap-2 bg-[#060a12]">
                             {!isReadOnly && (
                                 <Fragment>
-                                    <label className="flex items-center justify-center gap-2 w-full py-3 bg-[#00E676] text-slate-950 rounded-lg font-black text-xs uppercase cursor-pointer hover:bg-[#00c853] transition shadow-md shadow-[#00E676]/10 active:scale-95 tracking-widest">
+                                    <label className="flex items-center justify-center gap-2 w-full py-3 bg-gradient-to-r from-teal-500 to-emerald-400 text-slate-950 rounded-xl font-bold text-xs uppercase cursor-pointer hover:opacity-95 transition shadow-md shadow-teal-500/5 active:scale-[0.98]">
                                         <Icon name="Plus" size={16} /> IMPORT CSV
-                                        <input type="file" className="hidden" accept=".csv" onChange={handleUpload}/>
+                                        <input type="file" className="hidden" accept=".csv" onChange={handleUploadCSV}/>
                                     </label>
-                                    <button onClick={() => { setTempApiKey(userApiKey); setShowApiKeyModal(true); }} className="flex items-center justify-center gap-2 w-full py-2 border border-slate-800 text-slate-500 rounded-lg font-black text-xs uppercase hover:bg-slate-900 hover:text-white transition active:scale-95 tracking-widest">
-                                        <Icon name="Settings" size={14} /> API SETTINGS
-                                    </button>
+                                    <div className="grid grid-cols-2 gap-1.5">
+                                        <button onClick={() => setShowSettingsModal(true)} className="flex items-center justify-center gap-1.5 py-2 bg-slate-900/60 border border-slate-800 text-slate-400 hover:text-slate-200 rounded-xl font-semibold text-[10px] uppercase transition duration-150">
+                                            <Icon name="Settings" size={12} /> SHEET LINK
+                                        </button>
+                                        <button onClick={() => { setTempApiKey(userApiKey); setShowApiKeyModal(true); }} className="flex items-center justify-center gap-1.5 py-2 bg-slate-900/60 border border-slate-800 text-slate-400 hover:text-slate-200 rounded-xl font-semibold text-[10px] uppercase transition duration-150">
+                                            <Icon name="Sparkle" size={12} /> AI CONFIG
+                                        </button>
+                                    </div>
                                 </Fragment>
                             )}
-                            <button onClick={handleSignOut} className="flex items-center justify-center gap-2 w-full py-2 border border-rose-900/40 text-rose-500 bg-rose-950/5 rounded-lg font-black text-xs uppercase hover:bg-rose-950/20 hover:text-rose-400 transition active:scale-95 tracking-widest">
-                                <Icon name="LogOut" size={14} /> SECURE LOGOUT
+                            <button onClick={handleSignOut} className="flex items-center justify-center gap-2 w-full py-2 bg-red-950/10 border border-red-900/20 text-red-400/90 rounded-xl font-semibold text-xs uppercase hover:bg-red-950/20 hover:text-red-300 transition duration-150">
+                                <Icon name="LogOut" size={14} /> LOGOUT
                             </button>
                         </div>
                     </aside>
 
-                    <main className="flex-1 flex flex-col overflow-hidden bg-[#080b11]">
-                        {/* ปรับแต่ง Header ยืดหยุ่นบนหน้าจอมือถือไม่ล้นซ้อนกัน */}
-                        <header className="h-auto py-3 md:h-16 bg-[#0c0f16] border-b border-slate-900 px-4 md:px-10 flex flex-col md:flex-row md:items-center justify-between gap-3 z-10 shrink-0">
-                            <div className="flex items-center justify-between md:justify-start gap-3 md:gap-4 w-full md:w-auto">
-                                <div className="flex items-center gap-2">
-                                    <button onClick={() => setIsSidebarOpen(true)} className="p-2 text-slate-400 hover:text-[#00E676] md:hidden"><Icon name="Menu" size={24} /></button>
-                                    <Icon name="Target" size={20} className="text-[#00E676] animate-pulse" />
-                                    <span className="text-xs md:text-sm font-black text-slate-200 uppercase tracking-widest italic pt-1 pr-1">OPERATIONAL COMMAND</span>
-                                </div>
+                    {}
+                    <main className="flex-1 flex flex-col overflow-hidden bg-[#030712]">
+                        <header className="h-16 bg-[#090d16] border-b border-slate-900/60 px-6 md:px-10 flex items-center justify-between z-10 shrink-0">
+                            <div className="flex items-center gap-3 md:gap-4">
+                                <button onClick={() => setIsSidebarOpen(true)} className="p-2 text-slate-400 hover:text-teal-400 md:hidden"><Icon name="Menu" size={24} /></button>
+                                <Icon name="Target" size={20} className="text-teal-400 animate-pulse" />
+                                <span className="text-xs md:text-sm font-semibold text-slate-300 tracking-wider">COMMAND WORKSPACE</span>
                             </div>
                             
-                            <div className="flex items-center gap-2 w-full md:w-auto">
-                                <select className="flex-1 md:flex-initial appearance-none pl-4 pr-8 py-2 bg-slate-900 border border-slate-850 rounded-lg text-xs font-black uppercase italic text-slate-300 focus:border-[#00E676] outline-none transition cursor-pointer tracking-wider" value={lineFilter} onChange={(e) => setLineFilter(e.target.value)}>
+                            <div className="flex items-center gap-2">
+                                <select 
+                                    className="pl-3 pr-8 py-2 bg-slate-900/80 border border-slate-800 rounded-xl text-xs font-semibold text-slate-300 focus:border-teal-500 outline-none transition cursor-pointer" 
+                                    value={lineFilter} 
+                                    onChange={(e) => setLineFilter(e.target.value)}
+                                >
                                     <option value="All">ALL LINES</option>
                                     {lineOptions.map(opt => <option key={opt.name} value={opt.name}>{opt.name.toUpperCase()} ({opt.count})</option>)}
                                 </select>
-                                <input type="text" placeholder="Search Intel..." className="flex-1 md:flex-initial pl-4 pr-4 py-2 bg-slate-900 border border-slate-850 rounded-lg text-xs md:text-sm text-white focus:border-[#00E676] outline-none transition placeholder-slate-600 font-bold" value={search} onChange={(e) => setSearch(e.target.value)} />
+                                <input 
+                                    type="text" 
+                                    placeholder="Intel Search..." 
+                                    className="pl-4 pr-4 py-2 bg-slate-900/80 border border-slate-800 rounded-xl text-xs md:text-sm text-white focus:border-teal-500 outline-none transition placeholder-slate-600 font-medium" 
+                                    value={search} 
+                                    onChange={(e) => setSearch(e.target.value)} 
+                                />
                             </div>
                         </header>
 
-                        <div className="flex-1 overflow-y-auto p-4 md:p-10 custom-scroll relative bg-[#080b11]">
-                            {msg && <div className="fixed top-20 right-4 z-[100] px-5 py-3 bg-slate-900 text-[#00E676] rounded-xl shadow-2xl font-black text-xs uppercase border border-[#00E676]/30 tracking-widest">{msg}</div>}
-                            {syncProgress && <div className="fixed inset-0 z-[100] bg-[#080b11]/90 backdrop-blur-md flex flex-col items-center justify-center text-[#00E676] font-black uppercase italic animate-pulse tracking-widest">{syncProgress}</div>}
+                        {/* WORKSPACE AREA */}
+                        <div className="flex-1 overflow-y-auto p-6 md:p-10 relative">
+                            {msg && (
+                                <div className="fixed top-20 right-6 z-[100] px-5 py-3.5 bg-[#090d16] text-teal-400 rounded-xl shadow-2xl font-bold text-xs border border-teal-500/30 animate-fadeIn">
+                                    {msg}
+                                </div>
+                            )}
+                            {syncProgress && (
+                                <div className="fixed inset-0 z-[100] bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center text-teal-400 font-bold uppercase tracking-widest animate-pulse">
+                                    {syncProgress}
+                                </div>
+                            )}
 
+                            {}
                             {view === 'dashboard' ? (
-                                <div className="max-w-6xl mx-auto space-y-6 animate-in">
+                                <div className="max-w-6xl mx-auto space-y-8 animate-fadeIn">
                                     <div className="flex justify-between items-end border-b border-slate-900 pb-5">
                                         <div>
-                                            <h3 className="text-xl md:text-2xl font-black text-white uppercase italic tracking-wider">Performance Intelligence</h3>
-                                            <p className="text-[10px] md:text-xs font-black text-slate-500 uppercase tracking-widest mt-1 italic">
-                                                Active Database Path ID: {appId}
+                                            <h3 className="text-xl md:text-2xl font-semibold text-white tracking-tight">Performance Intel</h3>
+                                            <p className="text-[11px] font-medium text-slate-500 mt-1">
+                                                {sheetUrl ? "☁️ Google Sheets Cloud Synced" : "📂 Internal Local Database Active"}
                                             </p>
                                         </div>
-                                        <button onClick={handleGenerateSummary} disabled={isAiLoading} className="bg-slate-900 border border-slate-800 text-[#00E676] hover:bg-emerald-950/20 px-5 py-2.5 rounded-lg font-black text-xs flex items-center gap-2 uppercase tracking-widest transition shadow-sm">
-                                            <Icon name="Sparkle" size={16} className={isAiLoading ? "animate-spin" : ""} /> AI ANALYTICS
+                                        <button 
+                                            onClick={handleGenerateSummary} 
+                                            disabled={isAiLoading} 
+                                            className="bg-slate-900/80 border border-slate-800 text-teal-400 hover:bg-slate-900 hover:border-teal-500/30 px-5 py-2.5 rounded-xl font-semibold text-xs flex items-center gap-2 transition-all duration-150 shadow-md active:scale-[0.98]"
+                                        >
+                                            <Icon name="Sparkle" size={15} className={isAiLoading ? "animate-spin" : ""} /> AI ANALYSIS
                                         </button>
                                     </div>
 
+                                    {/* AI Operation Insight Box */}
                                     {aiSummary && (
-                                        <div className="bg-slate-950 p-6 rounded-xl border border-[#00E676]/20 shadow-2xl animate-in">
-                                            <div className="flex items-center gap-2 mb-4 font-black text-white italic uppercase tracking-wider"><Icon name="Sparkle" className="text-[#00E676]"/> AI Operational Advisory</div>
-                                            <div className="text-xs md:text-sm text-slate-300 leading-relaxed italic whitespace-pre-line font-light">{aiSummary}</div>
+                                        <div className="bg-[#0f172a]/60 p-6 rounded-2xl border border-teal-500/20 shadow-xl animate-fadeIn">
+                                            <div className="flex items-center gap-2 mb-4 font-semibold text-white text-sm">
+                                                <Icon name="Sparkle" className="text-teal-400"/>
+                                                AI Operational Bottleneck Report
+                                            </div>
+                                            <div className="text-xs md:text-sm text-slate-300 leading-relaxed whitespace-pre-line font-light">
+                                                {aiSummary}
+                                            </div>
                                         </div>
                                     )}
 
+                                    {/* Numeric Performance Indicators */}
                                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                                         <StatCard label="PENDING" value={dashboardData.stats.open} color="bg-amber-500" />
-                                        <StatCard label="ON PROGRESS" value={dashboardData.stats.progress} color="bg-blue-500" />
-                                        <StatCard label="SUCCESS" value={dashboardData.stats.closed} color="bg-[#00E676]" />
-                                        <StatCard label="TOTAL ACTIONS" value={dashboardData.stats.total} color="bg-purple-600" />
+                                        <StatCard label="IN PROGRESS" value={dashboardData.stats.progress} color="bg-blue-500" />
+                                        <StatCard label="RESOLVED" value={dashboardData.stats.closed} color="bg-emerald-500" />
+                                        <StatCard label="TOTAL RUNNING" value={dashboardData.stats.total} color="bg-purple-500" />
                                     </div>
 
-                                    <div className="bg-[#121824] p-6 md:p-8 rounded-xl border border-slate-800/80 shadow-2xl space-y-8">
+                                    {/* Analytics Chart */}
+                                    <div className="bg-[#0f172a] p-6 md:p-8 rounded-2xl border border-slate-850 shadow-xl space-y-6">
                                         <div>
-                                            <h4 className="font-black text-white uppercase italic tracking-wider text-sm">Operational Cost Analysis (FY {selectedYear})</h4>
+                                            <h4 className="font-semibold text-white text-sm tracking-wide">Operational Cost Breakdown (FY {selectedYear})</h4>
                                         </div>
-                                        <div className="flex items-end h-56 gap-2 sm:gap-3 border-b border-slate-850 pb-4 pt-4">
+                                        <div className="flex items-end h-56 gap-3 sm:gap-4 border-b border-slate-800/80 pb-4 pt-4">
                                             {dashboardData.chart.map((c, i) => (
                                                 <div key={i} className="flex-1 flex flex-col items-center group h-full justify-end relative">
                                                     <div className="w-full flex items-end justify-center h-full pb-1">
-                                                        <div className={'w-full max-w-[28px] rounded-t-[4px] transition-all duration-500 ' + (c.val > 0 ? 'bg-gradient-to-t from-emerald-950/40 via-emerald-700/60 to-[#00E676]' : 'bg-slate-900/40')} style={{ height: c.height + '%' }}></div>
+                                                        <div 
+                                                            className={'w-full max-w-[32px] rounded-t-md transition-all duration-500 ' + 
+                                                                (c.val > 0 ? 'bg-gradient-to-t from-teal-500/20 via-teal-500/60 to-emerald-400' : 'bg-slate-900')} 
+                                                            style={{ height: c.height + '%' }}
+                                                        />
                                                     </div>
-                                                    <div className="text-[9px] md:text-[10px] mt-2 text-slate-500 font-bold uppercase italic tracking-widest">{c.label}</div>
+                                                    <div className="text-[10px] mt-2 text-slate-500 font-medium">{c.label}</div>
                                                 </div>
                                             ))}
                                         </div>
                                     </div>
                                 </div>
                             ) : view === 'add' && !isReadOnly ? (
-                                <div className="max-w-2xl mx-auto py-4 animate-in">
-                                    <div className="bg-[#121824] rounded-xl shadow-2xl border border-slate-800/80 p-4 md:p-10">
-                                        <div className="flex justify-between items-center mb-6 border-b border-slate-850 pb-4">
-                                            <h3 className="text-xl font-black uppercase italic text-white tracking-wider">Deploy Job</h3>
-                                            <button type="button" onClick={handleSuggestDescription} className="text-[#00E676] font-black text-xs uppercase tracking-widest flex items-center gap-1"><Icon name="Sparkle" size={14}/> AI DESCRIBE</button>
+                                <div className="max-w-2xl mx-auto py-4 animate-fadeIn">
+                                    <div className="bg-[#0f172a] rounded-2xl shadow-xl border border-slate-850 p-6 md:p-8">
+                                        <div className="flex justify-between items-center mb-6 border-b border-slate-800/80 pb-4">
+                                            <h3 className="text-lg font-semibold text-white">ลงทะเบียน Action งาน</h3>
+                                            <button 
+                                                type="button" 
+                                                onClick={handleSuggestDescription} 
+                                                className="text-teal-400 font-semibold text-xs flex items-center gap-1.5 hover:text-teal-300"
+                                            >
+                                                <Icon name="Sparkle" size={14}/> AI ช่วยเขียนขั้นตอน
+                                            </button>
                                         </div>
-                                        <form onSubmit={handleAddItem} className="space-y-4">
+                                        <form onSubmit={handleAddItem} className="space-y-5">
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                <FormInput label="Job ID" val={newItem['Action Id']} onChange={v => setNewItem({...newItem, 'Action Id': v})} placeholder="ID-202X" />
-                                                <FormInput label="Objective" val={newItem.Title} onChange={v => setNewItem({...newItem, 'Title': v})} placeholder="Action Name" />
+                                                <FormInput label="Job ID" val={newItem['Action Id']} onChange={v => setNewItem({...newItem, 'Action Id': v})} placeholder="2026-X" />
+                                                <FormInput label="Objective" val={newItem.Title} onChange={v => setNewItem({...newItem, 'Title': v})} placeholder="ชื่องานดำเนินการ" />
                                             </div>
-                                            <div className="space-y-1">
-                                                <label className="text-[10px] md:text-xs font-black text-slate-400 uppercase italic ml-1 tracking-wider">Action Detail</label>
-                                                <textarea className="w-full p-4 bg-slate-900 border border-slate-800 rounded-lg text-base md:text-sm text-slate-300 outline-none focus:border-[#00E676] transition h-28 font-light italic" placeholder="Job Specifications..." value={newItem.Description} onChange={e => setNewItem({...newItem, Description: e.target.value})} />
+                                            <div className="space-y-1.5">
+                                                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Action Detail</label>
+                                                <textarea 
+                                                    className="w-full p-4 bg-slate-950/70 border border-slate-800/85 rounded-xl text-xs md:text-sm text-slate-300 outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500/10 transition h-28 font-light" 
+                                                    placeholder="รายละเอียดเชิงวิศวกรรม..." 
+                                                    value={newItem.Description} 
+                                                    onChange={e => setNewItem({...newItem, Description: e.target.value})} 
+                                                />
                                             </div>
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 <FormInput label="Cost (THB)" val={newItem.Cost} onChange={v => setNewItem({...newItem, Cost: v})} placeholder="0" />
                                                 <FormInput label="Attachment URL" val={newItem.Attachment} onChange={v => setNewItem({...newItem, Attachment: v})} placeholder="https://" />
                                             </div>
                                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                                <div className="space-y-1">
-                                                    <label className="text-[10px] md:text-xs font-black text-slate-400 uppercase italic ml-1 tracking-wider">Line</label>
-                                                    <select className="w-full p-3 bg-slate-900 border border-slate-800 rounded-lg text-base md:text-sm font-bold italic text-slate-300 outline-none focus:border-[#00E676]" value={newItem.Line} onChange={e => setNewItem({...newItem, Line: e.target.value})}>
+                                                <div className="space-y-1.5">
+                                                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Line</label>
+                                                    <select 
+                                                        className="w-full p-3 bg-slate-950/70 border border-slate-800 rounded-xl text-xs md:text-sm font-medium text-slate-300 outline-none focus:border-teal-500" 
+                                                        value={newItem.Line} 
+                                                        onChange={e => setNewItem({...newItem, Line: e.target.value})}
+                                                    >
                                                         <option value="" disabled>-- เลือก Line --</option>
-                                                        {MASTER_LINE_NAMES.map(line => <option key={line} value={line}>{line.toUpperCase()}</option>)}
+                                                        {MASTER_LINE_NAMES.map(line => <option key={line} value={line}>{line}</option>)}
                                                     </select>
                                                 </div>
-                                                <div className="space-y-1">
-                                                    <label className="text-[10px] md:text-xs font-black text-slate-400 uppercase italic ml-1 tracking-wider">Due Date</label>
-                                                    <input type="date" className="w-full p-3 bg-slate-900 border border-slate-800 rounded-lg text-base md:text-sm font-bold text-slate-300 outline-none focus:border-[#00E676]" value={newItem['Due Date'] ? newItem['Due Date'].split('T')[0] : ''} onChange={(e) => setNewItem({...newItem, 'Due Date': e.target.value})} />
+                                                <div className="space-y-1.5">
+                                                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Due Date</label>
+                                                    <input 
+                                                        type="date" 
+                                                        className="w-full p-3 bg-slate-950/70 border border-slate-800 rounded-xl text-xs md:text-sm text-slate-300 outline-none focus:border-teal-500" 
+                                                        value={newItem['Due Date'] ? newItem['Due Date'].split('T')[0] : ''} 
+                                                        onChange={(e) => setNewItem({...newItem, 'Due Date': e.target.value})} 
+                                                    />
                                                 </div>
-                                                <div className="space-y-1">
-                                                    <label className="text-[10px] md:text-xs font-black text-slate-400 uppercase italic ml-1 tracking-wider">Status</label>
-                                                    <select className="w-full p-3 bg-slate-900 border border-slate-800 rounded-lg text-base md:text-sm font-bold italic text-slate-300 outline-none focus:border-[#00E676]" value={newItem.Status} onChange={e => setNewItem({...newItem, Status: e.target.value})}>
-                                                        <option value="Open">OPEN</option><option value="In Progress">IN PROGRESS</option><option value="Closed">CLOSED</option>
+                                                <div className="space-y-1.5">
+                                                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Status</label>
+                                                    <select 
+                                                        className="w-full p-3 bg-slate-950/70 border border-slate-800 rounded-xl text-xs md:text-sm font-medium text-slate-300 outline-none focus:border-teal-500" 
+                                                        value={newItem.Status} 
+                                                        onChange={e => setNewItem({...newItem, Status: e.target.value})}
+                                                    >
+                                                        <option value="Open">OPEN</option>
+                                                        <option value="In Progress">IN PROGRESS</option>
+                                                        <option value="Closed">CLOSED</option>
                                                     </select>
                                                 </div>
                                             </div>
-                                            <button type="submit" className="w-full py-4 mt-2 bg-gradient-to-r from-emerald-600 to-[#00E676] text-slate-950 rounded-lg font-black uppercase italic shadow-lg hover:opacity-90 transition-all text-xs tracking-widest shadow-[#00E676]/10">COMMIT TO SYSTEM DATABASE</button>
+                                            <button 
+                                                type="submit" 
+                                                className="w-full py-4 mt-2 bg-gradient-to-r from-teal-500 to-emerald-500 text-slate-950 rounded-xl font-bold uppercase text-xs tracking-wider shadow-lg hover:opacity-95 transition-all duration-200 active:scale-[0.98]"
+                                            >
+                                                COMMIT ACTION TO DATABASE
+                                            </button>
                                         </form>
                                     </div>
                                 </div>
                             ) : (
-                                <div className="max-w-6xl mx-auto space-y-4 animate-in">
-                                    <div className="flex justify-between items-center gap-2 mb-4">
-                                        <div className="flex gap-2 overflow-x-auto custom-scroll pb-1">
+                                <div className="max-w-6xl mx-auto space-y-5 animate-fadeIn">
+                                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+                                        <div className="flex gap-1.5 overflow-x-auto w-full sm:w-auto">
                                             {['All', 'Open', 'In Progress', 'Closed'].map(status => (
-                                                <button key={status} onClick={() => setStatusFilter(status)} className={'px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest italic transition-all shrink-0 ' + (statusFilter === status ? 'bg-[#00E676] text-slate-950 shadow-md shadow-[#00E676]/10' : 'bg-[#121824] text-slate-400 hover:text-white border border-slate-800/80')}>{status}</button>
+                                                <button 
+                                                    key={status} 
+                                                    onClick={() => setStatusFilter(status)} 
+                                                    className={'px-4 py-2 rounded-xl text-xs font-semibold transition-all duration-150 shrink-0 ' + 
+                                                        (statusFilter === status 
+                                                            ? 'bg-teal-500 text-slate-950 shadow-md shadow-teal-500/10' 
+                                                            : 'bg-[#0f172a] text-slate-400 hover:text-slate-200 border border-slate-800/80'
+                                                        )}
+                                                >
+                                                    {status}
+                                                </button>
                                             ))}
                                         </div>
-                                        <select className="p-2.5 bg-slate-900 border border-slate-800 rounded-lg text-xs font-black italic text-slate-300 focus:border-[#00E676] outline-none" value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+                                        <select 
+                                            className="p-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs font-semibold text-slate-300 focus:border-teal-500 outline-none cursor-pointer w-full sm:w-auto" 
+                                            value={sortBy} 
+                                            onChange={(e) => setSortBy(e.target.value)}
+                                        >
                                             <option value="default">SORT: DEFAULT</option>
                                             <option value="open_desc">OPEN DATE (NEWEST)</option>
                                             <option value="due_asc">DUE DATE (NEAREST)</option>
                                         </select>
                                     </div>
 
-                                    {/* Quick Line Filters */}
-                                    <div className="flex gap-2 overflow-x-auto pb-2 custom-scroll">
-                                        <button onClick={() => setLineFilter('All')} className={'px-3 py-1.5 rounded-lg text-[10px] font-black uppercase italic tracking-wider transition shrink-0 ' + (lineFilter === 'All' ? 'bg-[#00E676] text-slate-950' : 'bg-[#121824] border border-slate-850 text-slate-400') + ''}>ALL LINES</button>
+                                    {/* Line Filters */}
+                                    <div className="flex gap-2 overflow-x-auto pb-2">
+                                        <button 
+                                            onClick={() => setLineFilter('All')} 
+                                            className={'px-3 py-1.5 rounded-xl text-[10px] font-bold tracking-wider shrink-0 transition ' + 
+                                                (lineFilter === 'All' ? 'bg-teal-500 text-slate-950' : 'bg-slate-900 border border-slate-800 text-slate-400')}
+                                        >
+                                            ALL LINES
+                                        </button>
                                         {lineStatsFilters.map(ls => (
-                                            <button key={ls.name} onClick={() => setLineFilter(ls.name)} className={'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black bg-slate-900 border transition shrink-0 ' + (lineFilter === ls.name ? 'border-[#00E676] text-[#00E676] bg-emerald-950/10' : 'border-slate-850 text-slate-400') + ''}>
-                                                {ls.name.toUpperCase()} <span className="text-[10px] text-rose-500 font-extrabold">({ls.unclosed})</span>
+                                            <button 
+                                                key={ls.name} 
+                                                onClick={() => setLineFilter(ls.name)} 
+                                                className={'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-bold bg-slate-900 border transition shrink-0 ' + 
+                                                    (lineFilter === ls.name ? 'border-teal-500/60 text-teal-400 bg-teal-950/10' : 'border-slate-800 text-slate-400')}
+                                            >
+                                                {ls.name} <span className="text-red-500 font-extrabold">({ls.unclosed})</span>
                                             </button>
                                         ))}
                                     </div>
 
-                                    <div className="bg-[#121824] border border-slate-850 rounded-xl overflow-hidden divide-y divide-slate-850 shadow-2xl">
+                                    {/* Master Grid Table */}
+                                    <div className="bg-[#0f172a] border border-slate-850 rounded-2xl overflow-hidden divide-y divide-slate-800/80 shadow-xl">
                                         {filteredTasks.length === 0 ? (
-                                            <div className="p-12 text-center text-slate-500 font-black italic text-sm uppercase tracking-widest">--- NO ACTIONS DEPLOYED FOR FY {selectedYear} ---</div>
+                                            <div className="p-12 text-center text-slate-500 font-semibold text-xs tracking-wider">
+                                                --- NO ACTIONS FOUND FOR FY {selectedYear} ---
+                                            </div>
                                         ) : filteredTasks.map(t => (
                                             <div key={t._id} className="flex flex-col">
-                                                <div onClick={() => setExpandedId(expandedId === t._id ? null : t._id)} className="p-4 md:p-5 flex items-center justify-between cursor-pointer hover:bg-slate-900/40 transition-colors">
-                                                    <div className="flex items-center gap-2 md:gap-4 min-w-0 flex-1">
-                                                        <div className="flex flex-col w-20 md:w-24 shrink-0 text-[10px] md:text-xs text-slate-500 italic">
-                                                            <span className="font-black text-[#00E676]">{t.Source || 'SIM2'}</span>
-                                                            <span>{t['Action Id']?.slice(-10)}</span>
+                                                {/* Header Row */}
+                                                <div 
+                                                    onClick={() => setExpandedId(expandedId === t._id ? null : t._id)} 
+                                                    className="p-5 flex items-center justify-between cursor-pointer hover:bg-slate-900/30 transition-colors duration-150"
+                                                >
+                                                    <div className="flex items-center gap-4 min-w-0 flex-1">
+                                                        <div className="flex flex-col w-24 shrink-0 text-xs text-slate-500">
+                                                            <span className="font-bold text-teal-400">FY {selectedYear}</span>
+                                                            <span className="font-mono mt-0.5">{t['Action Id']?.slice(-10)}</span>
                                                         </div>
-                                                        <h4 className={'text-xs md:text-base font-black italic uppercase truncate ' + (String(t.Status).toLowerCase().includes('close') ? 'text-slate-600 line-through' : 'text-slate-100') + ''}>{t.Title || 'Untitled'}</h4>
+                                                        <h4 className={'text-sm md:text-base font-medium truncate pr-4 ' + 
+                                                            (String(t.Status).toLowerCase().includes('close') ? 'text-slate-600 line-through' : 'text-slate-200')}>
+                                                            {t.Title || 'Untitled'}
+                                                        </h4>
                                                     </div>
-                                                    <div className="flex items-center gap-2 md:gap-3 shrink-0">
-                                                        <span className="text-[9px] md:text-[10px] font-black bg-slate-900 text-slate-300 border border-slate-800 px-2 md:px-3 py-1 md:py-1.5 rounded uppercase tracking-wider">{t.Status}</span>
-                                                        {!isReadOnly && <button onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ id: t._id }); }} className="text-slate-600 hover:text-rose-500 transition-colors p-1"><Icon name="Trash" size={14}/></button>}
+                                                    <div className="flex items-center gap-3">
+                                                        <span className="text-[10px] font-semibold bg-slate-950/60 text-slate-400 border border-slate-800 px-3 py-1.5 rounded-xl uppercase tracking-wider">
+                                                            {t.Status}
+                                                        </span>
+                                                        {!isReadOnly && (
+                                                            <button 
+                                                                onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ id: t._id }); }} 
+                                                                className="text-slate-600 hover:text-red-400 p-1.5 rounded-lg hover:bg-slate-900 transition-colors"
+                                                            >
+                                                                <Icon name="Trash" size={16}/>
+                                                            </button>
+                                                        )}
                                                     </div>
                                                 </div>
 
+                                                {}
                                                 {expandedId === t._id && (
-                                                    <div className="p-4 md:p-5 bg-slate-100 text-slate-800 border-t border-slate-300 grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 animate-in">
+                                                    <div className="p-6 bg-slate-950/70 border-t border-slate-800/80 grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fadeIn">
                                                         <div className="space-y-4">
                                                             <div className="relative group/desc">
                                                                 {editingDescId === t._id && !isReadOnly ? (
-                                                                    <div className="p-4 bg-white border border-[#00E676]/30 rounded-xl flex flex-col gap-2 shadow-inner">
+                                                                    <div className="p-4 bg-[#0f172a] border border-teal-500/30 rounded-xl flex flex-col gap-3 shadow-inner">
                                                                         <textarea 
                                                                             autoFocus 
-                                                                            className="w-full text-base md:text-sm text-slate-800 italic outline-none bg-slate-50 border border-slate-300 rounded p-2 min-h-[100px] resize-y" 
+                                                                            className="w-full text-xs md:text-sm text-slate-200 outline-none bg-slate-950/60 border border-slate-800 rounded-lg p-3 min-h-[120px] resize-y font-light" 
                                                                             value={tempDesc} 
                                                                             onChange={(e) => setTempDesc(e.target.value)} 
                                                                         />
-                                                                        <div className="flex justify-end gap-2 mt-2">
-                                                                            <button onClick={() => setEditingDescId(null)} className="px-3 py-1.5 text-[10px] font-black text-slate-500 bg-slate-200 rounded hover:bg-slate-300">CANCEL</button>
-                                                                            <button onClick={() => saveDescEdit(t)} className="px-3 py-1.5 text-[10px] font-black text-slate-950 bg-[#00E676] rounded hover:bg-[#00c853]">SAVE</button>
+                                                                        <div className="flex justify-end gap-2">
+                                                                            <button onClick={() => setEditingDescId(null)} className="px-3.5 py-1.5 text-[10px] font-bold text-slate-400 bg-slate-900 rounded-lg hover:text-slate-200 transition">CANCEL</button>
+                                                                            <button onClick={() => saveDescEdit(t._id, tempDesc)} className="px-3.5 py-1.5 text-[10px] font-bold text-slate-950 bg-teal-500 rounded-lg hover:opacity-95 transition">SAVE CHANGES</button>
                                                                         </div>
                                                                     </div>
                                                                 ) : (
                                                                     <div 
-                                                                        className={'p-4 md:p-5 bg-white border border-slate-300/80 rounded-xl italic text-xs leading-relaxed text-slate-700 font-light transition-colors relative group ' + (!isReadOnly ? 'cursor-text hover:border-[#00E676]/40' : '')}
+                                                                        className={'p-5 bg-[#0f172a]/60 border border-slate-800 rounded-xl text-xs leading-relaxed text-slate-300 font-light transition-all duration-150 relative group ' + 
+                                                                            (!isReadOnly ? 'cursor-text hover:border-teal-500/20' : '')}
                                                                         onClick={() => { if (!isReadOnly) { setEditingDescId(t._id); setTempDesc(t.Description || ''); } }}
                                                                     >
                                                                         {!isReadOnly && (
-                                                                            <div className="absolute top-2 right-2 flex items-center gap-2">
+                                                                            <div className="absolute top-2.5 right-2.5 flex items-center gap-2">
                                                                                 {t.editCount > 0 && (
-                                                                                    <span className="text-[9px] font-bold text-[#00E676] bg-[#00E676]/10 px-1.5 py-0.5 rounded">
+                                                                                    <span className="text-[9px] font-bold text-teal-400 bg-teal-950/40 px-2 py-0.5 rounded-full">
                                                                                         Edited {t.editCount}x
                                                                                     </span>
                                                                                 )}
-                                                                                <span className="opacity-0 group-hover:opacity-100 text-[10px] font-black text-[#00E676] bg-[#00E676]/10 px-2 py-1 rounded transition-opacity">
-                                                                                    Click to Edit Description
+                                                                                <span className="opacity-0 group-hover:opacity-100 text-[10px] font-bold text-teal-400 bg-teal-950/30 px-2.5 py-1 rounded-lg transition-opacity">
+                                                                                    แก้ไขคำอธิบาย
                                                                                 </span>
                                                                             </div>
                                                                         )}
-                                                                        <div className="pr-16">{t.Description || '--- No Specifications ---'}</div>
-                                                                        <div className="mt-4 pt-4 border-t border-slate-200" onClick={(e) => e.stopPropagation()}>
-                                                                            <AiNextStep title={t.Title} description={t.Description} setMsg={setMsg} fetchGemini={fetchGemini} userApiKey={userApiKey} setShowApiKeyModal={setShowApiKeyModal} isReadOnly={isReadOnly}/>
+                                                                        <div className="pr-16 leading-relaxed">
+                                                                            {t.Description || '--- No Specifications Defined ---'}
+                                                                        </div>
+                                                                        <div className="mt-4 pt-4 border-t border-slate-800/80" onClick={(e) => e.stopPropagation()}>
+                                                                            <AiNextStep title={t.Title} description={t.Description} setMsg={showToast} fetchGemini={fetchGemini} userApiKey={userApiKey} setShowApiKeyModal={setShowApiKeyModal} isReadOnly={isReadOnly}/>
                                                                         </div>
                                                                     </div>
                                                                 )}
                                                             </div>
 
-                                                            <div className="grid grid-cols-2 gap-2">
-                                                                <DetailRow label="In Charge" val={t.In_Charge || t.Raiser} isLight={true} />
-                                                                <DetailRow label="Line" val={t.Line || t.Area} isLight={true} />
+                                                            <div className="grid grid-cols-2 gap-3">
+                                                                <DetailRow label="In Charge" val={t.In_Charge || t.Raiser} isLight={false} />
+                                                                <DetailRow label="Line" val={t.Line || t.Area} isLight={false} />
                                                                 
                                                                 {editingCostId === t._id && !isReadOnly ? (
-                                                                    <div className="bg-white p-3 md:p-4 rounded-xl border border-[#00E676]/50 shadow-sm flex flex-col gap-1">
-                                                                        <span className="text-[10px] md:text-xs font-black text-[#00E676] uppercase italic leading-none tracking-widest">Cost (THB)</span>
+                                                                    <div className="bg-[#0f172a] p-3 rounded-xl border border-teal-500/30 shadow-sm flex flex-col gap-1.5">
+                                                                        <span className="text-[10px] font-bold text-teal-400 uppercase tracking-wider">Cost (THB)</span>
                                                                         <input 
                                                                             type="text" 
-                                                                            className="bg-slate-50 text-base md:text-sm text-slate-800 font-bold border border-slate-300 rounded px-2 py-1 focus:border-[#00E676] outline-none"
+                                                                            className="bg-slate-950 text-xs md:text-sm text-white font-semibold border border-slate-850 rounded px-2 py-1 outline-none"
                                                                             value={tempCost}
                                                                             onChange={e => setTempCost(e.target.value)}
-                                                                            onBlur={() => saveCostEdit(t._id)}
-                                                                            onKeyDown={e => { if(e.key === 'Enter') saveCostEdit(t._id); }}
+                                                                            onBlur={() => saveCostEdit(t._id, tempCost)}
+                                                                            onKeyDown={e => { if(e.key === 'Enter') saveCostEdit(t._id, tempCost); }}
                                                                             autoFocus
                                                                         />
                                                                     </div>
@@ -1110,20 +1274,20 @@
                                                                         isClickable={!isReadOnly} 
                                                                         onClick={() => { if (!isReadOnly) { setEditingCostId(t._id); setTempCost(t.Cost || ''); } }} 
                                                                         actionLabel="✏️ EDIT"
-                                                                        isLight={true}
+                                                                        isLight={false}
                                                                     />
                                                                 )}
 
                                                                 {editingDueDateId === t._id && !isReadOnly ? (
-                                                                    <div className="bg-white p-3 md:p-4 rounded-xl border border-[#00E676]/50 shadow-sm flex flex-col gap-1">
-                                                                        <span className="text-[10px] md:text-xs font-black text-[#00E676] uppercase italic leading-none tracking-widest">Due Date</span>
+                                                                    <div className="bg-[#0f172a] p-3 rounded-xl border border-teal-500/30 shadow-sm flex flex-col gap-1.5">
+                                                                        <span className="text-[10px] font-bold text-teal-400 uppercase tracking-wider">Due Date</span>
                                                                         <input 
                                                                             type="date" 
-                                                                            className="bg-slate-50 text-base text-slate-800 font-bold border border-slate-300 rounded px-2 py-1 focus:border-[#00E676] outline-none"
+                                                                            className="bg-slate-950 text-xs text-white border border-slate-850 rounded px-2 py-1 outline-none"
                                                                             value={tempDueDate ? tempDueDate.split('T')[0] : ''}
                                                                             onChange={e => setTempDueDate(e.target.value)}
-                                                                            onBlur={() => saveDueDateEdit(t)}
-                                                                            onKeyDown={e => { if(e.key === 'Enter') saveDueDateEdit(t); }}
+                                                                            onBlur={() => saveDueDateEdit(t._id, tempDueDate)}
+                                                                            onKeyDown={e => { if(e.key === 'Enter') saveDueDateEdit(t._id, tempDueDate); }}
                                                                             autoFocus
                                                                         />
                                                                     </div>
@@ -1134,45 +1298,43 @@
                                                                         isClickable={!isReadOnly} 
                                                                         onClick={() => { if (!isReadOnly) { setEditingDueDateId(t._id); setTempDueDate(t['Due Date'] || ''); } }} 
                                                                         actionLabel="✏️ EDIT"
-                                                                        isLight={true}
+                                                                        isLight={false}
                                                                     />
                                                                 )}
                                                             </div>
                                                         </div>
 
+                                                        {/* Follow-up Notes & Interactive Files */}
                                                         <div className="space-y-4">
                                                             <textarea 
-                                                                className="w-full p-4 bg-white border border-slate-300 rounded-xl text-base md:text-xs text-slate-800 h-24 italic outline-none focus:border-slate-400" 
-                                                                placeholder={isReadOnly ? "No Follow-up Notes" : "Follow-up Notes..."} 
+                                                                className="w-full p-4 bg-[#0f172a]/60 border border-slate-800 rounded-xl text-xs text-slate-200 h-24 placeholder-slate-600 outline-none focus:border-slate-700 font-light" 
+                                                                placeholder={isReadOnly ? "No Follow-up Notes" : "เขียนบันทึกความคืบหน้า... (ระบบจะบันทึกอัตโนมัติเมื่อกดข้างนอก)"} 
                                                                 value={t.Note || ''} 
                                                                 readOnly={isReadOnly}
-                                                                onChange={async (e) => { if (!isReadOnly && fbUser) await setDoc(doc(db, ...publicPath, 'actions', t._id), { Note: e.target.value }, { merge: true }); }} 
+                                                                onChange={(e) => saveNoteEdit(t._id, e.target.value)} 
+                                                                onBlur={() => triggerNoteSave(t._id)}
                                                             />
                                                             
-                                                            <div className="bg-white p-4 rounded-xl border border-slate-300 flex flex-col gap-3 shadow-sm">
-                                                                <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest italic flex items-center justify-between">
-                                                                    <span>🔗 Attachment Link</span>
-                                                                    {editingAttachmentId === t._id && <span className="text-[#00E676] animate-pulse">EDITING</span>}
+                                                            <div className="bg-[#0f172a]/40 p-4 rounded-xl border border-slate-800/80 flex flex-col gap-3">
+                                                                <span className="text-[10px] font-bold text-teal-400 uppercase tracking-widest flex items-center justify-between">
+                                                                    <span>🔗 Link Attachment</span>
                                                                 </span>
                                                                 <input 
-                                                                    className="w-full text-base md:text-xs text-slate-800 bg-slate-50 border border-slate-300 rounded-lg p-2.5 outline-none focus:border-blue-500 transition-all font-mono" 
-                                                                    placeholder={isReadOnly ? "No attachment linked" : "Paste attachment link (e.g., https://...)"} 
+                                                                    className="w-full text-xs text-slate-300 bg-slate-950/60 border border-slate-800/80 rounded-xl p-2.5 outline-none focus:border-teal-500/50 transition-all duration-150 font-mono" 
+                                                                    placeholder={isReadOnly ? "No attachment linked" : "เพิ่ม Google Drive ลิงก์แนบ..."} 
                                                                     value={editingAttachmentId === t._id ? tempAttachment : (t.Attachment || '')} 
                                                                     readOnly={isReadOnly}
                                                                     onFocus={() => { if (!isReadOnly) { setEditingAttachmentId(t._id); setTempAttachment(t.Attachment || ''); } }}
                                                                     onChange={(e) => setTempAttachment(e.target.value)}
                                                                     onBlur={async () => {
-                                                                        if (isReadOnly || !fbUser) return;
-                                                                        await setDoc(doc(db, ...publicPath, 'actions', t._id), { Attachment: tempAttachment }, { merge: true });
+                                                                        if (isReadOnly) return;
+                                                                        const updated = allData.map(item => item._id === t._id ? { ...item, Attachment: tempAttachment } : item);
+                                                                        setAllData(updated);
                                                                         setEditingAttachmentId(null);
-                                                                        setMsg("Link Saved!");
-                                                                    }}
-                                                                    onKeyDown={async (e) => {
-                                                                        if (isReadOnly || !fbUser) return;
-                                                                        if(e.key === 'Enter'){
-                                                                            await setDoc(doc(db, ...publicPath, 'actions', t._id), { Attachment: tempAttachment }, { merge: true });
-                                                                            setEditingAttachmentId(null);
-                                                                            setMsg("Link Saved!");
+                                                                        showToast("Link Saved!");
+                                                                        const match = updated.find(item => item._id === t._id);
+                                                                        if (match && sheetUrl) {
+                                                                            await pushToGoogleSheets('upsert', match);
                                                                         }
                                                                     }}
                                                                 />
@@ -1191,37 +1353,43 @@
                                                                                 }
                                                                             }
                                                                         }}
-                                                                        className="w-full py-2.5 bg-[#00E676] hover:bg-[#00c853] text-slate-950 font-black rounded-lg text-[10px] uppercase transition-all flex items-center justify-center gap-1.5 tracking-widest active:scale-95 shadow-lg shadow-[#00E676]/20"
+                                                                        className="w-full py-2.5 bg-gradient-to-r from-teal-500 to-emerald-400 text-slate-950 font-bold rounded-xl text-[10px] uppercase transition-all duration-150 flex items-center justify-center gap-1.5 active:scale-[0.98] shadow-md shadow-teal-500/5"
                                                                     >
-                                                                        <Icon name="Search" size={12} className="stroke-[3]" /> กดเพื่อแสดงตัวอย่าง
+                                                                        <Icon name="Search" size={12} /> แสดงไฟล์แนบจริง
                                                                     </button>
                                                                 ) : (
                                                                     <button 
                                                                         disabled
-                                                                        className="w-full py-2.5 bg-slate-200 text-slate-400 rounded-lg text-[10px] font-black uppercase flex items-center justify-center gap-1.5 tracking-widest cursor-not-allowed opacity-50"
+                                                                        className="w-full py-2.5 bg-slate-900 border border-slate-800/60 text-slate-500 rounded-xl text-[10px] font-bold uppercase flex items-center justify-center gap-1.5 opacity-50 cursor-not-allowed"
                                                                     >
-                                                                        <Icon name="Search" size={12} /> ไม่มีไฟล์แนบ
+                                                                        <Icon name="Search" size={12} /> ไม่มีไฟล์แนบเสริม
                                                                     </button>
                                                                 )}
                                                             </div>
 
-                                                            {t.Image && <img src={t.Image} className="w-full h-32 object-contain bg-white border border-slate-300 rounded-xl p-2 cursor-pointer" onClick={() => setPreviewUrl(t.Image)} />}
+                                                            {t.Image && (
+                                                                <img 
+                                                                    src={t.Image} 
+                                                                    className="w-full h-32 object-contain bg-slate-950 border border-slate-800 rounded-xl p-2 cursor-pointer hover:border-teal-500/30 transition-colors" 
+                                                                    onClick={() => setPreviewUrl(t.Image)} 
+                                                                />
+                                                            )}
                                                             
                                                             <div className="flex gap-2">
                                                                 {!isReadOnly && (
-                                                                    <label className="flex-1 cursor-pointer py-2 bg-white border border-dashed border-slate-350 text-slate-500 hover:text-[#00E676] hover:border-[#00E676] rounded-lg text-[10px] font-black text-center tracking-wider uppercase transition">
-                                                                        📷 UPLOAD PHOTO <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e, t._id)} />
+                                                                    <label className="flex-1 cursor-pointer py-2 bg-[#0f172a]/60 border border-dashed border-slate-800 hover:border-teal-500/50 text-slate-400 hover:text-teal-400 rounded-xl text-[10px] font-semibold text-center uppercase transition duration-150">
+                                                                        📷 ถ่ายรูปแนบหลักฐานจริง <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e, t._id)} />
                                                                     </label>
                                                                 )}
                                                             </div>
 
                                                             {!isReadOnly && (
-                                                                <button onClick={async () => {
-                                                                    if (!fbUser) return;
-                                                                    const s = String(t.Status).toLowerCase();
-                                                                    const next = s.includes('open') ? 'In Progress' : s.includes('progress') ? 'Closed' : 'Open';
-                                                                    await setDoc(doc(db, ...publicPath, 'actions', t._id), { Status: next }, { merge: true });
-                                                                }} className="w-full py-3.5 bg-slate-900 hover:bg-[#00E676] hover:text-slate-950 text-white rounded-lg text-xs font-black uppercase tracking-widest transition-all">CYCLE STATUS</button>
+                                                                <button 
+                                                                    onClick={() => cycleStatus(t._id)} 
+                                                                    className="w-full py-3 bg-slate-900 hover:bg-teal-500 hover:text-slate-950 text-slate-300 rounded-xl text-xs font-bold uppercase tracking-wide transition-all duration-150"
+                                                                >
+                                                                    CHANGE OPERATIONAL STATUS
+                                                                </button>
                                                             )}
                                                         </div>
                                                     </div>
@@ -1234,65 +1402,71 @@
                         </div>
                     </main>
 
-                    {/* Modals */}
+                    {}
+                    {/* Media Preview Modal */}
                     {previewUrl && (
-                        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-[400] flex items-center justify-center p-4" onClick={() => setPreviewUrl(null)}>
-                            <img src={previewUrl} className="max-w-full max-h-[85vh] object-contain bg-[#121824] p-3 rounded-xl border border-slate-800" onError={(e) => { window.open(previewUrl, '_blank'); setPreviewUrl(null); }} />
+                        <div className="fixed inset-0 bg-black/95 backdrop-blur-sm z-[400] flex items-center justify-center p-4 animate-fadeIn" onClick={() => setPreviewUrl(null)}>
+                            <img src={previewUrl} className="max-w-full max-h-[85vh] object-contain bg-slate-900 p-3 rounded-2xl border border-slate-800" onError={() => { window.open(previewUrl, '_blank'); setPreviewUrl(null); }} />
                         </div>
                     )}
 
+                    {/* Delete Confirmation Modal */}
                     {deleteConfirm && !isReadOnly && (
-                        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm">
-                            <div className="bg-[#121824] p-8 rounded-xl max-w-sm w-full text-center border border-slate-800 shadow-2xl">
-                                <h4 className="font-black text-white uppercase italic tracking-wider mb-2">Confirm Delete?</h4>
-                                <p className="text-slate-500 text-xs mb-6">This operation cannot be undone.</p>
+                        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/85 backdrop-blur-sm animate-fadeIn">
+                            <div className="bg-[#0f172a] p-8 rounded-2xl max-w-sm w-full text-center border border-slate-800 shadow-2xl">
+                                <h4 className="font-bold text-white uppercase tracking-wider mb-2">Confirm Action Delete?</h4>
+                                <p className="text-slate-500 text-xs mb-6">This operation will permanently remove this record.</p>
                                 <div className="flex gap-2">
-                                    <button onClick={() => setDeleteConfirm(null)} className="flex-1 py-3 bg-slate-900 text-slate-400 rounded-lg text-xs font-black uppercase tracking-wider">Abort</button>
-                                    <button onClick={confirmDelete} className="flex-1 py-3 bg-rose-600 text-white rounded-lg text-xs font-black uppercase tracking-wider">Delete</button>
+                                    <button onClick={() => setDeleteConfirm(null)} className="flex-1 py-3 bg-slate-900 text-slate-400 hover:text-slate-200 rounded-xl text-xs font-bold uppercase tracking-wider transition">Abort</button>
+                                    <button onClick={confirmDelete} className="flex-1 py-3 bg-red-600 hover:bg-red-500 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition">Confirm Delete</button>
                                 </div>
                             </div>
                         </div>
                     )}
 
-                    {showApiKeyModal && !isReadOnly && (
-                        <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/80 backdrop-blur-sm">
-                            <div className="bg-[#121824] p-8 rounded-xl max-w-md w-full border border-slate-800 shadow-2xl">
-                                <h3 className="font-black text-white uppercase italic tracking-wider mb-2">Gemini API Setup</h3>
-                                <p className="text-slate-500 text-xs mb-4">API keys are stored strictly in your local browser.</p>
-                                <input type="password" placeholder="AIzaSy..." className="w-full p-4 bg-slate-900 border border-slate-800 rounded-lg mb-6 text-xs font-mono text-slate-200 outline-none focus:border-[#00E676]" value={tempApiKey} onChange={e => setTempApiKey(e.target.value)} />
-                                <div className="flex gap-2">
-                                    <button onClick={() => setShowApiKeyModal(false)} className="py-3 px-4 bg-slate-900 text-slate-400 rounded-lg text-xs font-black uppercase tracking-wider">Cancel</button>
-                                    <button onClick={clearApiKey} className="py-3 px-4 bg-rose-950/20 text-rose-500 rounded-lg text-xs font-black uppercase tracking-wider mr-auto">Clear</button>
-                                    <button onClick={saveApiKey} className="py-3 px-5 bg-[#00E676] text-slate-950 rounded-lg text-xs font-black uppercase tracking-widest">Save</button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* QR Code / Share Sync Modal */}
-                    {showShareModal && (
-                        <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/85 backdrop-blur-sm" onClick={() => setShowShareModal(false)}>
-                            <div className="bg-[#0c0f16] p-8 rounded-2xl max-w-sm w-full border border-[#00E676]/30 shadow-[0_0_40px_rgba(0,230,118,0.15)] text-center relative" onClick={e => e.stopPropagation()}>
-                                <button onClick={() => setShowShareModal(false)} className="absolute top-4 right-4 text-slate-500 hover:text-white"><Icon name="X" size={20} /></button>
-                                <h3 className="font-black text-white uppercase italic tracking-wider text-sm mb-2">MOBILE SMART SYNC</h3>
-                                <p className="text-slate-400 text-[11px] mb-6">Scan the QR code below using your mobile phone to open the exact same database without loading errors.</p>
+                    {/* Google Sheets Config Modal */}
+                    {showSettingsModal && (
+                        <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/85 backdrop-blur-sm animate-fadeIn" onClick={() => setShowSettingsModal(false)}>
+                            <div className="bg-[#090d16] p-8 rounded-3xl max-w-md w-full border border-slate-800 shadow-2xl relative" onClick={e => e.stopPropagation()}>
+                                <button onClick={() => setShowSettingsModal(false)} className="absolute top-4 right-4 text-slate-500 hover:text-slate-300"><Icon name="X" size={20} /></button>
+                                <h3 className="font-bold text-white uppercase tracking-wider text-sm mb-2">เชื่อมต่อ GOOGLE SHEETS</h3>
+                                <p className="text-slate-400 text-xs mb-6 leading-relaxed">วาง Web App URL ที่เผยแพร่เพื่อเชื่อมข้อมูลระหว่างระบบเข้าสเปรดชีตทันทีแบบเรียลไทม์</p>
                                 
-                                <div className="bg-white p-4 rounded-xl inline-block mb-6 shadow-xl">
-                                    <img 
-                                        src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(shareUrl)}`} 
-                                        alt="Sync QR Code" 
-                                        className="w-48 h-48"
+                                <div className="space-y-4">
+                                    <FormInput 
+                                        label="API Web App URL" 
+                                        val={sheetUrl} 
+                                        onChange={setSheetUrl} 
+                                        placeholder="https://script.google.com/macros/s/.../exec" 
                                     />
-                                </div>
-
-                                <div className="space-y-2">
                                     <button 
-                                        onClick={copyShareLink}
-                                        className="w-full py-3 bg-[#00E676] hover:bg-[#00c853] text-slate-950 rounded-lg font-black text-xs uppercase tracking-widest transition flex items-center justify-center gap-2"
+                                        onClick={() => saveCloudSettings(sheetUrl)}
+                                        className="w-full py-3 bg-gradient-to-r from-teal-500 to-emerald-500 text-slate-950 rounded-xl font-bold text-xs uppercase tracking-wider shadow-lg"
                                     >
-                                        <Icon name="Copy" size={14} /> COPY SHARE URL
+                                        บันทึกสิทธิ์การเชื่อมโยง
                                     </button>
-                                    <div className="text-[9px] text-slate-600 uppercase tracking-widest font-bold">App Path: {appId}</div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Gemini AI Config Modal */}
+                    {showApiKeyModal && !isReadOnly && (
+                        <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/85 backdrop-blur-sm animate-fadeIn">
+                            <div className="bg-[#0f172a] p-8 rounded-2xl max-w-md w-full border border-slate-800 shadow-2xl">
+                                <h3 className="font-bold text-white uppercase tracking-wider text-sm mb-2">Gemini API Setup</h3>
+                                <p className="text-slate-500 text-xs mb-4">กุญแจ API จะถูกจัดเก็บไว้ใน Browser ของท่านอย่างปลอดภัย</p>
+                                <input 
+                                    type="password" 
+                                    placeholder="AIzaSy..." 
+                                    className="w-full p-4 bg-slate-950 border border-slate-850 rounded-xl mb-6 text-xs font-mono text-slate-200 outline-none focus:border-teal-500 transition-colors" 
+                                    value={tempApiKey} 
+                                    onChange={e => setTempApiKey(e.target.value)} 
+                                />
+                                <div className="flex gap-2">
+                                    <button onClick={() => setShowApiKeyModal(false)} className="py-3 px-4 bg-slate-900 text-slate-400 hover:text-slate-200 rounded-xl text-xs font-bold uppercase transition">Cancel</button>
+                                    <button onClick={clearApiKey} className="py-3 px-4 bg-red-950/20 text-red-400 hover:bg-red-950/40 rounded-xl text-xs font-bold uppercase transition mr-auto">Clear Key</button>
+                                    <button onClick={saveApiKey} className="py-3 px-5 bg-teal-500 text-slate-950 rounded-xl text-xs font-bold uppercase transition">Save Key</button>
                                 </div>
                             </div>
                         </div>
@@ -1315,21 +1489,16 @@
                 const scriptNode = document.createElement('script');
                 scriptNode.text = compiled;
                 document.body.appendChild(scriptNode);
+                
+                const root = ReactDOM.createRoot(document.getElementById('root'));
+                root.render(React.createElement(App));
             } catch (err) {
-                console.error("Compilation failed, retrying...", err.message);
+                console.error("Compilation failed, retrying in 100ms...", err.message);
                 setTimeout(compileAndRun, 100);
             }
         }
 
-        function checkBabelAndRun() {
-            if (typeof Babel !== 'undefined' && typeof React !== 'undefined' && typeof ReactDOM !== 'undefined') {
-                compileAndRun();
-            } else {
-                setTimeout(checkBabelAndRun, 50);
-            }
-        }
-
-        window.onload = checkBabelAndRun;
+        window.onload = compileAndRun;
     </script>
 </body>
 </html>
