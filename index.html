@@ -3,19 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RS Action Hub - Master List Fix</title>
+    <title>RS Action Hub - Command Center</title>
     
+    <!-- โหลดไลบรารีที่จำเป็นผ่าน CDN -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800;900&family=Prompt:ital,wght@0,300;0,400;0,700;1,800&display=swap" rel="stylesheet">
+
+    <!-- ฟอนต์ Prompt และ Inter สไตล์โรงงานล้ำอนาคต -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800;900&family=Prompt:ital,wght@0,300;0,400;0,600;0,700;1,800&display=swap" rel="stylesheet">
+
+    <!-- Firebase Compat สำหรับความเสถียรของ Database -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
     <script>
         window.SIM2_FB = null;
+        
         function initFirebaseBridge() {
             if (typeof firebase !== 'undefined') {
                 window.SIM2_FB = { 
@@ -25,7 +31,11 @@
                     signInWithCustomToken: (auth, token) => auth.signInWithCustomToken(token), 
                     onAuthStateChanged: (auth, callback) => auth.onAuthStateChanged(callback), 
                     getFirestore: (app) => firebase.firestore(app), 
-                    initializeFirestore: (app, settings) => { const db = firebase.firestore(app); try { if (settings) db.settings(settings); } catch (e) {} return db; }, 
+                    initializeFirestore: (app, settings) => {
+                        const db = firebase.firestore(app);
+                        try { if (settings) db.settings(settings); } catch (e) {}
+                        return db;
+                    }, 
                     collection: (db, ...paths) => db.collection(paths.join('/')), 
                     doc: (db, ...paths) => db.doc(paths.join('/')), 
                     setDoc: (docRef, data, options) => docRef.set(data, options || {}), 
@@ -35,13 +45,24 @@
                             if (snap) {
                                 try {
                                     const existsVal = !!snap.exists;
-                                    Object.defineProperty(snap, 'exists', { value: () => existsVal, configurable: true, enumerable: true, writable: true });
+                                    Object.defineProperty(snap, 'exists', {
+                                        value: () => existsVal,
+                                        configurable: true,
+                                        enumerable: true,
+                                        writable: true
+                                    });
                                 } catch (e) {}
+
                                 if (snap.docs && Array.isArray(snap.docs)) {
                                     snap.docs.forEach(docSnap => {
                                         try {
                                             const docExists = !!docSnap.exists;
-                                            Object.defineProperty(docSnap, 'exists', { value: () => docExists, configurable: true, enumerable: true, writable: true });
+                                            Object.defineProperty(docSnap, 'exists', {
+                                                value: () => docExists,
+                                                configurable: true,
+                                                enumerable: true,
+                                                writable: true
+                                            });
                                         } catch (e) {}
                                     });
                                 }
@@ -51,19 +72,46 @@
                     }, 
                     writeBatch: (db) => {
                         const batch = db.batch();
-                        return { set: (docRef, data, options) => batch.set(docRef, data, options || {}), update: (docRef, data) => batch.update(docRef, data), delete: (docRef) => batch.delete(docRef), commit: () => batch.commit() };
+                        return {
+                            set: (docRef, data, options) => batch.set(docRef, data, options || {}),
+                            update: (docRef, data) => batch.update(docRef, data),
+                            delete: (docRef) => batch.delete(docRef),
+                            commit: () => batch.commit()
+                        };
                     } 
                 };
-            } else { setTimeout(initFirebaseBridge, 50); }
+            } else {
+                setTimeout(initFirebaseBridge, 50);
+            }
         }
         initFirebaseBridge();
     </script>
+    <style>
+        .custom-scroll::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scroll::-webkit-scrollbar-track {
+            background: #080b11;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 4px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb:hover {
+            background: #00E676;
+        }
+        .gradient-ai {
+            background: linear-gradient(135deg, rgba(0, 230, 118, 0.08) 0%, rgba(0, 176, 255, 0.08) 100%);
+        }
+    </style>
 </head>
-<body class="bg-[#0b0f19] text-slate-100">
+<body class="bg-[#0b0f19] text-slate-100 font-['Prompt'] antialiased">
     <div id="root"></div>
 
     <script id="react-code-holder" type="text/plain">
         const { useState, useEffect, useMemo, Fragment } = React;
+
         const MASTER_LINE_NAMES = [
             "D Auto Pole assembly machine 1", "D Auto Pole assembly manual 1",
             "D Auto Thermal (W03-W07) No.1", "D Auto coil (W01+02) No.1", "D Auto coil (W01+02) No.2",
@@ -78,7 +126,42 @@
             "SA Pole assy 1", "SA Pole assy 2", "SA Pole assy 3", "SA Pole assy 4"
         ];
         
-        const waitForFirebase = (callback) => { if (window.SIM2_FB) callback(window.SIM2_FB); else setTimeout(() => waitForFirebase(callback), 50); };
+        const waitForFirebase = (callback) => {
+            if (window.SIM2_FB) callback(window.SIM2_FB);
+            else setTimeout(() => waitForFirebase(callback), 50);
+        };
+
+        const formatDate = (dateStr) => {
+            if (!dateStr) return '---';
+            const d = new Date(dateStr);
+            if (isNaN(d.getTime())) return dateStr; 
+            return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ /g, '-');
+        };
+
+        const GEMINI_MODEL = "gemini-3.1-flash-lite";
+        
+        const fetchGemini = async (prompt, userKey, systemPrompt = "คุณคือผู้ช่วยจัดการโครงการอุตสาหกรรมมืออาชีพ") => {
+            if (!userKey) throw new Error("NO_API_KEY");
+            let retries = 0;
+            const delays = [1000, 2000, 4000, 8000, 16000];
+            while (retries < 5) {
+                try {
+                    const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + GEMINI_MODEL + ':generateContent?key=' + userKey, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], systemInstruction: { parts: [{ text: systemPrompt }] } })
+                    });
+                    const result = await response.json();
+                    if (!response.ok) throw new Error(result.error?.message || "API Error");
+                    return result.candidates?.[0]?.content?.parts?.[0]?.text;
+                } catch (error) {
+                    if (error.message === "NO_API_KEY") throw error;
+                    if (retries === 4) throw error;
+                    await new Promise(res => setTimeout(res, delays[retries]));
+                    retries++;
+                }
+            }
+        };
+
         const Icon = ({ name, size = 18, className = "" }) => {
             const icons = {
                 Dashboard: <Fragment><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="11" width="7" height="10" rx="1"/><rect x="3" y="15" width="7" height="6" rx="1"/></Fragment>,
@@ -87,6 +170,7 @@
                 Search: <Fragment><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></Fragment>,
                 Trash: <Fragment><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></Fragment>,
                 Target: <Fragment><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></Fragment>,
+                Cloud: <Fragment><path d="M17.5 19c2.5 0 4.5-2 4.5-4.5 0-2.3-1.7-4.2-4-4.5C17.1 6.3 14 4 10.5 4 7.2 4 4.5 6.4 4.1 9.6 1.8 10.1 0 12.1 0 14.5 0 17 2 19 4.5 19h13z"/></Fragment>,
                 Menu: <Fragment><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></Fragment>,
                 X: <Fragment><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></Fragment>,
                 Sparkle: <Fragment><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></Fragment>,
@@ -99,71 +183,1121 @@
             return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={className}>{icons[name] || null}</svg>;
         };
 
-        const App = ({ fb }) => {
-            const { initializeApp, getAuth, signInAnonymously, onAuthStateChanged, initializeFirestore, collection, doc, onSnapshot, getFirestore } = fb;
-            const app = initializeApp({
-                apiKey: "AIzaSyBpb35n86yKm-etaqI9ilvPosBe4OyDogs", authDomain: "sim2-management-rattanachot.firebaseapp.com",
-                projectId: "sim2-management-rattanachot", storageBucket: "sim2-management-rattanachot.firebasestorage.app",
-                messagingSenderId: "1050876853626", appId: "1:1050876853626:web:a9cfa2b91416426a686ac3"
-            });
-            const db = initializeFirestore(app, {});
-            const [session, setSession] = useState(sessionStorage.getItem('rs_task_session') || null);
-            const [allData, setAllData] = useState([]);
-            const [view, setView] = useState('list');
-            const [expandedId, setExpandedId] = useState(null);
-            const [search, setSearch] = useState('');
-            const [selectedYear, setSelectedYear] = useState(2026);
-            const publicPath = ['artifacts', 'sim2-mgmt-rattanachot', 'public', 'data'];
-
-            useEffect(() => {
-                const unsub = onSnapshot(collection(db, ...publicPath, 'actions'), (snap) => setAllData(snap.docs.map(d => ({ ...d.data(), _id: d.id }))));
-                return () => unsub();
-            }, []);
-
-            const filteredTasks = useMemo(() => allData.filter(t => {
-                const titleMatch = String(t.Title || '').toLowerCase().includes(search.toLowerCase());
-                const yearMatch = t['Opening Date'] ? new Date(t['Opening Date']).getFullYear() === selectedYear : true;
-                return titleMatch && yearMatch;
-            }), [allData, search, selectedYear]);
-
-            if (!session) return (
-                <div className="flex h-screen items-center justify-center bg-[#0b0f19] text-white">
-                    <button onClick={() => { sessionStorage.setItem('rs_task_session', 'guest'); setSession('guest'); }} className="bg-[#00E676] text-black px-6 py-3 font-bold rounded-lg uppercase italic tracking-widest">Login as Guest</button>
-                </div>
-            );
-
+        const AiNextStep = ({ title, description, setMsg, fetchGemini, userApiKey, setShowApiKeyModal, isReadOnly }) => {
+            const [loading, setLoading] = useState(false);
+            const [suggestion, setSuggestion] = useState("");
+            const getSteps = async () => {
+                if (suggestion) { setSuggestion(""); return; }
+                if (!userApiKey) { setShowApiKeyModal(true); return; }
+                setLoading(true);
+                try {
+                    const prompt = 'งานคือ "' + title + '". คำอธิบาย: "' + description + '". ช่วยแนะนำ 3 ขั้นตอนปฏิบัติการเชิงวิศวรรกรรมสั้นๆ ภาษาไทย';
+                    const result = await fetchGemini(prompt, userApiKey, "คุณคือผู้เชี่ยวชาญโรงงานและช่างเทคนิคอาวุโส");
+                    setSuggestion(result);
+                } catch (e) { 
+                    if(e.message === "NO_API_KEY") setShowApiKeyModal(true);
+                    else setMsg("AI Insight failed: " + e.message); 
+                }
+                setLoading(false);
+            };
             return (
-                <div className="flex h-screen bg-[#0b0f19] text-slate-100 font-['Prompt']">
-                    <aside className="w-64 border-r border-slate-800 p-6 flex flex-col gap-4">
-                        <h1 className="text-xl font-black uppercase italic text-[#00E676]">RS Hub</h1>
-                        <button onClick={() => setView('list')} className="text-left py-2 hover:text-[#00E676]">Master List</button>
-                    </aside>
-                    <main className="flex-1 p-10 overflow-y-auto">
-                        <div className="mb-6 flex gap-4">
-                            <input type="text" placeholder="Search..." className="bg-slate-900 border border-slate-700 p-2 rounded text-sm w-full" onChange={(e) => setSearch(e.target.value)} />
+                <div className="flex flex-col items-start w-full mt-2">
+                    <button onClick={getSteps} disabled={loading} className="text-xs font-black text-[#00E676] flex items-center gap-1.5 hover:text-[#00c853] transition-colors active:scale-95 disabled:opacity-50 tracking-wider">
+                        <Icon name="Sparkle" size={14} className={loading ? "animate-spin" : ""} />
+                        {suggestion ? "ซ่อนแนวทางปฏิบัติงาน" : "ขอแนวทางการปฏิบัติเชิงวิศวกรรม (AI NEXT STEPS)"}
+                    </button>
+                    {suggestion && (
+                        <div className="mt-3 p-4 bg-slate-950 border border-[#00E676]/20 rounded-lg text-xs md:text-sm text-slate-300 italic animate-in w-full text-left whitespace-pre-line border-l-4 border-l-[#00E676]">
+                            {suggestion}
                         </div>
-                        <div className="space-y-2">
-                            {filteredTasks.length === 0 ? <p className="text-slate-500 italic text-center py-20">--- No Data Found ---</p> : filteredTasks.map(t => (
-                                <div key={t._id} className="bg-[#121824] rounded-lg border border-slate-800 overflow-hidden">
-                                    <div onClick={() => setExpandedId(expandedId === t._id ? null : t._id)} className="p-4 cursor-pointer hover:bg-slate-800 font-bold uppercase text-sm italic">
-                                        {t['Action Id'] || 'ID'} : {t.Title || 'Untitled'}
-                                    </div>
-                                    {expandedId === t._id && (
-                                        <div className="p-4 border-t border-slate-800 bg-[#0d121c] text-xs text-slate-400 leading-relaxed">
-                                            <p><strong className="text-white">Description:</strong> {t.Description || 'No detail provided.'}</p>
-                                            <p className="mt-2"><strong className="text-white">Line:</strong> {t.Line || 'N/A'}</p>
-                                            <p className="mt-2"><strong className="text-white">Status:</strong> {t.Status || 'Open'}</p>
-                                        </div>
-                                    )}
-                                </div>
-                            ))}
-                        </div>
-                    </main>
+                    )}
                 </div>
             );
         };
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        waitForFirebase((fb) => root.render(<App fb={fb} />));
+
+        const SidebarBtn = ({ icon, label, active, onClick }) => (
+            <button onClick={onClick} className={'w-full flex items-center gap-3 md:gap-4 px-6 md:px-8 py-4 transition-all duration-300 border-l-4 ' + (active ? 'border-[#00E676] bg-emerald-950/10 text-[#00E676]' : 'border-transparent text-slate-400 hover:text-white hover:bg-white/5')}>
+                <span className={active ? 'scale-110' : 'opacity-40'}>{icon}</span>
+                <span className="font-black text-xs md:text-sm uppercase tracking-widest italic leading-none">{label}</span>
+            </button>
+        );
+
+        const StatCard = ({ label, value, color }) => (
+            <div className="bg-[#121824] p-6 md:p-8 rounded-xl border border-slate-800/80 shadow-2xl flex flex-col group overflow-hidden relative text-left">
+                <div className={'absolute top-0 left-0 w-full h-1 ' + color} />
+                <span className="text-[10px] md:text-xs font-black text-slate-500 uppercase tracking-widest italic">{label}</span>
+                <div className="text-3xl md:text-5xl font-black text-white tracking-tighter italic leading-none tabular-nums mt-3 mb-1 group-hover:scale-105 transition-transform duration-300 origin-left">{value}</div>
+            </div>
+        );
+
+        const FormInput = ({ label, val, onChange, placeholder, type="text" }) => (
+            <div className="space-y-1">
+                <label className="text-[10px] md:text-xs font-black text-slate-400 uppercase italic ml-1 tracking-wider">{label}</label>
+                <input type={type} className="w-full p-3 bg-slate-900 border border-slate-800 rounded-lg text-xs md:text-sm font-bold text-white outline-none focus:border-[#00E676] focus:ring-1 focus:ring-[#00E676]/20 transition shadow-inner" placeholder={placeholder} value={val} onChange={(e) => onChange(e.target.value)} />
+            </div>
+        );
+
+        const DetailRow = ({ label, val, isClickable, onClick, actionLabel }) => (
+            <div 
+                className={'bg-slate-900 p-3 md:p-4 rounded-xl border border-slate-800/80 shadow-sm flex flex-col gap-1 overflow-hidden transition-all group ' + (isClickable ? 'cursor-pointer hover:border-[#00E676]/40' : '')}
+                onClick={isClickable ? onClick : undefined}
+            >
+                <span className="text-[10px] md:text-xs font-black text-slate-500 uppercase italic leading-none tracking-widest flex justify-between items-center">
+                    <span>{label}</span>
+                    {isClickable && <span className="text-[8px] text-[#00E676] opacity-0 group-hover:opacity-100 transition-opacity font-bold">{actionLabel || '✏️ แก้ไข'}</span>}
+                </span>
+                <span className="text-xs md:text-sm font-bold text-slate-200 italic leading-tight pr-1 break-words">{val || '---'}</span>
+            </div>
+        );
+
+        const LoginScreen = ({ onLogin, onGuestAccess, errorMsg }) => {
+            const [username, setUsername] = useState('');
+            const [password, setPassword] = useState('');
+            const [loading, setLoading] = useState(false);
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                if (!username || !password) return;
+                setLoading(true);
+                onLogin(username, password);
+                setLoading(false);
+            };
+
+            return (
+                <div className="min-h-screen flex items-center justify-center p-4 relative bg-[#06080e] overflow-hidden font-['Prompt']">
+                    <div className="absolute top-0 left-0 w-full h-[3px] bg-[#00E676]/35 shadow-[0_0_15px_#00E676] animate-pulse z-[2]" style={{
+                        animation: 'scannerMove 6s infinite ease-in-out'
+                    }} />
+                    <style>{`
+                        @keyframes scannerMove {
+                            0% { top: 0%; }
+                            50% { top: 100%; }
+                            100% { top: 0%; }
+                        }
+                    `}</style>
+                    
+                    <div className="w-full max-w-md bg-[#0c0f16]/95 border border-[#00E676]/25 rounded-2xl p-8 shadow-[0_0_50px_rgba(0,230,118,0.1)] relative z-10 backdrop-blur-md">
+                        <div className="flex flex-col items-center text-center mb-8">
+                            <div className="w-14 h-14 bg-gradient-to-tr from-[#00E676] to-[#00b0ff] rounded-xl flex items-center justify-center font-black italic shadow-lg mb-4 shadow-[#00E676]/15">
+                                <Icon name="Lock" size={26} className="text-slate-950" />
+                            </div>
+                            <h2 className="text-xl font-black uppercase italic tracking-widest text-white leading-none">Rattanachot Task</h2>
+                            <span className="text-[9px] font-black text-rose-500 uppercase tracking-widest mt-2 bg-rose-950/20 px-2.5 py-1 border border-rose-900/30 rounded-md">SECURE OPERATIONAL CLEARANCE</span>
+                        </div>
+
+                        {errorMsg && (
+                            <div className="mb-4 p-3 bg-rose-950/40 border border-rose-800/60 rounded-lg text-xs text-rose-400 font-bold italic">
+                                ⚠️ {errorMsg}
+                            </div>
+                        )}
+
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                            <FormInput 
+                                label="OPERATIONAL USERNAME (รหัสพนักงาน)" 
+                                val={username} 
+                                onChange={setUsername} 
+                                placeholder="SESA650194" 
+                            />
+                            <FormInput 
+                                label="CLEARANCE PASSWORD (รหัสผ่าน)" 
+                                val={password} 
+                                onChange={setPassword} 
+                                placeholder="••••••••" 
+                                type="password"
+                            />
+
+                            <button 
+                                type="submit" 
+                                disabled={loading}
+                                className="w-full py-4 bg-gradient-to-r from-emerald-600 to-[#00E676] text-slate-950 rounded-lg font-black uppercase italic shadow-lg hover:opacity-90 transition-all text-xs tracking-widest disabled:opacity-50"
+                            >
+                                {loading ? "AUTHORIZING..." : "UNLOCK OPERATIONAL CONTROL"}
+                            </button>
+                        </form>
+
+                        <div className="mt-6 pt-4 border-t border-slate-900/50 flex flex-col gap-3">
+                            <div className="text-center text-[10px] text-slate-500 font-bold uppercase tracking-wider">หรือเข้าชมข้อมูลระบบส่วนกลาง</div>
+                            <button 
+                                onClick={onGuestAccess}
+                                className="w-full py-3 bg-slate-900 hover:bg-slate-850 text-slate-300 rounded-lg border border-slate-800/80 font-black uppercase italic text-xs tracking-widest flex items-center justify-center gap-2 transition active:scale-95"
+                            >
+                                <Icon name="Eye" size={14} className="text-blue-400" /> GUEST ACCESS (ดูอย่างเดียว)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const App = ({ fb }) => {
+            const { initializeApp, getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, initializeFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, writeBatch, getFirestore } = fb;
+            
+            const firebaseConfig = useMemo(() => {
+                if (typeof __firebase_config !== 'undefined' && __firebase_config) {
+                    try {
+                        return JSON.parse(__firebase_config);
+                    } catch (e) {
+                        console.error("Failed to parse dynamic __firebase_config, falling back:", e);
+                    }
+                }
+                return {
+                  apiKey: "AIzaSyBpb35n86yKm-etaqI9ilvPosBe4OyDogs",
+                  authDomain: "sim2-management-rattanachot.firebaseapp.com",
+                  projectId: "sim2-management-rattanachot",
+                  storageBucket: "sim2-management-rattanachot.firebasestorage.app",
+                  messagingSenderId: "1050876853626",
+                  appId: "1:1050876853626:web:a9cfa2b91416426a686ac3",
+                  measurementId: "G-KE7P699K7N"
+                };
+            }, []);
+
+            const app = useMemo(() => initializeApp(firebaseConfig), [firebaseConfig]);
+            const auth = useMemo(() => getAuth(app), [app]);
+            const db = useMemo(() => {
+                try { return initializeFirestore(app, { experimentalForceLongPolling: true }); } catch(e) { return getFirestore(app); }
+            }, [app]);
+            
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'sim2-mgmt-rattanachot';
+
+            const [session, setSession] = useState(sessionStorage.getItem('rs_task_session') || null); 
+            const [fbUser, setFbUser] = useState(null); 
+            const [authError, setAuthError] = useState('');
+
+            const [allData, setAllData] = useState([]);
+            const [meta, setMeta] = useState(null);
+            const [view, setView] = useState('dashboard');
+            const [search, setSearch] = useState('');
+            const [statusFilter, setStatusFilter] = useState('All');
+            const [lineFilter, setLineFilter] = useState('All'); 
+            const [sortBy, setSortBy] = useState('default');
+            const [expandedId, setExpandedId] = useState(null);
+            const [msg, setMsg] = useState(null);
+            const [syncProgress, setSyncProgress] = useState(null);
+            const [deleteConfirm, setDeleteConfirm] = useState(null);
+            const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+            const currentYearValue = 2026;
+            const [selectedYear, setSelectedYear] = useState(currentYearValue);
+
+            const [editingCostId, setEditingCostId] = useState(null);
+            const [tempCost, setTempCost] = useState('');
+            
+            const [editingDescId, setEditingDescId] = useState(null);
+            const [tempDesc, setTempDesc] = useState('');
+
+            const [editingDueDateId, setEditingDueDateId] = useState(null);
+            const [tempDueDate, setTempDueDate] = useState('');
+
+            const [editingAttachmentId, setEditingAttachmentId] = useState(null);
+            const [tempAttachment, setTempAttachment] = useState('');
+            const [previewUrl, setPreviewUrl] = useState(null);
+
+            const [userApiKey, setUserApiKey] = useState(localStorage.getItem('gemini_api_key') || '');
+            const [showApiKeyModal, setShowApiKeyModal] = useState(false);
+            const [tempApiKey, setTempApiKey] = useState('');
+
+            const [aiSummary, setAiSummary] = useState("");
+            const [isAiLoading, setIsAiLoading] = useState(false);
+
+            const [newItem, setNewItem] = useState({
+                'Action Id': '', 'Title': '', 'Description': '', 'Cost': '', 'Opening Date': new Date().toISOString(), 'Due Date': '', 'Status': 'Open', 'In_Charge': 'Rattanachot Siriwanit', 'Line': '', 'Attachment': '' 
+            });
+            const publicPath = ['artifacts', appId, 'public', 'data'];
+
+            const isReadOnly = session === 'guest';
+
+            const handleLogin = (username, password) => {
+                setAuthError('');
+                if (username.toUpperCase() === 'SESA650194' && password === '3010075') {
+                    setSession('admin');
+                    sessionStorage.setItem('rs_task_session', 'admin');
+                    setMsg('สิทธิ์ผู้ควบคุมระบบอนุมัติเรียบร้อย - ยินดีต้อนรับครับพี่บอล');
+                } else {
+                    setAuthError('รหัสผู้ใช้งานหรือรหัสผ่านความปลอดภัยไม่ถูกต้อง');
+                }
+            };
+
+            const handleGuestAccess = () => {
+                setSession('guest');
+                sessionStorage.setItem('rs_task_session', 'guest');
+                setMsg('โหมดผู้ชมภายนอกทั่วไป (ดูได้อย่างเดียว)');
+                if (view === 'add') setView('dashboard');
+            };
+
+            const handleSignOut = () => {
+                setSession(null);
+                sessionStorage.removeItem('rs_task_session');
+                setAllData([]);
+                setMsg('ออกจากระบบควบคุมความปลอดภัยแล้ว');
+            };
+
+            useEffect(() => {
+                const initAuth = async () => {
+                    try {
+                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                            await signInWithCustomToken(auth, __initial_auth_token);
+                        } else {
+                            await signInAnonymously(auth);
+                        }
+                    } catch (e) {
+                        console.error("Firebase auth bridge initialization failed:", e);
+                    }
+                };
+                initAuth();
+                const unsubscribe = onAuthStateChanged(auth, setFbUser);
+                return () => unsubscribe();
+            }, [auth]);
+
+            const availableYearsList = useMemo(() => {
+                const years = new Set([currentYearValue, currentYearValue + 1, currentYearValue - 1]);
+                allData.forEach(t => {
+                    const dateVal = t['Opening Date'] || t.OpenedAt || t['Due Date'];
+                    if (dateVal) {
+                        const d = new Date(dateVal);
+                        if (!isNaN(d.getTime())) {
+                            years.add(d.getFullYear());
+                        }
+                    }
+                });
+                return Array.from(years).sort((a, b) => b - a);
+            }, [allData, currentYearValue]);
+
+            const generateNextId = () => {
+                let maxNum = 0;
+                allData.forEach(t => {
+                    const id = String(t['Action Id'] || '').trim().toUpperCase();
+                    if (id.startsWith('2026-')) {
+                        const numPart = parseInt(id.replace('2026-', ''), 10);
+                        if (!isNaN(numPart) && numPart > maxNum) maxNum = numPart;
+                    }
+                });
+                return '2026-' + String(maxNum + 1).padStart(3, '0');
+            };
+
+            useEffect(() => {
+                if (view === 'add' && newItem['Action Id'] === '') {
+                    setNewItem(prev => ({ ...prev, 'Action Id': generateNextId() }));
+                }
+            }, [view, allData]);
+
+            useEffect(() => {
+                if (!session || !fbUser) return;
+                const actionsCol = collection(db, ...publicPath, 'actions');
+                const unsubData = onSnapshot(actionsCol, 
+                    (snap) => setAllData(snap.docs.map(doc => ({ ...doc.data(), _id: doc.id }))),
+                    (err) => console.error("Snapshot error on actionsCol:", err)
+                );
+                const metaDoc = doc(db, ...publicPath, 'metadata', 'sync_info');
+                const unsubMeta = onSnapshot(metaDoc, 
+                    (docSnap) => { if (docSnap.exists()) setMeta(docSnap.data()); },
+                    (err) => console.error("Snapshot error on metaDoc:", err)
+                );
+                return () => { unsubData(); unsubMeta(); };
+            }, [session, fbUser, db]);
+
+            useEffect(() => setIsSidebarOpen(false), [view]);
+
+            const myTasksRaw = useMemo(() => {
+                return allData.filter(t => {
+                    const nameFields = String(t.In_Charge || t.Owner || t.Raiser || t.Responsible || t.OwnerName || t.Rattanachot || '').toLowerCase();
+                    return nameFields.includes('rattanachot') || nameFields.includes('siriwanit') || nameFields.includes('รัตนโชติ');
+                });
+            }, [allData]);
+
+            const myAllTasks = useMemo(() => {
+                return myTasksRaw.filter(t => {
+                    const statusStr = String(t.Status || '').toLowerCase();
+                    const isClosed = statusStr.includes('close') || statusStr.includes('succ');
+                    const dateStr = isClosed 
+                        ? (t.ClosedAt || t.ClosedDate || t['Opening Date'] || t.OpenedAt)
+                        : (t['Opening Date'] || t.OpenedAt || t['Due Date']);
+                    const d = new Date(dateStr);
+                    return !isNaN(d.getTime()) && d.getFullYear() === selectedYear;
+                });
+            }, [myTasksRaw, selectedYear]);
+
+            const lineOptions = useMemo(() => {
+                const counts = {};
+                myAllTasks.forEach(t => {
+                    const line = t.Line || t.Area || 'Unknown';
+                    if (String(t.Status || '').toLowerCase().includes('open')) counts[line] = (counts[line] || 0) + 1;
+                });
+                return Object.entries(counts).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count);
+            }, [myAllTasks]);
+
+            const lineStatsFilters = useMemo(() => {
+                const stats = {};
+                myAllTasks.forEach(t => {
+                    const line = t.Line || t.Area || 'Unknown';
+                    if (!stats[line]) stats[line] = { total: 0, unclosed: 0 };
+                    stats[line].total += 1;
+                    if (!String(t.Status || '').toLowerCase().includes('close') && !String(t.Status || '').toLowerCase().includes('succ')) stats[line].unclosed += 1;
+                });
+                return Object.entries(stats).map(([name, data]) => ({ name, ...data })).sort((a, b) => b.total - a.total);
+            }, [myAllTasks]);
+
+            const filteredTasks = useMemo(() => {
+                let tasks = [...myAllTasks];
+                if (search) {
+                    tasks = tasks.filter(t => Object.values(t).some(v => String(v).toLowerCase().includes(search.toLowerCase())));
+                }
+                if (statusFilter !== 'All') {
+                    const sf = statusFilter.toLowerCase();
+                    tasks = tasks.filter(t => {
+                         const s = String(t.Status || '').toLowerCase();
+                         if (sf === 'in progress') return s.includes('progress');
+                         return s.includes(sf);
+                    });
+                }
+                if (lineFilter !== 'All') tasks = tasks.filter(t => (t.Line || t.Area || 'Unknown') === lineFilter);
+                return tasks.sort((a, b) => {
+                    if (sortBy === 'open_desc') return new Date(b['Opening Date'] || b.OpenedAt || 0) - new Date(a['Opening Date'] || a.OpenedAt || 0);
+                    if (sortBy === 'open_asc') return new Date(a['Opening Date'] || a.OpenedAt || 0) - new Date(b['Opening Date'] || b.OpenedAt || 0);
+                    const getDue = (t) => { const d = t['Due Date'] || t['Due Date R/S*'] || t.DueDate; return d ? new Date(d).getTime() : null; };
+                    if (sortBy === 'due_asc') return (getDue(a) || Infinity) - (getDue(b) || Infinity);
+                    if (sortBy === 'due_desc') return (getDue(b) || -Infinity) - (getDue(a) || -Infinity);
+                    if (String(a.Status).toLowerCase().includes('closed') && !String(b.Status).toLowerCase().includes('closed')) return 1;
+                    if (!String(a.Status).toLowerCase().includes('closed') && String(b.Status).toLowerCase().includes('closed')) return -1;
+                    return new Date(b['Opening Date'] || b.OpenedAt || 0) - new Date(a['Opening Date'] || a.OpenedAt || 0);
+                });
+            }, [myAllTasks, search, statusFilter, lineFilter, sortBy]);
+
+            const dashboardData = useMemo(() => {
+                const months = Array(12).fill(0);
+                const openCounts = Array(12).fill(0);
+                const closedCounts = Array(12).fill(0);
+                let totalSpent = 0;
+                let totalClosed = 0;
+                let pendingCount = 0;
+                let progressCount = 0;
+                let successCount = 0;
+                let totalCount = 0;
+
+                myTasksRaw.forEach(t => {
+                    const statusStr = String(t.Status || '').toLowerCase();
+                    const isClosed = statusStr.includes('close') || statusStr.includes('succ');
+                    
+                    const dateStr = isClosed 
+                        ? (t.ClosedAt || t.ClosedDate || t['Opening Date'] || t.OpenedAt)
+                        : (t['Opening Date'] || t.OpenedAt || t['Due Date']);
+                    
+                    const d = new Date(dateStr);
+                    if (!isNaN(d.getTime()) && d.getFullYear() === selectedYear) {
+                        totalCount++;
+                        const month = d.getMonth();
+                        
+                        if (isClosed) {
+                            successCount++;
+                            closedCounts[month] += 1;
+                            totalClosed += 1;
+                            
+                            const cost = parseFloat(String(t.Cost || t.Budget || '0').replace(/,/g, "")) || 0;
+                            if (cost > 0) {
+                                months[month] += cost;
+                                totalSpent += cost;
+                            }
+                        } else {
+                            if (statusStr.includes('progress')) {
+                                progressCount++;
+                            } else {
+                                pendingCount++;
+                            }
+                            openCounts[month] += 1;
+                        }
+                    }
+                });
+
+                const maxCostVal = Math.max(...months, 1);
+                const monthNames = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+                
+                const chart = months.map((val, idx) => ({
+                    label: monthNames[idx],
+                    val,
+                    openCount: openCounts[idx],
+                    closedCount: closedCounts[idx],
+                    height: val > 0 ? Math.max((val / maxCostVal) * 100, 4) : 0
+                }));
+
+                return {
+                    chart,
+                    totalSpent,
+                    totalClosed,
+                    stats: {
+                        total: totalCount,
+                        open: pendingCount,
+                        progress: progressCount,
+                        closed: successCount
+                    }
+                };
+            }, [myTasksRaw, selectedYear]);
+
+            const saveApiKey = () => { localStorage.setItem('gemini_api_key', tempApiKey); setUserApiKey(tempApiKey); setShowApiKeyModal(false); setMsg("บันทึก Gemini API Key แล้ว!"); };
+            const clearApiKey = () => { localStorage.removeItem('gemini_api_key'); setUserApiKey(''); setTempApiKey(''); };
+
+            const updateStatus = async (id, newStatus) => {
+                if (isReadOnly || !fbUser) return;
+                try {
+                    await setDoc(doc(db, ...publicPath, 'actions', id), { Status: newStatus }, { merge: true });
+                    setMsg(`อัปเดตสถานะเป็น ${newStatus} เรียบร้อย!`);
+                } catch (e) {
+                    setMsg("ล้มเหลวในการอัปเดตสถานะ");
+                }
+            };
+
+            const handleGenerateSummary = async () => {
+                if (myAllTasks.length === 0) return;
+                if (!userApiKey) { setShowApiKeyModal(true); return; }
+                setIsAiLoading(true);
+                try {
+                    let dataForAi = "";
+                    const openTasks = myAllTasks.filter(t => String(t.Status || '').toLowerCase().includes('open') || String(t.Status || '').toLowerCase().includes('progress'));
+                    const lineAnalysis = {};
+                    openTasks.forEach(t => {
+                        const line = t.Line || t.Area || 'Unknown';
+                        if (!lineAnalysis[line]) lineAnalysis[line] = { count: 0, actions: [] };
+                        lineAnalysis[line].count += 1;
+                        lineAnalysis[line].actions.push('- [ ' + t.Status + ' ] ' + t.Title);
+                    });
+                    Object.entries(lineAnalysis).sort((a,b)=>b[1].count-a[1].count).slice(0,5).forEach(([line, data]) => {
+                        dataForAi += 'Line: ' + line + ' (' + data.count + ' items):\n' + data.actions.join('\n') + '\n\n';
+                    });
+                    const summary = await fetchGemini('ข้อมูลงานค้างหน้างานทั้งหมด:\n\n' + dataForAi + '\nแนะนำวิธีแก้ปัญหาเทคนิค 3 ข้อสั้นๆ ให้วิศวกรโรงงานเดินไปทำได้จริงทันที ไม่เน้นทฤษฎี', userApiKey);
+                    setAiSummary(summary);
+                } catch (error) { setMsg("AI Summary Error"); }
+                setIsAiLoading(false);
+            };
+
+            const handleSuggestDescription = async () => {
+                if (!newItem.Title) { setMsg("กรุณาระบุหัวข้อมหรืองานก่อนครับพี่บอล"); return; }
+                if (!userApiKey) { setShowApiKeyModal(true); return; }
+                setIsAiLoading(true);
+                try {
+                    const suggested = await fetchGemini('ช่วยอธิบายรายละเอียดงานเชิงเทคนิคสั้นๆ สำหรับ: "' + newItem.Title + '"', userApiKey);
+                    setNewItem(prev => ({ ...prev, Description: suggested }));
+                } catch (error) { setMsg("AI Error"); }
+                setIsAiLoading(false);
+            };
+
+            const handleUpload = (e) => {
+                if (isReadOnly || !fbUser) return;
+                const file = e.target.files[0]; if (!file) return;
+                setSyncProgress("กำลังดึงและแปลงไฟล์สเปรดชีต...");
+                const reader = new FileReader();
+                reader.onload = async (ev) => {
+                    try {
+                        const cleanText = ev.target.result.replace(/^\uFEFF/, '').trim();
+                        const delimiter = cleanText.indexOf(';') !== -1 ? ';' : ',';
+                        const rows = []; let row = []; let cur = ''; let inQuote = false;
+                        for (let i = 0; i < cleanText.length; i++) {
+                            const char = cleanText[i];
+                            if (char === '"') inQuote = !inQuote;
+                            else if (char === delimiter && !inQuote) { row.push(cur.trim().replace(/^"|"$/g, '')); cur = ''; }
+                            else if (char === '\n' && !inQuote) { row.push(cur.trim().replace(/^"|"$/g, '')); rows.push(row); row = []; cur = ''; }
+                            else if (char !== '\r') cur += char;
+                        }
+                        if (cur || row.length > 0) { row.push(cur.trim().replace(/^"|"$/g, '')); rows.push(row); }
+                        const hIdx = rows.findIndex(r => r.some(c => String(c).toLowerCase().includes('id')));
+                        const headers = rows[hIdx].map(h => h.trim());
+                        let idIdx = headers.findIndex(h => h.toLowerCase() === 'action id');
+                        if (idIdx === -1) idIdx = headers.findIndex(h => h.toLowerCase().includes('id'));
+                        
+                        const dataRows = rows.slice(hIdx + 1).filter(r => r[idIdx]);
+                        let successCount = 0; const batch = writeBatch(db);
+                        dataRows.forEach(r => {
+                            const cleanId = String(r[idIdx]).toUpperCase().replace(/[^a-zA-Z0-9-]/g, '-').trim();
+                            if (cleanId.length > 1) {
+                                const obj = { Source: 'SIM2' };
+                                headers.forEach((h, idx) => { if (h && r[idx] !== undefined) obj[h.replace(/[./*\[\]#$]/g, '_')] = r[idx]; });
+                                batch.set(doc(db, ...publicPath, 'actions', cleanId), obj, { merge: true });
+                                successCount++;
+                            }
+                        });
+                        await batch.commit();
+                        await setDoc(doc(db, ...publicPath, 'metadata', 'sync_info'), { lastUpload: new Date().toISOString() }, { merge: true });
+                        setMsg('ซิงค์ข้อมูลลงฐานข้อมูลกลางสำเร็จ: ' + successCount + ' งาน');
+                    } catch (err) { setMsg("ซิงค์ไฟล์ผิดพลาด"); }
+                    setSyncProgress(null);
+                };
+                reader.readAsText(file);
+            };
+
+            const handleAddItem = async (e) => {
+                e.preventDefault();
+                if (isReadOnly) return;
+                
+                if (!fbUser) { setMsg("กำลังเชื่อมต่อไปยังฐานข้อมูลคลาวด์..."); return; }
+                if (!newItem['Action Id'] || !newItem.Title || !newItem.Line) { setMsg("ข้อมูลไม่ครบถ้วน! กรุณากรอก ID, ชื่องาน, และเลือกไลน์การผลิต"); return; }
+
+                const cleanId = newItem['Action Id'].toUpperCase().replace(/[^a-zA-Z0-9-]/g, '-').trim();
+                if (!cleanId) { setMsg("ID ของงานห้ามเว้นว่าง"); return; }
+
+                setSyncProgress("กำลังสร้างคำสั่งงานใหม่...");
+                try {
+                    const defaultDueDate = new Date(); 
+                    defaultDueDate.setDate(defaultDueDate.getDate() + 7);
+                    const finalDueDate = newItem['Due Date'] ? new Date(newItem['Due Date']).toISOString() : defaultDueDate.toISOString();
+                    
+                    await setDoc(doc(db, ...publicPath, 'actions', cleanId), { 
+                        ...newItem, 
+                        'Due Date': finalDueDate, 
+                        Source: 'Manual Entry', 
+                        'Action Id': cleanId, 
+                        editCount: 0 
+                    }, { merge: true });
+                    
+                    setMsg("เพิ่มงานสำเร็จแล้วครับ!");
+                    setNewItem({ 
+                        'Action Id': '', 
+                        'Title': '', 
+                        'Description': '', 
+                        'Cost': '', 
+                        'Opening Date': new Date().toISOString(), 
+                        'Due Date': '', 
+                        'Status': 'Open', 
+                        'In_Charge': 'Rattanachot Siriwanit', 
+                        'Line': '', 
+                        'Attachment': '' 
+                    });
+                    setView('list');
+                } catch (e) { 
+                    console.error("Failed to set doc:", e);
+                    setMsg("บันทึกข้อมูลล้มเหลว: " + e.message); 
+                }
+                setSyncProgress(null);
+            };
+
+            const confirmDelete = async () => { if (isReadOnly || !fbUser) return; await deleteDoc(doc(db, ...publicPath, 'actions', deleteConfirm.id)); setMsg("ลบงานสำเร็จเรียบร้อย"); setDeleteConfirm(null); };
+            const saveCostEdit = async (id) => { if (isReadOnly || !fbUser) return; await setDoc(doc(db, ...publicPath, 'actions', id), { Cost: tempCost }, { merge: true }); setEditingCostId(null); setMsg("อัปเดตราคาเป้าหมายแล้ว"); };
+            const saveDescEdit = async (t) => { if (isReadOnly || !fbUser) return; await setDoc(doc(db, ...publicPath, 'actions', t._id), { Description: tempDesc, editCount: (t.editCount || 0) + 1 }, { merge: true }); setEditingDescId(null); setMsg("แก้ไขคำอธิบายงานแล้ว"); };
+            const saveDueDateEdit = async (t) => { if (isReadOnly || !fbUser) return; await setDoc(doc(db, ...publicPath, 'actions', t._id), { 'Due Date': tempDueDate ? new Date(tempDueDate).toISOString() : '', dueDateEditCount: (t.dueDateEditCount || 0) + 1 }, { merge: true }); setEditingDueDateId(null); setMsg("ขยายกำหนดการเสร็จสิ้นแล้ว"); };
+            const saveAttachmentEdit = async (t) => { if (isReadOnly || !fbUser) return; await setDoc(doc(db, ...publicPath, 'actions', t._id), { Attachment: tempAttachment }, { merge: true }); setEditingAttachmentId(null); setMsg("แนบลิงก์เอกสารอัปเดตแล้ว"); };
+
+            const handleImageUpload = (e, id) => {
+                if (isReadOnly || !fbUser) return;
+                const file = e.target.files[0]; if (!file) return;
+                setSyncProgress("กำลังบันทึกภาพหน้างานลงฐานข้อมูล...");
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.onload = async () => {
+                        const canvas = document.createElement('canvas'); const MAX_WIDTH = 800; let scaleSize = 1;
+                        if (img.width > MAX_WIDTH) scaleSize = MAX_WIDTH / img.width;
+                        canvas.width = img.width * scaleSize; canvas.height = img.height * scaleSize;
+                        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+                        try {
+                            await setDoc(doc(db, ...publicPath, 'actions', id), { Image: canvas.toDataURL('image/jpeg', 0.7) }, { merge: true });
+                            setMsg("อัปโหลดและผูกรูปกับงานเรียบร้อย!");
+                        } catch(err) { setMsg("อัปโหลดผิดพลาด"); }
+                        setSyncProgress(null);
+                    };
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            };
+
+            return (
+                <div className="flex h-screen bg-[#080b11] relative overflow-hidden font-['Prompt'] text-slate-100 select-none">
+                    {/* Sidebar สำหรับ Mobile */}
+                    {isSidebarOpen && <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[25] md:hidden" onClick={() => setIsSidebarOpen(false)} />}
+
+                    <aside className={`fixed md:relative inset-y-0 left-0 w-64 bg-[#0c0f16] flex flex-col shrink-0 z-30 border-r border-slate-900 transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
+                        <div className="p-8 flex flex-col items-center text-center relative border-b border-slate-900">
+                            <button onClick={() => setIsSidebarOpen(false)} className="absolute top-4 right-4 text-slate-500 md:hidden hover:text-white"><Icon name="X" size={24} /></button>
+                            <div className="w-12 h-12 bg-gradient-to-tr from-[#00E676] to-[#00b0ff] rounded-xl flex items-center justify-center font-black italic shadow-lg mb-3 shadow-[#00E676]/10">
+                                <span className="text-slate-950 text-xl font-bold tracking-tighter">RS</span>
+                            </div>
+                            <h1 className="font-black italic uppercase tracking-widest text-white text-md leading-none">Rattanachot Task</h1>
+                            <span className={'text-[9px] font-black uppercase tracking-wider mt-2 px-2.5 py-1 rounded-md border border-slate-800 ' + (isReadOnly ? 'text-blue-400 bg-blue-950/20 border-blue-900/30' : 'text-[#00E676] bg-emerald-950/20 border-emerald-900/30')}>
+                                {isReadOnly ? 'READ-ONLY GUEST' : 'SECURE ADMIN'}
+                            </span>
+                        </div>
+                        
+                        <nav className="flex-1 py-6 px-2 space-y-1">
+                            <SidebarBtn icon={<Icon name="Dashboard" />} label="แดชบอร์ดภาพรวม" active={view === 'dashboard'} onClick={() => setView('dashboard')} />
+                            <SidebarBtn icon={<Icon name="List" />} label="รายการงานทั้งหมด" active={view === 'list'} onClick={() => setView('list')} />
+                            {!isReadOnly && <SidebarBtn icon={<Icon name="Plus" />} label="เพิ่มงานแมนนวล" active={view === 'add'} onClick={() => setView('add')} />}
+                        </nav>
+
+                        {/* Fiscal Year Controller */}
+                        <div className="p-4 border-t border-slate-900/60 bg-[#090c13] flex flex-col gap-1.5">
+                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest italic flex items-center gap-1">
+                                <Icon name="Calendar" size={12} className="text-[#00E676]" /> ปีงบประมาณ (Fiscal Year)
+                            </span>
+                            <div className="relative">
+                                <select 
+                                    className="w-full appearance-none pl-4 pr-10 py-2.5 bg-slate-950 border border-slate-800 rounded-lg text-xs font-black uppercase italic text-[#00E676] focus:border-[#00E676] outline-none transition cursor-pointer tracking-wider"
+                                    value={selectedYear}
+                                    onChange={(e) => {
+                                        setSelectedYear(Number(e.target.value));
+                                        setMsg(`เปลี่ยนเป็นปีงบประมาณ ค.ศ. ${e.target.value}`);
+                                    }}
+                                >
+                                    {availableYearsList.map(yr => (
+                                        <option key={yr} value={yr}>FY {yr}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div className="p-4 border-t border-slate-900 flex flex-col gap-2 bg-[#0a0d14]">
+                            {!isReadOnly && (
+                                <Fragment>
+                                    <label className="flex items-center justify-center gap-2 w-full py-3 bg-[#00E676] text-slate-950 rounded-lg font-black text-xs uppercase cursor-pointer hover:bg-[#00c853] transition shadow-md shadow-[#00E676]/10 active:scale-95 tracking-widest">
+                                        <Icon name="Plus" size={16} /> นำเข้าไฟล์ CSV
+                                        <input type="file" className="hidden" accept=".csv" onChange={handleUpload}/>
+                                    </label>
+                                    <button onClick={() => { setTempApiKey(userApiKey); setShowApiKeyModal(true); }} className="flex items-center justify-center gap-2 w-full py-2 border border-slate-800 text-slate-500 rounded-lg font-black text-xs uppercase hover:bg-slate-900 hover:text-white transition active:scale-95 tracking-widest">
+                                        <Icon name="Settings" size={14} /> API SETTINGS
+                                    </button>
+                                </Fragment>
+                            )}
+                            <button onClick={handleSignOut} className="flex items-center justify-center gap-2 w-full py-2 border border-rose-900/40 text-rose-500 bg-rose-950/5 rounded-lg font-black text-xs uppercase hover:bg-rose-950/20 hover:text-rose-400 transition active:scale-95 tracking-widest">
+                                <Icon name="LogOut" size={14} /> ปิดระบบควบคุม
+                            </button>
+                        </div>
+                    </aside>
+
+                    {}
+                    <main className="flex-1 flex flex-col overflow-hidden bg-[#080b11]">
+                        <header className="h-16 bg-[#0c0f16] border-b border-slate-900 px-6 md:px-10 flex items-center justify-between z-10 shrink-0">
+                            <div className="flex items-center gap-3 md:gap-4">
+                                <button onClick={() => setIsSidebarOpen(true)} className="p-2 text-slate-400 hover:text-[#00E676] md:hidden"><Icon name="Menu" size={24} /></button>
+                                <Icon name="Target" size={20} className="text-[#00E676] animate-pulse" />
+                                <span className="text-xs md:text-sm font-black text-slate-200 uppercase tracking-widest italic pt-1 pr-1">RS COMMAND CENTER</span>
+                            </div>
+                            
+                            <div className="flex items-center gap-2">
+                                <select className="appearance-none pl-4 pr-10 py-2.5 bg-slate-900 border border-slate-850 rounded-lg text-xs font-black uppercase italic text-slate-300 focus:border-[#00E676] outline-none transition cursor-pointer tracking-wider" value={lineFilter} onChange={(e) => setLineFilter(e.target.value)}>
+                                    <option value="All">ทุกไลน์ผลิต (All Lines)</option>
+                                    {lineOptions.map(opt => <option key={opt.name} value={opt.name}>{opt.name.toUpperCase()} ({opt.count})</option>)}
+                                </select>
+                                <input type="text" placeholder="พิมพ์ค้นหาด่วน..." className="pl-4 pr-4 py-2.5 bg-slate-900 border border-slate-850 rounded-lg text-xs md:text-sm text-white focus:border-[#00E676] outline-none transition placeholder-slate-600" value={search} onChange={(e) => setSearch(e.target.value)} />
+                            </div>
+                        </header>
+
+                        <div className="flex-1 overflow-y-auto p-4 md:p-10 custom-scroll relative bg-[#080b11]">
+                            {/* หน้าต่างเตือนระบบ */}
+                            {msg && <div className="fixed top-20 right-4 z-[100] px-5 py-3 bg-slate-900 text-[#00E676] rounded-xl shadow-2xl font-black text-xs uppercase border border-[#00E676]/30 tracking-widest animate-pulse">{msg}</div>}
+                            {syncProgress && <div className="fixed inset-0 z-[100] bg-[#080b11]/90 backdrop-blur-md flex flex-col items-center justify-center text-[#00E676] font-black uppercase italic animate-pulse tracking-widest">{syncProgress}</div>}
+
+                            {}
+                            {view === 'dashboard' ? (
+                                <div className="max-w-6xl mx-auto space-y-6 animate-in">
+                                    <div className="flex justify-between items-end border-b border-slate-900 pb-5">
+                                        <div>
+                                            <h3 className="text-xl md:text-2xl font-black text-white uppercase italic tracking-wider">แผงวิเคราะห์แดชบอร์ด</h3>
+                                            <p className="text-[10px] md:text-xs font-black text-slate-500 uppercase tracking-widest mt-1 italic">
+                                                Dashboard วิเคราะห์ข้อมูลของ รัตนโชติ ศิริวาณิชย์ ประจำปีงบประมาณ {selectedYear}
+                                            </p>
+                                        </div>
+                                        <button onClick={handleGenerateSummary} disabled={isAiLoading} className="bg-slate-900 border border-slate-800 text-[#00E676] hover:bg-emerald-950/20 px-5 py-2.5 rounded-lg font-black text-xs flex items-center gap-2 uppercase tracking-widest transition shadow-sm">
+                                            <Icon name="Sparkle" size={16} className={isAiLoading ? "animate-spin" : ""} /> AI REPORT SUMMARY
+                                        </button>
+                                    </div>
+
+                                    {aiSummary && (
+                                        <div className="gradient-ai p-6 rounded-xl border border-[#00E676]/20 shadow-2xl animate-in">
+                                            <div className="flex items-center gap-2 mb-4 font-black text-white italic uppercase tracking-wider"><Icon name="Sparkle" className="text-[#00E676]"/> บทวิเคราะห์หน้างานโดย AI</div>
+                                            <div className="text-xs md:text-sm text-slate-300 leading-relaxed italic whitespace-pre-line font-light">{aiSummary}</div>
+                                        </div>
+                                    )}
+
+                                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                                        <StatCard label="งานค้างดำเนินการ (PENDING)" value={dashboardData.stats.open} color="bg-amber-500" />
+                                        <StatCard label="กำลังดำเนินการ (IN PROGRESS)" value={dashboardData.stats.progress} color="bg-blue-500" />
+                                        <StatCard label="เสร็จสิ้นสมบูรณ์ (CLOSED/SUCCESS)" value={dashboardData.stats.closed} color="bg-[#00E676]" />
+                                        <StatCard label="รายการงานรวมปีงบประมาณ" value={dashboardData.stats.total} color="bg-purple-600" />
+                                    </div>
+
+                                    <div className="bg-[#121824] p-6 md:p-8 rounded-xl border border-slate-800/80 shadow-2xl space-y-8">
+                                        <div>
+                                            <h4 className="font-black text-white uppercase italic tracking-wider text-sm">การกระจายตัวของต้นทุนและงบประมาณปี {selectedYear} (บาท)</h4>
+                                        </div>
+                                        <div className="flex items-end h-56 gap-2 sm:gap-3 border-b border-slate-850 pb-4 pt-4">
+                                            {dashboardData.chart.map((c, i) => (
+                                                <div key={i} className="flex-1 flex flex-col items-center group h-full justify-end relative">
+                                                    <div className="w-full flex items-end justify-center h-full pb-1">
+                                                        <div className={'w-full max-w-[28px] rounded-t-[4px] transition-all duration-500 ' + (c.val > 0 ? 'bg-gradient-to-t from-emerald-950/40 via-emerald-700/60 to-[#00E676]' : 'bg-slate-900/40')} style={{ height: c.height + '%' }}></div>
+                                                    </div>
+                                                    <div className="text-[9px] md:text-[10px] mt-2 text-slate-500 font-bold uppercase italic tracking-widest">{c.label}</div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : view === 'add' && !isReadOnly ? (
+                                <div className="max-w-2xl mx-auto py-4 animate-in">
+                                    <div className="bg-[#121824] rounded-xl shadow-2xl border border-slate-800/80 p-6 md:p-10">
+                                        <h3 className="text-lg font-black text-white mb-6 uppercase italic tracking-wider border-b border-slate-800 pb-3">เพิ่มงานใหม่เข้าระบบ (Add Action Manual)</h3>
+                                        <form onSubmit={handleAddItem} className="space-y-4">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <FormInput label="รหัสงาน (Action ID)" val={newItem['Action Id']} onChange={v => setNewItem({...newItem, 'Action Id': v})} placeholder="2026-001" />
+                                                <FormInput label="หัวข้องาน / เป้าหมาย" val={newItem.Title} onChange={v => setNewItem({...newItem, 'Title': v})} placeholder="ติดตั้งเซนเซอร์ตรวจจับตำแหน่งใหม่..." />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <div className="flex justify-between items-center mb-1">
+                                                    <label className="text-[10px] md:text-xs font-black text-slate-400 uppercase italic ml-1 tracking-wider">รายละเอียดการปฏิบัติงาน</label>
+                                                    <button type="button" onClick={handleSuggestDescription} disabled={isAiLoading} className="text-[9px] text-[#00E676] font-bold flex items-center gap-1 hover:underline">
+                                                        <Icon name="Sparkle" size={10} /> ให้ AI ช่วยคิดรายละเอียด
+                                                    </button>
+                                                </div>
+                                                <textarea className="w-full p-4 bg-slate-900 border border-slate-800 rounded-lg text-xs md:text-sm text-slate-300 outline-none focus:border-[#00E676] transition h-28 font-light italic" placeholder="ระบุขอบเขตและขั้นตอนเชิงเทคนิคหน้างาน..." value={newItem.Description} onChange={e => setNewItem({...newItem, Description: e.target.value})} />
+                                            </div>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <FormInput label="ต้นทุนที่ประเมิน (Cost - THB)" val={newItem.Cost} onChange={v => setNewItem({...newItem, Cost: v})} placeholder="0" />
+                                                <FormInput label="ลิงก์เอกสารแนบประกอบ" val={newItem.Attachment} onChange={v => setNewItem({...newItem, Attachment: v})} placeholder="https://..." />
+                                            </div>
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                <div className="space-y-1">
+                                                    <label className="text-[10px] md:text-xs font-black text-slate-400 uppercase italic ml-1 tracking-wider">ไลน์การผลิต (Line)</label>
+                                                    <select className="w-full p-3 bg-slate-900 border border-slate-800 rounded-lg text-xs md:text-sm font-bold italic text-slate-300 outline-none focus:border-[#00E676]" value={newItem.Line} onChange={e => setNewItem({...newItem, Line: e.target.value})}>
+                                                        <option value="" disabled>-- เลือกไลน์การผลิต --</option>
+                                                        {MASTER_LINE_NAMES.map(line => <option key={line} value={line}>{line}</option>)}
+                                                    </select>
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <label className="text-[10px] md:text-xs font-black text-slate-400 uppercase italic ml-1 tracking-wider">กำหนดส่งงาน (Due Date)</label>
+                                                    <input type="date" className="w-full p-3 bg-slate-900 border border-slate-800 rounded-lg text-xs md:text-sm font-bold text-slate-300 outline-none focus:border-[#00E676]" value={newItem['Due Date'] ? newItem['Due Date'].split('T')[0] : ''} onChange={(e) => setNewItem({...newItem, 'Due Date': e.target.value})} />
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <label className="text-[10px] md:text-xs font-black text-slate-400 uppercase italic ml-1 tracking-wider">สถานะแรกเริ่ม</label>
+                                                    <select className="w-full p-3 bg-slate-900 border border-slate-800 rounded-lg text-xs md:text-sm font-bold italic text-slate-300 outline-none focus:border-[#00E676]" value={newItem.Status} onChange={e => setNewItem({...newItem, Status: e.target.value})}>
+                                                        <option value="Open">OPEN</option>
+                                                        <option value="In Progress">IN PROGRESS</option>
+                                                        <option value="Closed">CLOSED</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <button type="submit" className="w-full py-4 mt-2 bg-gradient-to-r from-emerald-600 to-[#00E676] text-slate-950 rounded-lg font-black uppercase italic shadow-lg hover:opacity-90 transition-all text-xs tracking-widest shadow-[#00E676]/10">ยิงข้อมูลเข้าคลาวด์เซิร์ฟเวอร์</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="max-w-6xl mx-auto space-y-4 animate-in">
+                                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-900 pb-5">
+                                        <div>
+                                            <h3 className="text-xl md:text-2xl font-black text-white uppercase italic tracking-wider">คลังข้อมูลและบันทึกปฏิบัติงาน (MASTER LIST)</h3>
+                                            <p className="text-[10px] md:text-xs font-black text-slate-500 uppercase tracking-widest mt-1 italic">
+                                                คัดกรอง ค้นหา อัปเดตรูปภาพ และดูรายละเอียดเชิงปฏิบัติการแบบละเอียดรายหัวข้อ
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {/* แถบตัวกรองสถานะ (Status Filters) */}
+                                    <div className="flex flex-wrap gap-2 mb-4">
+                                        {[
+                                            { id: 'All', label: 'ทั้งหมด (ALL)', count: myAllTasks.length },
+                                            { id: 'Open', label: 'ค้างดำเนินการ (OPEN)', count: myAllTasks.filter(t => String(t.Status).toLowerCase() === 'open').length },
+                                            { id: 'In Progress', label: 'กำลังทำ (IN PROGRESS)', count: myAllTasks.filter(t => String(t.Status).toLowerCase().includes('progress')).length },
+                                            { id: 'Closed', label: 'เสร็จสิ้น (CLOSED)', count: myAllTasks.filter(t => String(t.Status).toLowerCase().includes('close') || String(t.Status).toLowerCase().includes('succ')).length }
+                                        ].map(tab => (
+                                            <button
+                                                key={tab.id}
+                                                onClick={() => setStatusFilter(tab.id)}
+                                                className={`px-4 py-2.5 rounded-lg font-black text-xs uppercase tracking-wider transition duration-200 flex items-center gap-2 active:scale-95 ${statusFilter === tab.id ? 'bg-[#00E676] text-slate-950 font-black shadow-lg shadow-[#00E676]/25' : 'bg-[#121824] text-slate-400 border border-slate-800/80 hover:bg-slate-850'}`}
+                                            >
+                                                {tab.label}
+                                                <span className={`px-1.5 py-0.5 rounded text-[10px] ${statusFilter === tab.id ? 'bg-black text-[#00E676]' : 'bg-slate-950 text-slate-500'}`}>{tab.count}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    {/* ตารางแสดงข้อมูล */}
+                                    <div className="bg-[#121824] border border-slate-850 rounded-xl overflow-hidden divide-y divide-slate-850 shadow-2xl">
+                                        {filteredTasks.length === 0 ? (
+                                            <div className="p-12 text-center text-slate-500 font-black italic text-sm uppercase tracking-widest">--- ไม่พบข้อมูลงานตามเงื่อนไขที่เลือก (FY {selectedYear}) ---</div>
+                                        ) : filteredTasks.map(t => {
+                                            const isExpanded = expandedId === t._id;
+                                            const statusLower = String(t.Status || '').toLowerCase();
+                                            const isDone = statusLower.includes('close') || statusLower.includes('succ');
+                                            
+                                            return (
+                                                <div key={t._id} className={`flex flex-col transition-colors ${isExpanded ? 'bg-slate-900/60 border-l-4 border-l-[#00E676]' : 'hover:bg-slate-900/20'}`}>
+                                                    
+                                                    {/* กล่องหัวเรื่องหลักเมื่อคลิก */}
+                                                    <div 
+                                                        onClick={() => {
+                                                            setExpandedId(isExpanded ? null : t._id);
+                                                            // เตรียมตัวแปรสำรองสำหรับฟังก์ชันแก้ไขเมื่อคลิก
+                                                            setTempDesc(t.Description || '');
+                                                            setTempCost(t.Cost || '');
+                                                            setTempDueDate(t['Due Date'] ? t['Due Date'].split('T')[0] : '');
+                                                            setTempAttachment(t.Attachment || '');
+                                                        }} 
+                                                        className="p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 cursor-pointer"
+                                                    >
+                                                        <div className="space-y-1.5 flex-1 min-w-0 pr-4">
+                                                            <div className="flex flex-wrap items-center gap-2">
+                                                                <span className="text-[10px] font-black text-[#00E676] bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-900/40">{t['Action Id'] || 'SIM2-ACTION'}</span>
+                                                                <span className="text-xs text-slate-400 font-bold truncate max-w-[200px] md:max-w-none">{t.Line || 'ทุกส่วนไลน์'}</span>
+                                                            </div>
+                                                            <h4 className={`text-sm md:text-base font-bold truncate tracking-tight ${isDone ? 'text-slate-500 line-through' : 'text-slate-100'}`}>
+                                                                {t.Title || 'Untitled Action'}
+                                                            </h4>
+                                                        </div>
+
+                                                        <div className="flex items-center gap-3 shrink-0 self-end md:self-auto">
+                                                            <div className="text-right hidden sm:block">
+                                                                <span className="text-[9px] font-bold text-slate-500 block">DUE DATE</span>
+                                                                <span className="text-xs font-bold text-slate-300 tabular-nums">{formatDate(t['Due Date'] || t.DueDate)}</span>
+                                                            </div>
+                                                            <span className={`px-3 py-1 rounded text-[10px] font-black uppercase tracking-wider ${isDone ? 'bg-emerald-950/40 text-[#00E676] border border-[#00E676]/30' : statusLower.includes('progress') ? 'bg-blue-950/40 text-blue-400 border border-blue-900/30' : 'bg-amber-950/40 text-amber-500 border border-amber-900/30'}`}>
+                                                                {String(t.Status || 'Open').toUpperCase()}
+                                                            </span>
+                                                            <span className="text-slate-500 transition-transform duration-200 transform">{isExpanded ? '▲' : '▼'}</span>
+                                                        </div>
+                                                    </div>
+
+                                                    {}
+                                                    {isExpanded && (
+                                                        <div className="px-5 pb-6 pt-2 border-t border-slate-900 bg-slate-950/40 text-xs text-slate-300 space-y-6 animate-in">
+                                                            
+                                                            {/* แผงควบคุมและรายละเอียดสองฝั่ง */}
+                                                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                                                
+                                                                {/* ฝั่งซ้าย: ข้อมูลขั้นตอนเทคนิค และภาพ */}
+                                                                <div className="lg:col-span-2 space-y-4">
+                                                                    
+                                                                    {/* คำอธิบายงานและการแก้ไข */}
+                                                                    <div className="bg-slate-900/40 p-4 rounded-xl border border-slate-800/80">
+                                                                        <div className="flex justify-between items-center mb-2">
+                                                                            <span className="text-[10px] font-black text-[#00E676] uppercase tracking-wider">รายละเอียดเชิงวิศวกรรม / ขั้นตอนหน้างาน</span>
+                                                                            {!isReadOnly && editingDescId !== t._id && (
+                                                                                <button onClick={() => setEditingDescId(t._id)} className="text-[10px] text-blue-400 font-bold hover:underline">แก้ไขขั้นตอน</button>
+                                                                            )}
+                                                                        </div>
+                                                                        
+                                                                        {editingDescId === t._id ? (
+                                                                            <div className="space-y-2">
+                                                                                <textarea className="w-full p-3 bg-slate-950 border border-slate-800 rounded-lg text-slate-100" value={tempDesc} onChange={e => setTempDesc(e.target.value)} rows={4} />
+                                                                                <div className="flex gap-2">
+                                                                                    <button onClick={() => saveDescEdit(t)} className="bg-[#00E676] text-black px-3 py-1 rounded font-bold">บันทึก</button>
+                                                                                    <button onClick={() => setEditingDescId(null)} className="bg-slate-800 px-3 py-1 rounded">ยกเลิก</button>
+                                                                                </div>
+                                                                            </div>
+                                                                        ) : (
+                                                                            <p className="text-slate-300 font-light whitespace-pre-line leading-relaxed italic">{t.Description || 'ไม่มีข้อมูลรายละเอียดเชิงเทคนิคกรอกไว้ครับ'}</p>
+                                                                        )}
+                                                                    </div>
+
+                                                                    {/* แผงช่วยเหลือ AI */}
+                                                                    <AiNextStep title={t.Title} description={t.Description} setMsg={setMsg} fetchGemini={fetchGemini} userApiKey={userApiKey} setShowApiKeyModal={setShowApiKeyModal} isReadOnly={isReadOnly} />
+
+                                                                    {/* บล็อกแนบภาพหน้างาน */}
+                                                                    <div className="bg-slate-900/40 p-4 rounded-xl border border-slate-800/80">
+                                                                        <span className="text-[10px] font-black text-[#00E676] uppercase tracking-wider block mb-3">ภาพหลักฐานปฏิบัติหน้างานประกอบ (Operational Capture)</span>
+                                                                        {t.Image ? (
+                                                                            <div className="space-y-3">
+                                                                                <img src={t.Image} className="max-h-72 object-cover rounded-lg cursor-pointer border border-slate-800 hover:border-[#00E676] transition" onClick={() => setPreviewUrl(t.Image)} />
+                                                                                {!isReadOnly && (
+                                                                                    <label className="text-[10px] text-rose-500 font-bold cursor-pointer hover:underline">
+                                                                                        อัปโหลดรูปภาพใหม่เพื่อเปลี่ยนแทน
+                                                                                        <input type="file" className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, t._id)} />
+                                                                                    </label>
+                                                                                )}
+                                                                            </div>
+                                                                        ) : (
+                                                                            <div className="border border-dashed border-slate-800/80 p-6 rounded-lg text-center flex flex-col items-center justify-center">
+                                                                                <p className="text-slate-500 mb-2 font-bold uppercase tracking-wider">ไม่มีการแนบรูปภาพสำหรับการดำเนินงานนี้</p>
+                                                                                {!isReadOnly && (
+                                                                                    <label className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-slate-300 font-bold rounded-lg border border-slate-800 cursor-pointer active:scale-95 transition">
+                                                                                        อัปโหลดไฟล์รูปภาพหน้างาน
+                                                                                        <input type="file" className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, t._id)} />
+                                                                                    </label>
+                                                                                )}
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+
+                                                                {/* ฝั่งขวา: รายละเอียดสถานะ บัดเจท กำหนดเสร็จ และลิงก์อ้างอิง */}
+                                                                <div className="space-y-4">
+                                                                    
+                                                                    {/* สับเปลี่ยนสถานะหน้างาน */}
+                                                                    {!isReadOnly && (
+                                                                        <div className="bg-slate-900/40 p-4 rounded-xl border border-slate-800/80">
+                                                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-2">อัปเดตสถานะการปฏิบัติงาน</span>
+                                                                            <div className="grid grid-cols-3 gap-1.5">
+                                                                                {['Open', 'In Progress', 'Closed'].map(status => (
+                                                                                    <button 
+                                                                                        key={status} 
+                                                                                        onClick={() => updateStatus(t._id, status)} 
+                                                                                        className={`py-2 rounded font-black text-[9px] uppercase border tracking-wider transition ${statusLower === status.toLowerCase() || (status === 'Closed' && statusLower.includes('close')) ? 'bg-[#00E676] text-black border-[#00E676]' : 'bg-slate-950 text-slate-400 border-slate-850 hover:bg-slate-900'}`}
+                                                                                    >
+                                                                                        {status}
+                                                                                    </button>
+                                                                                ))}
+                                                                            </div>
+                                                                        </div>
+                                                                    )}
+
+                                                                    {/* แผงแสดงค่า Cost */}
+                                                                    <div className="bg-slate-900/40 p-4 rounded-xl border border-slate-800/80">
+                                                                        <div className="flex justify-between items-center mb-2">
+                                                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">งบประมาณดำเนินงาน (COST)</span>
+                                                                            {!isReadOnly && editingCostId !== t._id && (
+                                                                                <button onClick={() => setEditingCostId(t._id)} className="text-[10px] text-blue-400 font-bold hover:underline">แก้ไขงบ</button>
+                                                                            )}
+                                                                        </div>
+                                                                        {editingCostId === t._id ? (
+                                                                            <div className="space-y-2">
+                                                                                <input className="w-full p-2 bg-slate-950 border border-slate-800 rounded-lg text-slate-100 text-xs font-bold" value={tempCost} onChange={e => setTempCost(e.target.value)} />
+                                                                                <div className="flex gap-2">
+                                                                                    <button onClick={() => saveCostEdit(t._id)} className="bg-[#00E676] text-black px-2.5 py-1 rounded font-bold text-[10px]">บันทึก</button>
+                                                                                    <button onClick={() => setEditingCostId(null)} className="bg-slate-800 px-2.5 py-1 rounded text-[10px]">ยกเลิก</button>
+                                                                                </div>
+                                                                            </div>
+                                                                        ) : (
+                                                                            <p className="text-base font-black text-white italic tracking-wider tabular-nums">{t.Cost ? parseFloat(String(t.Cost).replace(/,/g, '')).toLocaleString() + ' บาท' : '---'}</p>
+                                                                        )}
+                                                                    </div>
+
+                                                                    {/* กำหนดเสร็จงาน (Due Date) */}
+                                                                    <div className="bg-slate-900/40 p-4 rounded-xl border border-slate-800/80">
+                                                                        <div className="flex justify-between items-center mb-2">
+                                                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">กำหนดส่งเสร็จสิ้น (DUE DATE)</span>
+                                                                            {!isReadOnly && editingDueDateId !== t._id && (
+                                                                                <button onClick={() => setEditingDueDateId(t._id)} className="text-[10px] text-blue-400 font-bold hover:underline">เปลี่ยนวัน</button>
+                                                                            )}
+                                                                        </div>
+                                                                        {editingDueDateId === t._id ? (
+                                                                            <div className="space-y-2">
+                                                                                <input type="date" className="w-full p-2 bg-slate-950 border border-slate-800 rounded-lg text-slate-100 text-xs font-bold" value={tempDueDate} onChange={e => setTempDueDate(e.target.value)} />
+                                                                                <div className="flex gap-2">
+                                                                                    <button onClick={() => saveDueDateEdit(t)} className="bg-[#00E676] text-black px-2.5 py-1 rounded font-bold text-[10px]">บันทึก</button>
+                                                                                    <button onClick={() => setEditingDueDateId(null)} className="bg-slate-800 px-2.5 py-1 rounded text-[10px]">ยกเลิก</button>
+                                                                                </div>
+                                                                            </div>
+                                                                        ) : (
+                                                                            <p className="text-sm font-bold text-slate-200 tabular-nums">{formatDate(t['Due Date'] || t.DueDate)}</p>
+                                                                        )}
+                                                                    </div>
+
+                                                                    {/* ลิงก์อ้างอิงเอกสารแนบประกอบ */}
+                                                                    <div className="bg-slate-900/40 p-4 rounded-xl border border-slate-800/80">
+                                                                        <div className="flex justify-between items-center mb-2">
+                                                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">เอกสารแนบอ้างอิง</span>
+                                                                            {!isReadOnly && editingAttachmentId !== t._id && (
+                                                                                <button onClick={() => setEditingAttachmentId(t._id)} className="text-[10px] text-blue-400 font-bold hover:underline">แก้ไขลิงก์</button>
+                                                                            )}
+                                                                        </div>
+                                                                        {editingAttachmentId === t._id ? (
+                                                                            <div className="space-y-2">
+                                                                                <input className="w-full p-2 bg-slate-950 border border-slate-800 rounded-lg text-slate-100 text-xs" value={tempAttachment} onChange={e => setTempAttachment(e.target.value)} placeholder="https://..." />
+                                                                                <div className="flex gap-2">
+                                                                                    <button onClick={() => saveAttachmentEdit(t)} className="bg-[#00E676] text-black px-2.5 py-1 rounded font-bold text-[10px]">บันทึก</button>
+                                                                                    <button onClick={() => setEditingAttachmentId(null)} className="bg-slate-800 px-2.5 py-1 rounded text-[10px]">ยกเลิก</button>
+                                                                                </div>
+                                                                            </div>
+                                                                        ) : (
+                                                                            t.Attachment ? (
+                                                                                <a href={t.Attachment} target="_blank" rel="noopener noreferrer" className="text-xs text-[#00E676] font-bold underline flex items-center gap-1 hover:text-[#00c853] break-all">
+                                                                                    <Icon name="Cloud" size={12} /> {t.Attachment}
+                                                                                </a>
+                                                                            ) : (
+                                                                                <p className="text-xs text-slate-500 font-bold uppercase">ไม่มีการแนบลิงก์เอกสาร</p>
+                                                                            )
+                                                                        )}
+                                                                    </div>
+
+                                                                    {/* ผู้ดูแลรับผิดชอบหลัก */}
+                                                                    <div className="bg-slate-900/40 p-4 rounded-xl border border-slate-800/80">
+                                                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">ผู้รับผิดชอบงานปฏิบัติงาน (RESPONSIBLE)</span>
+                                                                        <p className="text-xs font-bold text-slate-200">{t.In_Charge || 'รัตนโชติ ศิริวาณิชย์ (Rattanachot)'}</p>
+                                                                    </div>
+
+                                                                    {/* ปุ่มลบงาน (ถ้ามีสิทธิ์) */}
+                                                                    {!isReadOnly && (
+                                                                        <button 
+                                                                            onClick={() => setDeleteConfirm({ id: t._id, title: t.Title })} 
+                                                                            className="w-full py-2.5 border border-rose-900/40 hover:bg-rose-950/20 text-rose-500 rounded-lg font-black uppercase text-[10px] transition active:scale-95"
+                                                                        >
+                                                                            ลบงานนี้ออก (REMOVE ACTION)
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </main>
+
+                    {/* หน้าต่างยืนยันลบงาน (Delete Confirmation Modal) */}
+                    {deleteConfirm && (
+                        <div className="fixed inset-0 z-[500] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+                            <div className="bg-[#0c0f16] border border-rose-900/50 p-8 rounded-2xl max-w-md w-full shadow-2xl relative text-center">
+                                <h4 className="text-lg font-black text-white uppercase italic tracking-wider mb-2">ยืนยันลบคำสั่งงานนี้ใช่หรือไม่?</h4>
+                                <p className="text-xs text-slate-400 mb-6 font-bold leading-relaxed">งานหัวข้อ "{deleteConfirm.title}" จะถูกเอาออกอย่างถาวรจากฐานข้อมูลกลาง</p>
+                                <div className="flex gap-4">
+                                    <button onClick={confirmDelete} className="flex-1 py-3 bg-rose-600 hover:bg-rose-700 text-white font-black uppercase text-xs rounded-lg active:scale-95 transition">ยืนยันลบ</button>
+                                    <button onClick={() => setDeleteConfirm(null)} className="flex-1 py-3 bg-slate-900 hover:bg-slate-850 text-slate-300 font-bold uppercase text-xs rounded-lg active:scale-95 transition border border-slate-800">ยกเลิก</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* หน้าต่างตั้งค่า API Key คอนโทรลเลอร์ (API settings) */}
+                    {showApiKeyModal && (
+                        <div className="fixed inset-0 z-[500] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+                            <div className="bg-[#0c0f16] border border-slate-800 p-8 rounded-2xl max-w-md w-full shadow-2xl relative">
+                                <button onClick={() => setShowApiKeyModal(false)} className="absolute top-4 right-4 text-slate-500 hover:text-white"><Icon name="X" size={20} /></button>
+                                <h4 className="text-sm font-black text-white uppercase italic tracking-wider mb-2 flex items-center gap-1.5"><Icon name="Settings" className="text-[#00E676]" /> พอร์ตเชื่อมต่อ Gemini AI API Key</h4>
+                                <p className="text-[10px] text-slate-500 mb-6 font-bold uppercase">กรอกกุญแจ API ในการเชื่อมต่อระบบวิเคราะห์สรุปและเสนอแนะปฏิบัติการ</p>
+                                <div className="space-y-4">
+                                    <FormInput label="Gemini API Key" val={tempApiKey} onChange={setTempApiKey} placeholder="AIzaSy..." />
+                                    <div className="flex gap-3 pt-2">
+                                        <button onClick={saveApiKey} className="flex-1 py-3 bg-[#00E676] text-black font-black uppercase text-xs rounded-lg active:scale-95 transition">บันทึกคีย์</button>
+                                        <button onClick={clearApiKey} className="py-3 px-4 bg-slate-900 hover:bg-slate-850 text-slate-500 font-bold uppercase text-xs rounded-lg active:scale-95 transition border border-slate-800">เคลียร์คีย์</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* พรีวิวภาพใหญ่ (Large Image Preview) */}
+                    {previewUrl && (
+                        <div className="fixed inset-0 bg-black/95 backdrop-blur-sm z-[400] flex items-center justify-center p-4" onClick={() => setPreviewUrl(null)}>
+                            <img src={previewUrl} className="max-w-full max-h-[85vh] object-contain bg-[#121824] p-3 rounded-xl border border-slate-800" />
+                        </div>
+                    )}
+                </div>
+            );
+        };
+    </script>
+
+    <script>
+        (function() {
+            function startAppCompilation() {
+                try {
+                    const rawText = document.getElementById('react-code-holder').textContent;
+                    const compiled = Babel.transform(rawText, {
+                        presets: ['react'],
+                        plugins: [
+                            ['transform-react-jsx', { runtime: 'classic' }]
+                        ]
+                    }).code;
+                    
+                    const finalScript = document.createElement('script');
+                    finalScript.text = compiled;
+                    document.body.appendChild(finalScript);
+                    
+                    waitForFirebase((fb) => {
+                        const root = ReactDOM.createRoot(document.getElementById('root'));
+                        root.render(React.createElement(App, { fb: fb }));
+                    });
+                } catch(err) {
+                    console.error("Compilation failed:", err.message);
+                    setTimeout(startAppCompilation, 100);
+                }
+            }
+            setTimeout(startAppCompilation, 50);
+        })();
     </script>
 </body>
 </html>
