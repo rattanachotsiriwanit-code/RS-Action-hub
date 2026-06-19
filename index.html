@@ -1,20 +1,20 @@
 <!DOCTYPE html>
-<html lang="th">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RS Action Hub - Command Center</title>
     
-    <!-- โหลดไลบรารีที่จำเป็นผ่าน CDN -->
+    <!-- Load required CDN Libraries -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
 
-    <!-- ฟอนต์ Prompt และ Inter สไตล์โรงงานล้ำอนาคต -->
+    <!-- Import modern industrial fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800;900&family=Prompt:ital,wght@0,300;0,400;0,600;0,700;1,800&display=swap" rel="stylesheet">
 
-    <!-- Firebase Compat สำหรับความเสถียรของ Database -->
+    <!-- Firebase Compat for Database connection -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
@@ -112,6 +112,7 @@
     <script id="react-code-holder" type="text/plain">
         const { useState, useEffect, useMemo, Fragment } = React;
 
+        // ⚡ Simple and Clean Production Lines List
         const MASTER_LINE_NAMES = [
             "D Auto Pole assembly machine 1", "D Auto Pole assembly manual 1",
             "D Auto Thermal (W03-W07) No.1", "D Auto coil (W01+02) No.1", "D Auto coil (W01+02) No.2",
@@ -140,7 +141,7 @@
 
         const GEMINI_MODEL = "gemini-3.1-flash-lite";
         
-        const fetchGemini = async (prompt, userKey, systemPrompt = "คุณคือผู้ช่วยจัดการโครงการอุตสาหกรรมมืออาชีพ") => {
+        const fetchGemini = async (prompt, userKey, systemPrompt = "You are a professional industrial project manager and engineering advisor.") => {
             if (!userKey) throw new Error("NO_API_KEY");
             let retries = 0;
             const delays = [1000, 2000, 4000, 8000, 16000];
@@ -191,8 +192,8 @@
                 if (!userApiKey) { setShowApiKeyModal(true); return; }
                 setLoading(true);
                 try {
-                    const prompt = 'งานคือ "' + title + '". คำอธิบาย: "' + description + '". ช่วยแนะนำ 3 ขั้นตอนปฏิบัติการเชิงวิศวรรกรรมสั้นๆ ภาษาไทย';
-                    const result = await fetchGemini(prompt, userApiKey, "คุณคือผู้เชี่ยวชาญโรงงานและช่างเทคนิคอาวุโส");
+                    const prompt = 'The task is "' + title + '". Description: "' + description + '". Suggest 3 short, highly actionable technical engineering steps in plain English.';
+                    const result = await fetchGemini(prompt, userApiKey, "You are a senior factory manager and field expert.");
                     setSuggestion(result);
                 } catch (e) { 
                     if(e.message === "NO_API_KEY") setShowApiKeyModal(true);
@@ -202,12 +203,12 @@
             };
             return (
                 <div className="flex flex-col items-start w-full mt-2">
-                    <button onClick={getSteps} disabled={loading} className="text-xs font-black text-[#00E676] flex items-center gap-1.5 hover:text-[#00c853] transition-colors active:scale-95 disabled:opacity-50 tracking-wider">
+                    <button onClick={getSteps} disabled={loading} className="text-xs font-black text-emerald-600 flex items-center gap-1.5 hover:text-emerald-700 transition-colors active:scale-95 disabled:opacity-50 tracking-wider">
                         <Icon name="Sparkle" size={14} className={loading ? "animate-spin" : ""} />
-                        {suggestion ? "ซ่อนแนวทางปฏิบัติงาน" : "ขอแนวทางการปฏิบัติเชิงวิศวกรรม (AI NEXT STEPS)"}
+                        {suggestion ? "HIDE ACTION STEPS" : "SUGGEST ENGINEERING STEPS (AI NEXT STEPS)"}
                     </button>
                     {suggestion && (
-                        <div className="mt-3 p-4 bg-slate-950 border border-[#00E676]/20 rounded-lg text-xs md:text-sm text-slate-300 italic animate-in w-full text-left whitespace-pre-line border-l-4 border-l-[#00E676]">
+                        <div className="mt-3 p-4 bg-white border border-[#00E676]/30 rounded-lg text-xs md:text-sm text-slate-700 italic animate-in w-full text-left whitespace-pre-line border-l-4 border-l-emerald-500 shadow-sm">
                             {suggestion}
                         </div>
                     )}
@@ -244,7 +245,7 @@
             >
                 <span className="text-[10px] md:text-xs font-black text-slate-500 uppercase italic leading-none tracking-widest flex justify-between items-center">
                     <span>{label}</span>
-                    {isClickable && <span className="text-[8px] text-[#00E676] opacity-0 group-hover:opacity-100 transition-opacity font-bold">{actionLabel || '✏️ แก้ไข'}</span>}
+                    {isClickable && <span className="text-[8px] text-[#00E676] opacity-0 group-hover:opacity-100 transition-opacity font-bold">{actionLabel || '✏️ EDIT'}</span>}
                 </span>
                 <span className="text-xs md:text-sm font-bold text-slate-200 italic leading-tight pr-1 break-words">{val || '---'}</span>
             </div>
@@ -293,13 +294,13 @@
 
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <FormInput 
-                                label="OPERATIONAL USERNAME (รหัสพนักงาน)" 
+                                label="OPERATIONAL USERNAME (ID)" 
                                 val={username} 
                                 onChange={setUsername} 
                                 placeholder="SESA650194" 
                             />
                             <FormInput 
-                                label="CLEARANCE PASSWORD (รหัสผ่าน)" 
+                                label="CLEARANCE PASSWORD" 
                                 val={password} 
                                 onChange={setPassword} 
                                 placeholder="••••••••" 
@@ -316,12 +317,12 @@
                         </form>
 
                         <div className="mt-6 pt-4 border-t border-slate-900/50 flex flex-col gap-3">
-                            <div className="text-center text-[10px] text-slate-500 font-bold uppercase tracking-wider">หรือเข้าชมข้อมูลระบบส่วนกลาง</div>
+                            <div className="text-center text-[10px] text-slate-500 font-bold uppercase tracking-wider">OR ENTER SYSTEM AS PUBLIC AUDITOR</div>
                             <button 
                                 onClick={onGuestAccess}
                                 className="w-full py-3 bg-slate-900 hover:bg-slate-850 text-slate-300 rounded-lg border border-slate-800/80 font-black uppercase italic text-xs tracking-widest flex items-center justify-center gap-2 transition active:scale-95"
                             >
-                                <Icon name="Eye" size={14} className="text-blue-400" /> GUEST ACCESS (ดูอย่างเดียว)
+                                <Icon name="Eye" size={14} className="text-blue-400" /> GUEST ACCESS (READ-ONLY)
                             </button>
                         </div>
                     </div>
@@ -411,16 +412,16 @@
                 if (username.toUpperCase() === 'SESA650194' && password === '3010075') {
                     setSession('admin');
                     sessionStorage.setItem('rs_task_session', 'admin');
-                    setMsg('สิทธิ์ผู้ควบคุมระบบอนุมัติเรียบร้อย - ยินดีต้อนรับครับพี่บอล');
+                    setMsg('Clearance authorized - Welcome, Admin');
                 } else {
-                    setAuthError('รหัสผู้ใช้งานหรือรหัสผ่านความปลอดภัยไม่ถูกต้อง');
+                    setAuthError('Invalid operational username or clearance password');
                 }
             };
 
             const handleGuestAccess = () => {
                 setSession('guest');
                 sessionStorage.setItem('rs_task_session', 'guest');
-                setMsg('โหมดผู้ชมภายนอกทั่วไป (ดูได้อย่างเดียว)');
+                setMsg('Entered system as a public guest (View Only)');
                 if (view === 'add') setView('dashboard');
             };
 
@@ -428,7 +429,7 @@
                 setSession(null);
                 sessionStorage.removeItem('rs_task_session');
                 setAllData([]);
-                setMsg('ออกจากระบบควบคุมความปลอดภัยแล้ว');
+                setMsg('Signed out of operational center');
             };
 
             useEffect(() => {
@@ -525,17 +526,6 @@
                 return Object.entries(counts).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count);
             }, [myAllTasks]);
 
-            const lineStatsFilters = useMemo(() => {
-                const stats = {};
-                myAllTasks.forEach(t => {
-                    const line = t.Line || t.Area || 'Unknown';
-                    if (!stats[line]) stats[line] = { total: 0, unclosed: 0 };
-                    stats[line].total += 1;
-                    if (!String(t.Status || '').toLowerCase().includes('close') && !String(t.Status || '').toLowerCase().includes('succ')) stats[line].unclosed += 1;
-                });
-                return Object.entries(stats).map(([name, data]) => ({ name, ...data })).sort((a, b) => b.total - a.total);
-            }, [myAllTasks]);
-
             const filteredTasks = useMemo(() => {
                 let tasks = [...myAllTasks];
                 if (search) {
@@ -608,7 +598,7 @@
                 });
 
                 const maxCostVal = Math.max(...months, 1);
-                const monthNames = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+                const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
                 
                 const chart = months.map((val, idx) => ({
                     label: monthNames[idx],
@@ -631,16 +621,16 @@
                 };
             }, [myTasksRaw, selectedYear]);
 
-            const saveApiKey = () => { localStorage.setItem('gemini_api_key', tempApiKey); setUserApiKey(tempApiKey); setShowApiKeyModal(false); setMsg("บันทึก Gemini API Key แล้ว!"); };
+            const saveApiKey = () => { localStorage.setItem('gemini_api_key', tempApiKey); setUserApiKey(tempApiKey); setShowApiKeyModal(false); setMsg("Gemini API Key successfully updated!"); };
             const clearApiKey = () => { localStorage.removeItem('gemini_api_key'); setUserApiKey(''); setTempApiKey(''); };
 
             const updateStatus = async (id, newStatus) => {
                 if (isReadOnly || !fbUser) return;
                 try {
                     await setDoc(doc(db, ...publicPath, 'actions', id), { Status: newStatus }, { merge: true });
-                    setMsg(`อัปเดตสถานะเป็น ${newStatus} เรียบร้อย!`);
+                    setMsg(`Job status successfully changed to: ${newStatus}`);
                 } catch (e) {
-                    setMsg("ล้มเหลวในการอัปเดตสถานะ");
+                    setMsg("Operational Error: Failed to update status");
                 }
             };
 
@@ -661,27 +651,27 @@
                     Object.entries(lineAnalysis).sort((a,b)=>b[1].count-a[1].count).slice(0,5).forEach(([line, data]) => {
                         dataForAi += 'Line: ' + line + ' (' + data.count + ' items):\n' + data.actions.join('\n') + '\n\n';
                     });
-                    const summary = await fetchGemini('ข้อมูลงานค้างหน้างานทั้งหมด:\n\n' + dataForAi + '\nแนะนำวิธีแก้ปัญหาเทคนิค 3 ข้อสั้นๆ ให้วิศวกรโรงงานเดินไปทำได้จริงทันที ไม่เน้นทฤษฎี', userApiKey);
+                    const summary = await fetchGemini('Analyze the current workspace backlog list:\n\n' + dataForAi + '\nSuggest 3 quick, plain English actions for our plant engineer to solve these issues immediately.', userApiKey);
                     setAiSummary(summary);
-                } catch (error) { setMsg("AI Summary Error"); }
+                } catch (error) { setMsg("AI Report Compilation Failed"); }
                 setIsAiLoading(false);
             };
 
             const handleSuggestDescription = async () => {
-                if (!newItem.Title) { setMsg("กรุณาระบุหัวข้อมหรืองานก่อนครับพี่บอล"); return; }
+                if (!newItem.Title) { setMsg("Please fill in the Job Title first."); return; }
                 if (!userApiKey) { setShowApiKeyModal(true); return; }
                 setIsAiLoading(true);
                 try {
-                    const suggested = await fetchGemini('ช่วยอธิบายรายละเอียดงานเชิงเทคนิคสั้นๆ สำหรับ: "' + newItem.Title + '"', userApiKey);
+                    const suggested = await fetchGemini('Draft a short, neat operational description (under 100 words in simple English) for: "' + newItem.Title + '"', userApiKey);
                     setNewItem(prev => ({ ...prev, Description: suggested }));
-                } catch (error) { setMsg("AI Error"); }
+                } catch (error) { setMsg("AI Suggestion Failed"); }
                 setIsAiLoading(false);
             };
 
             const handleUpload = (e) => {
                 if (isReadOnly || !fbUser) return;
                 const file = e.target.files[0]; if (!file) return;
-                setSyncProgress("กำลังดึงและแปลงไฟล์สเปรดชีต...");
+                setSyncProgress("Reading and parsing spreadsheet database...");
                 const reader = new FileReader();
                 reader.onload = async (ev) => {
                     try {
@@ -714,8 +704,8 @@
                         });
                         await batch.commit();
                         await setDoc(doc(db, ...publicPath, 'metadata', 'sync_info'), { lastUpload: new Date().toISOString() }, { merge: true });
-                        setMsg('ซิงค์ข้อมูลลงฐานข้อมูลกลางสำเร็จ: ' + successCount + ' งาน');
-                    } catch (err) { setMsg("ซิงค์ไฟล์ผิดพลาด"); }
+                        setMsg('Successfully uploaded and synchronized ' + successCount + ' records!');
+                    } catch (err) { setMsg("Upload error: check CSV format"); }
                     setSyncProgress(null);
                 };
                 reader.readAsText(file);
@@ -725,13 +715,13 @@
                 e.preventDefault();
                 if (isReadOnly) return;
                 
-                if (!fbUser) { setMsg("กำลังเชื่อมต่อไปยังฐานข้อมูลคลาวด์..."); return; }
-                if (!newItem['Action Id'] || !newItem.Title || !newItem.Line) { setMsg("ข้อมูลไม่ครบถ้วน! กรุณากรอก ID, ชื่องาน, และเลือกไลน์การผลิต"); return; }
+                if (!fbUser) { setMsg("Database offline. Reconnecting..."); return; }
+                if (!newItem['Action Id'] || !newItem.Title || !newItem.Line) { setMsg("Validation error: Job ID, Title, and Production Line are required."); return; }
 
                 const cleanId = newItem['Action Id'].toUpperCase().replace(/[^a-zA-Z0-9-]/g, '-').trim();
-                if (!cleanId) { setMsg("ID ของงานห้ามเว้นว่าง"); return; }
+                if (!cleanId) { setMsg("Invalid Action ID form."); return; }
 
-                setSyncProgress("กำลังสร้างคำสั่งงานใหม่...");
+                setSyncProgress("Posting new operation log to Cloud database...");
                 try {
                     const defaultDueDate = new Date(); 
                     defaultDueDate.setDate(defaultDueDate.getDate() + 7);
@@ -745,7 +735,7 @@
                         editCount: 0 
                     }, { merge: true });
                     
-                    setMsg("เพิ่มงานสำเร็จแล้วครับ!");
+                    setMsg("New Action successfully registered!");
                     setNewItem({ 
                         'Action Id': '', 
                         'Title': '', 
@@ -761,21 +751,21 @@
                     setView('list');
                 } catch (e) { 
                     console.error("Failed to set doc:", e);
-                    setMsg("บันทึกข้อมูลล้มเหลว: " + e.message); 
+                    setMsg("Failed to upload: " + e.message); 
                 }
                 setSyncProgress(null);
             };
 
-            const confirmDelete = async () => { if (isReadOnly || !fbUser) return; await deleteDoc(doc(db, ...publicPath, 'actions', deleteConfirm.id)); setMsg("ลบงานสำเร็จเรียบร้อย"); setDeleteConfirm(null); };
-            const saveCostEdit = async (id) => { if (isReadOnly || !fbUser) return; await setDoc(doc(db, ...publicPath, 'actions', id), { Cost: tempCost }, { merge: true }); setEditingCostId(null); setMsg("อัปเดตราคาเป้าหมายแล้ว"); };
-            const saveDescEdit = async (t) => { if (isReadOnly || !fbUser) return; await setDoc(doc(db, ...publicPath, 'actions', t._id), { Description: tempDesc, editCount: (t.editCount || 0) + 1 }, { merge: true }); setEditingDescId(null); setMsg("แก้ไขคำอธิบายงานแล้ว"); };
-            const saveDueDateEdit = async (t) => { if (isReadOnly || !fbUser) return; await setDoc(doc(db, ...publicPath, 'actions', t._id), { 'Due Date': tempDueDate ? new Date(tempDueDate).toISOString() : '', dueDateEditCount: (t.dueDateEditCount || 0) + 1 }, { merge: true }); setEditingDueDateId(null); setMsg("ขยายกำหนดการเสร็จสิ้นแล้ว"); };
-            const saveAttachmentEdit = async (t) => { if (isReadOnly || !fbUser) return; await setDoc(doc(db, ...publicPath, 'actions', t._id), { Attachment: tempAttachment }, { merge: true }); setEditingAttachmentId(null); setMsg("แนบลิงก์เอกสารอัปเดตแล้ว"); };
+            const confirmDelete = async () => { if (isReadOnly || !fbUser) return; await deleteDoc(doc(db, ...publicPath, 'actions', deleteConfirm.id)); setMsg("Action successfully deleted"); setDeleteConfirm(null); };
+            const saveCostEdit = async (id) => { if (isReadOnly || !fbUser) return; await setDoc(doc(db, ...publicPath, 'actions', id), { Cost: tempCost }, { merge: true }); setEditingCostId(null); setMsg("Action cost successfully updated"); };
+            const saveDescEdit = async (t) => { if (isReadOnly || !fbUser) return; await setDoc(doc(db, ...publicPath, 'actions', t._id), { Description: tempDesc, editCount: (t.editCount || 0) + 1 }, { merge: true }); setEditingDescId(null); setMsg("Description successfully updated"); };
+            const saveDueDateEdit = async (t) => { if (isReadOnly || !fbUser) return; await setDoc(doc(db, ...publicPath, 'actions', t._id), { 'Due Date': tempDueDate ? new Date(tempDueDate).toISOString() : '', dueDateEditCount: (t.dueDateEditCount || 0) + 1 }, { merge: true }); setEditingDueDateId(null); setMsg("Job deadline successfully extended"); };
+            const saveAttachmentEdit = async (t) => { if (isReadOnly || !fbUser) return; await setDoc(doc(db, ...publicPath, 'actions', t._id), { Attachment: tempAttachment }, { merge: true }); setEditingAttachmentId(null); setMsg("Reference document link updated"); };
 
             const handleImageUpload = (e, id) => {
                 if (isReadOnly || !fbUser) return;
                 const file = e.target.files[0]; if (!file) return;
-                setSyncProgress("กำลังบันทึกภาพหน้างานลงฐานข้อมูล...");
+                setSyncProgress("Attaching and scaling proof photo...");
                 const reader = new FileReader();
                 reader.onload = (event) => {
                     const img = new Image();
@@ -786,8 +776,8 @@
                         canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
                         try {
                             await setDoc(doc(db, ...publicPath, 'actions', id), { Image: canvas.toDataURL('image/jpeg', 0.7) }, { merge: true });
-                            setMsg("อัปโหลดและผูกรูปกับงานเรียบร้อย!");
-                        } catch(err) { setMsg("อัปโหลดผิดพลาด"); }
+                            setMsg("Job image attached successfully!");
+                        } catch(err) { setMsg("Failed to upload image resource"); }
                         setSyncProgress(null);
                     };
                     img.src = event.target.result;
@@ -797,7 +787,7 @@
 
             return (
                 <div className="flex h-screen bg-[#080b11] relative overflow-hidden font-['Prompt'] text-slate-100 select-none">
-                    {/* Sidebar สำหรับ Mobile */}
+                    {/* Mobile Sidebar Overlay */}
                     {isSidebarOpen && <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[25] md:hidden" onClick={() => setIsSidebarOpen(false)} />}
 
                     <aside className={`fixed md:relative inset-y-0 left-0 w-64 bg-[#0c0f16] flex flex-col shrink-0 z-30 border-r border-slate-900 transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
@@ -813,15 +803,15 @@
                         </div>
                         
                         <nav className="flex-1 py-6 px-2 space-y-1">
-                            <SidebarBtn icon={<Icon name="Dashboard" />} label="แดชบอร์ดภาพรวม" active={view === 'dashboard'} onClick={() => setView('dashboard')} />
-                            <SidebarBtn icon={<Icon name="List" />} label="รายการงานทั้งหมด" active={view === 'list'} onClick={() => setView('list')} />
-                            {!isReadOnly && <SidebarBtn icon={<Icon name="Plus" />} label="เพิ่มงานแมนนวล" active={view === 'add'} onClick={() => setView('add')} />}
+                            <SidebarBtn icon={<Icon name="Dashboard" />} label="DASHBOARD OVERVIEW" active={view === 'dashboard'} onClick={() => setView('dashboard')} />
+                            <SidebarBtn icon={<Icon name="List" />} label="MASTER ACTION LIST" active={view === 'list'} onClick={() => setView('list')} />
+                            {!isReadOnly && <SidebarBtn icon={<Icon name="Plus" />} label="ADD MANUAL JOB" active={view === 'add'} onClick={() => setView('add')} />}
                         </nav>
 
                         {/* Fiscal Year Controller */}
                         <div className="p-4 border-t border-slate-900/60 bg-[#090c13] flex flex-col gap-1.5">
                             <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest italic flex items-center gap-1">
-                                <Icon name="Calendar" size={12} className="text-[#00E676]" /> ปีงบประมาณ (Fiscal Year)
+                                <Icon name="Calendar" size={12} className="text-[#00E676]" /> FISCAL YEAR (FY)
                             </span>
                             <div className="relative">
                                 <select 
@@ -829,7 +819,7 @@
                                     value={selectedYear}
                                     onChange={(e) => {
                                         setSelectedYear(Number(e.target.value));
-                                        setMsg(`เปลี่ยนเป็นปีงบประมาณ ค.ศ. ${e.target.value}`);
+                                        setMsg(`Switched to operational list: FY ${e.target.value}`);
                                     }}
                                 >
                                     {availableYearsList.map(yr => (
@@ -843,21 +833,20 @@
                             {!isReadOnly && (
                                 <Fragment>
                                     <label className="flex items-center justify-center gap-2 w-full py-3 bg-[#00E676] text-slate-950 rounded-lg font-black text-xs uppercase cursor-pointer hover:bg-[#00c853] transition shadow-md shadow-[#00E676]/10 active:scale-95 tracking-widest">
-                                        <Icon name="Plus" size={16} /> นำเข้าไฟล์ CSV
+                                        <Icon name="Plus" size={16} /> IMPORT CSV LOG
                                         <input type="file" className="hidden" accept=".csv" onChange={handleUpload}/>
                                     </label>
                                     <button onClick={() => { setTempApiKey(userApiKey); setShowApiKeyModal(true); }} className="flex items-center justify-center gap-2 w-full py-2 border border-slate-800 text-slate-500 rounded-lg font-black text-xs uppercase hover:bg-slate-900 hover:text-white transition active:scale-95 tracking-widest">
-                                        <Icon name="Settings" size={14} /> API SETTINGS
+                                        <Icon name="Settings" size={14} /> AI COGNITIVE SETTINGS
                                     </button>
                                 </Fragment>
                             )}
                             <button onClick={handleSignOut} className="flex items-center justify-center gap-2 w-full py-2 border border-rose-900/40 text-rose-500 bg-rose-950/5 rounded-lg font-black text-xs uppercase hover:bg-rose-950/20 hover:text-rose-400 transition active:scale-95 tracking-widest">
-                                <Icon name="LogOut" size={14} /> ปิดระบบควบคุม
+                                <Icon name="LogOut" size={14} /> EXIT OPERATIONS
                             </button>
                         </div>
                     </aside>
 
-                    {}
                     <main className="flex-1 flex flex-col overflow-hidden bg-[#080b11]">
                         <header className="h-16 bg-[#0c0f16] border-b border-slate-900 px-6 md:px-10 flex items-center justify-between z-10 shrink-0">
                             <div className="flex items-center gap-3 md:gap-4">
@@ -868,50 +857,49 @@
                             
                             <div className="flex items-center gap-2">
                                 <select className="appearance-none pl-4 pr-10 py-2.5 bg-slate-900 border border-slate-850 rounded-lg text-xs font-black uppercase italic text-slate-300 focus:border-[#00E676] outline-none transition cursor-pointer tracking-wider" value={lineFilter} onChange={(e) => setLineFilter(e.target.value)}>
-                                    <option value="All">ทุกไลน์ผลิต (All Lines)</option>
+                                    <option value="All">ALL LINES</option>
                                     {lineOptions.map(opt => <option key={opt.name} value={opt.name}>{opt.name.toUpperCase()} ({opt.count})</option>)}
                                 </select>
-                                <input type="text" placeholder="พิมพ์ค้นหาด่วน..." className="pl-4 pr-4 py-2.5 bg-slate-900 border border-slate-850 rounded-lg text-xs md:text-sm text-white focus:border-[#00E676] outline-none transition placeholder-slate-600" value={search} onChange={(e) => setSearch(e.target.value)} />
+                                <input type="text" placeholder="Quick Search..." className="pl-4 pr-4 py-2.5 bg-slate-900 border border-slate-850 rounded-lg text-xs md:text-sm text-white focus:border-[#00E676] outline-none transition placeholder-slate-600" value={search} onChange={(e) => setSearch(e.target.value)} />
                             </div>
                         </header>
 
                         <div className="flex-1 overflow-y-auto p-4 md:p-10 custom-scroll relative bg-[#080b11]">
-                            {/* หน้าต่างเตือนระบบ */}
+                            {/* System Toast Alerts */}
                             {msg && <div className="fixed top-20 right-4 z-[100] px-5 py-3 bg-slate-900 text-[#00E676] rounded-xl shadow-2xl font-black text-xs uppercase border border-[#00E676]/30 tracking-widest animate-pulse">{msg}</div>}
                             {syncProgress && <div className="fixed inset-0 z-[100] bg-[#080b11]/90 backdrop-blur-md flex flex-col items-center justify-center text-[#00E676] font-black uppercase italic animate-pulse tracking-widest">{syncProgress}</div>}
 
-                            {}
                             {view === 'dashboard' ? (
                                 <div className="max-w-6xl mx-auto space-y-6 animate-in">
                                     <div className="flex justify-between items-end border-b border-slate-900 pb-5">
                                         <div>
-                                            <h3 className="text-xl md:text-2xl font-black text-white uppercase italic tracking-wider">แผงวิเคราะห์แดชบอร์ด</h3>
+                                            <h3 className="text-xl md:text-2xl font-black text-white uppercase italic tracking-wider">WORKSPACE ANALYTICS</h3>
                                             <p className="text-[10px] md:text-xs font-black text-slate-500 uppercase tracking-widest mt-1 italic">
-                                                Dashboard วิเคราะห์ข้อมูลของ รัตนโชติ ศิริวาณิชย์ ประจำปีงบประมาณ {selectedYear}
+                                                Active Operations for Engineer Rattanachot Siriwanit - FY {selectedYear}
                                             </p>
                                         </div>
                                         <button onClick={handleGenerateSummary} disabled={isAiLoading} className="bg-slate-900 border border-slate-800 text-[#00E676] hover:bg-emerald-950/20 px-5 py-2.5 rounded-lg font-black text-xs flex items-center gap-2 uppercase tracking-widest transition shadow-sm">
-                                            <Icon name="Sparkle" size={16} className={isAiLoading ? "animate-spin" : ""} /> AI REPORT SUMMARY
+                                            <Icon name="Sparkle" size={16} className={isAiLoading ? "animate-spin" : ""} /> RUN AI AUDIT
                                         </button>
                                     </div>
 
                                     {aiSummary && (
                                         <div className="gradient-ai p-6 rounded-xl border border-[#00E676]/20 shadow-2xl animate-in">
-                                            <div className="flex items-center gap-2 mb-4 font-black text-white italic uppercase tracking-wider"><Icon name="Sparkle" className="text-[#00E676]"/> บทวิเคราะห์หน้างานโดย AI</div>
+                                            <div className="flex items-center gap-2 mb-4 font-black text-white italic uppercase tracking-wider"><Icon name="Sparkle" className="text-[#00E676]"/> COGNITIVE AI ACTION BRIEF</div>
                                             <div className="text-xs md:text-sm text-slate-300 leading-relaxed italic whitespace-pre-line font-light">{aiSummary}</div>
                                         </div>
                                     )}
 
                                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                                        <StatCard label="งานค้างดำเนินการ (PENDING)" value={dashboardData.stats.open} color="bg-amber-500" />
-                                        <StatCard label="กำลังดำเนินการ (IN PROGRESS)" value={dashboardData.stats.progress} color="bg-blue-500" />
-                                        <StatCard label="เสร็จสิ้นสมบูรณ์ (CLOSED/SUCCESS)" value={dashboardData.stats.closed} color="bg-[#00E676]" />
-                                        <StatCard label="รายการงานรวมปีงบประมาณ" value={dashboardData.stats.total} color="bg-purple-600" />
+                                        <StatCard label="PENDING ITEMS (OPEN)" value={dashboardData.stats.open} color="bg-amber-500" />
+                                        <StatCard label="IN PROGRESS (WORK IN HAND)" value={dashboardData.stats.progress} color="bg-blue-500" />
+                                        <StatCard label="COMPLETED LOGS (CLOSED)" value={dashboardData.stats.closed} color="bg-[#00E676]" />
+                                        <StatCard label="TOTAL ACTIONS LOADED" value={dashboardData.stats.total} color="bg-purple-600" />
                                     </div>
 
                                     <div className="bg-[#121824] p-6 md:p-8 rounded-xl border border-slate-800/80 shadow-2xl space-y-8">
                                         <div>
-                                            <h4 className="font-black text-white uppercase italic tracking-wider text-sm">การกระจายตัวของต้นทุนและงบประมาณปี {selectedYear} (บาท)</h4>
+                                            <h4 className="font-black text-white uppercase italic tracking-wider text-sm">Monthly Operational Budget allocation (THB)</h4>
                                         </div>
                                         <div className="flex items-end h-56 gap-2 sm:gap-3 border-b border-slate-850 pb-4 pt-4">
                                             {dashboardData.chart.map((c, i) => (
@@ -928,39 +916,39 @@
                             ) : view === 'add' && !isReadOnly ? (
                                 <div className="max-w-2xl mx-auto py-4 animate-in">
                                     <div className="bg-[#121824] rounded-xl shadow-2xl border border-slate-800/80 p-6 md:p-10">
-                                        <h3 className="text-lg font-black text-white mb-6 uppercase italic tracking-wider border-b border-slate-800 pb-3">เพิ่มงานใหม่เข้าระบบ (Add Action Manual)</h3>
+                                        <h3 className="text-lg font-black text-white mb-6 uppercase italic tracking-wider border-b border-slate-800 pb-3">REGISTER NEW ACTION</h3>
                                         <form onSubmit={handleAddItem} className="space-y-4">
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                <FormInput label="รหัสงาน (Action ID)" val={newItem['Action Id']} onChange={v => setNewItem({...newItem, 'Action Id': v})} placeholder="2026-001" />
-                                                <FormInput label="หัวข้องาน / เป้าหมาย" val={newItem.Title} onChange={v => setNewItem({...newItem, 'Title': v})} placeholder="ติดตั้งเซนเซอร์ตรวจจับตำแหน่งใหม่..." />
+                                                <FormInput label="ACTION ID (UNIQUE)" val={newItem['Action Id']} onChange={v => setNewItem({...newItem, 'Action Id': v})} placeholder="2026-001" />
+                                                <FormInput label="JOB TITLE" val={newItem.Title} onChange={v => setNewItem({...newItem, 'Title': v})} placeholder="Sensor alignment or fixture upgrade..." />
                                             </div>
                                             <div className="space-y-1">
                                                 <div className="flex justify-between items-center mb-1">
-                                                    <label className="text-[10px] md:text-xs font-black text-slate-400 uppercase italic ml-1 tracking-wider">รายละเอียดการปฏิบัติงาน</label>
+                                                    <label className="text-[10px] md:text-xs font-black text-slate-400 uppercase italic ml-1 tracking-wider">JOB SPECIFICATIONS & TECHNICAL DESCRIPTION</label>
                                                     <button type="button" onClick={handleSuggestDescription} disabled={isAiLoading} className="text-[9px] text-[#00E676] font-bold flex items-center gap-1 hover:underline">
-                                                        <Icon name="Sparkle" size={10} /> ให้ AI ช่วยคิดรายละเอียด
+                                                        <Icon name="Sparkle" size={10} /> AI ASSIST WRITE-UP
                                                     </button>
                                                 </div>
-                                                <textarea className="w-full p-4 bg-slate-900 border border-slate-800 rounded-lg text-xs md:text-sm text-slate-300 outline-none focus:border-[#00E676] transition h-28 font-light italic" placeholder="ระบุขอบเขตและขั้นตอนเชิงเทคนิคหน้างาน..." value={newItem.Description} onChange={e => setNewItem({...newItem, Description: e.target.value})} />
+                                                <textarea className="w-full p-4 bg-slate-900 border border-slate-800 rounded-lg text-xs md:text-sm text-slate-300 outline-none focus:border-[#00E676] transition h-28 font-light italic" placeholder="Outline specific mechanical/electrical tasks..." value={newItem.Description} onChange={e => setNewItem({...newItem, Description: e.target.value})} />
                                             </div>
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                <FormInput label="ต้นทุนที่ประเมิน (Cost - THB)" val={newItem.Cost} onChange={v => setNewItem({...newItem, Cost: v})} placeholder="0" />
-                                                <FormInput label="ลิงก์เอกสารแนบประกอบ" val={newItem.Attachment} onChange={v => setNewItem({...newItem, Attachment: v})} placeholder="https://..." />
+                                                <FormInput label="ESTIMATED COST (THB)" val={newItem.Cost} onChange={v => setNewItem({...newItem, Cost: v})} placeholder="0" />
+                                                <FormInput label="REFERENCE DOCUMENT LINK" val={newItem.Attachment} onChange={v => setNewItem({...newItem, Attachment: v})} placeholder="https://..." />
                                             </div>
                                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                                 <div className="space-y-1">
-                                                    <label className="text-[10px] md:text-xs font-black text-slate-400 uppercase italic ml-1 tracking-wider">ไลน์การผลิต (Line)</label>
+                                                    <label className="text-[10px] md:text-xs font-black text-slate-400 uppercase italic ml-1 tracking-wider">PRODUCTION LINE</label>
                                                     <select className="w-full p-3 bg-slate-900 border border-slate-800 rounded-lg text-xs md:text-sm font-bold italic text-slate-300 outline-none focus:border-[#00E676]" value={newItem.Line} onChange={e => setNewItem({...newItem, Line: e.target.value})}>
-                                                        <option value="" disabled>-- เลือกไลน์การผลิต --</option>
+                                                        <option value="" disabled>-- Select production line --</option>
                                                         {MASTER_LINE_NAMES.map(line => <option key={line} value={line}>{line}</option>)}
                                                     </select>
                                                 </div>
                                                 <div className="space-y-1">
-                                                    <label className="text-[10px] md:text-xs font-black text-slate-400 uppercase italic ml-1 tracking-wider">กำหนดส่งงาน (Due Date)</label>
+                                                    <label className="text-[10px] md:text-xs font-black text-slate-400 uppercase italic ml-1 tracking-wider">DUE DATE (DEADLINE)</label>
                                                     <input type="date" className="w-full p-3 bg-slate-900 border border-slate-800 rounded-lg text-xs md:text-sm font-bold text-slate-300 outline-none focus:border-[#00E676]" value={newItem['Due Date'] ? newItem['Due Date'].split('T')[0] : ''} onChange={(e) => setNewItem({...newItem, 'Due Date': e.target.value})} />
                                                 </div>
                                                 <div className="space-y-1">
-                                                    <label className="text-[10px] md:text-xs font-black text-slate-400 uppercase italic ml-1 tracking-wider">สถานะแรกเริ่ม</label>
+                                                    <label className="text-[10px] md:text-xs font-black text-slate-400 uppercase italic ml-1 tracking-wider">JOB STATUS</label>
                                                     <select className="w-full p-3 bg-slate-900 border border-slate-800 rounded-lg text-xs md:text-sm font-bold italic text-slate-300 outline-none focus:border-[#00E676]" value={newItem.Status} onChange={e => setNewItem({...newItem, Status: e.target.value})}>
                                                         <option value="Open">OPEN</option>
                                                         <option value="In Progress">IN PROGRESS</option>
@@ -968,7 +956,7 @@
                                                     </select>
                                                 </div>
                                             </div>
-                                            <button type="submit" className="w-full py-4 mt-2 bg-gradient-to-r from-emerald-600 to-[#00E676] text-slate-950 rounded-lg font-black uppercase italic shadow-lg hover:opacity-90 transition-all text-xs tracking-widest shadow-[#00E676]/10">ยิงข้อมูลเข้าคลาวด์เซิร์ฟเวอร์</button>
+                                            <button type="submit" className="w-full py-4 mt-2 bg-gradient-to-r from-emerald-600 to-[#00E676] text-slate-950 rounded-lg font-black uppercase italic shadow-lg hover:opacity-90 transition-all text-xs tracking-widest shadow-[#00E676]/10">COMMIT ACTION TO CLOUD DATABASE</button>
                                         </form>
                                     </div>
                                 </div>
@@ -976,20 +964,20 @@
                                 <div className="max-w-6xl mx-auto space-y-4 animate-in">
                                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-900 pb-5">
                                         <div>
-                                            <h3 className="text-xl md:text-2xl font-black text-white uppercase italic tracking-wider">คลังข้อมูลและบันทึกปฏิบัติงาน (MASTER LIST)</h3>
+                                            <h3 className="text-xl md:text-2xl font-black text-white uppercase italic tracking-wider">OPERATIONAL REGISTRY (MASTER LIST)</h3>
                                             <p className="text-[10px] md:text-xs font-black text-slate-500 uppercase tracking-widest mt-1 italic">
-                                                คัดกรอง ค้นหา อัปเดตรูปภาพ และดูรายละเอียดเชิงปฏิบัติการแบบละเอียดรายหัวข้อ
+                                                Audit progress logs, attach imagery, update tasks, or trace specifications.
                                             </p>
                                         </div>
                                     </div>
 
-                                    {/* แถบตัวกรองสถานะ (Status Filters) */}
+                                    {/* Action Status Filtering Tabs */}
                                     <div className="flex flex-wrap gap-2 mb-4">
                                         {[
-                                            { id: 'All', label: 'ทั้งหมด (ALL)', count: myAllTasks.length },
-                                            { id: 'Open', label: 'ค้างดำเนินการ (OPEN)', count: myAllTasks.filter(t => String(t.Status).toLowerCase() === 'open').length },
-                                            { id: 'In Progress', label: 'กำลังทำ (IN PROGRESS)', count: myAllTasks.filter(t => String(t.Status).toLowerCase().includes('progress')).length },
-                                            { id: 'Closed', label: 'เสร็จสิ้น (CLOSED)', count: myAllTasks.filter(t => String(t.Status).toLowerCase().includes('close') || String(t.Status).toLowerCase().includes('succ')).length }
+                                            { id: 'All', label: 'ALL LOGS', count: myAllTasks.length },
+                                            { id: 'Open', label: 'PENDING / OPEN', count: myAllTasks.filter(t => String(t.Status).toLowerCase() === 'open').length },
+                                            { id: 'In Progress', label: 'IN PROGRESS', count: myAllTasks.filter(t => String(t.Status).toLowerCase().includes('progress')).length },
+                                            { id: 'Closed', label: 'COMPLETED / CLOSED', count: myAllTasks.filter(t => String(t.Status).toLowerCase().includes('close') || String(t.Status).toLowerCase().includes('succ')).length }
                                         ].map(tab => (
                                             <button
                                                 key={tab.id}
@@ -1002,10 +990,10 @@
                                         ))}
                                     </div>
 
-                                    {/* ตารางแสดงข้อมูล */}
+                                    {/* Registry Grid Table */}
                                     <div className="bg-[#121824] border border-slate-850 rounded-xl overflow-hidden divide-y divide-slate-850 shadow-2xl">
                                         {filteredTasks.length === 0 ? (
-                                            <div className="p-12 text-center text-slate-500 font-black italic text-sm uppercase tracking-widest">--- ไม่พบข้อมูลงานตามเงื่อนไขที่เลือก (FY {selectedYear}) ---</div>
+                                            <div className="p-12 text-center text-slate-500 font-black italic text-sm uppercase tracking-widest">--- NO OPERATIONAL LOGS MATCH THE CHOSEN CRITERIA (FY {selectedYear}) ---</div>
                                         ) : filteredTasks.map(t => {
                                             const isExpanded = expandedId === t._id;
                                             const statusLower = String(t.Status || '').toLowerCase();
@@ -1014,11 +1002,10 @@
                                             return (
                                                 <div key={t._id} className={`flex flex-col transition-colors ${isExpanded ? 'bg-slate-900/60 border-l-4 border-l-[#00E676]' : 'hover:bg-slate-900/20'}`}>
                                                     
-                                                    {/* กล่องหัวเรื่องหลักเมื่อคลิก */}
+                                                    {/* Header Card (Expand trigger) */}
                                                     <div 
                                                         onClick={() => {
                                                             setExpandedId(isExpanded ? null : t._id);
-                                                            // เตรียมตัวแปรสำรองสำหรับฟังก์ชันแก้ไขเมื่อคลิก
                                                             setTempDesc(t.Description || '');
                                                             setTempCost(t.Cost || '');
                                                             setTempDueDate(t['Due Date'] ? t['Due Date'].split('T')[0] : '');
@@ -1028,17 +1015,17 @@
                                                     >
                                                         <div className="space-y-1.5 flex-1 min-w-0 pr-4">
                                                             <div className="flex flex-wrap items-center gap-2">
-                                                                <span className="text-[10px] font-black text-[#00E676] bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-900/40">{t['Action Id'] || 'SIM2-ACTION'}</span>
-                                                                <span className="text-xs text-slate-400 font-bold truncate max-w-[200px] md:max-w-none">{t.Line || 'ทุกส่วนไลน์'}</span>
+                                                                <span className="text-[10px] font-black text-[#00E676] bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-900/40">{t['Action Id'] || 'SIM2-JOB'}</span>
+                                                                <span className="text-xs text-slate-400 font-bold truncate max-w-[200px] md:max-w-none">{t.Line || 'Factory-wide Area'}</span>
                                                             </div>
                                                             <h4 className={`text-sm md:text-base font-bold truncate tracking-tight ${isDone ? 'text-slate-500 line-through' : 'text-slate-100'}`}>
-                                                                {t.Title || 'Untitled Action'}
+                                                                {t.Title || 'Unnamed Job Objective'}
                                                             </h4>
                                                         </div>
 
                                                         <div className="flex items-center gap-3 shrink-0 self-end md:self-auto">
                                                             <div className="text-right hidden sm:block">
-                                                                <span className="text-[9px] font-bold text-slate-500 block">DUE DATE</span>
+                                                                <span className="text-[9px] font-bold text-slate-500 block">DEADLINE</span>
                                                                 <span className="text-xs font-bold text-slate-300 tabular-nums">{formatDate(t['Due Date'] || t.DueDate)}</span>
                                                             </div>
                                                             <span className={`px-3 py-1 rounded text-[10px] font-black uppercase tracking-wider ${isDone ? 'bg-emerald-950/40 text-[#00E676] border border-[#00E676]/30' : statusLower.includes('progress') ? 'bg-blue-950/40 text-blue-400 border border-blue-900/30' : 'bg-amber-950/40 text-amber-500 border border-amber-900/30'}`}>
@@ -1049,59 +1036,60 @@
                                                     </div>
 
                                                     {}
+                                                    {/* Expandable Details Frame (Job Detail Panel - Light Gray Theme) */}
                                                     {isExpanded && (
-                                                        <div className="px-5 pb-6 pt-2 border-t border-slate-900 bg-slate-950/40 text-xs text-slate-300 space-y-6 animate-in">
-                                                            
-                                                            {/* แผงควบคุมและรายละเอียดสองฝั่ง */}
+                                                        <div className="px-5 pb-6 pt-4 border-t border-slate-300 bg-slate-100 text-xs text-slate-800 space-y-6 animate-in">
                                                             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                                                                 
-                                                                {/* ฝั่งซ้าย: ข้อมูลขั้นตอนเทคนิค และภาพ */}
+                                                                {/* Panel Left: Specifications & Proof media */}
                                                                 <div className="lg:col-span-2 space-y-4">
                                                                     
-                                                                    {/* คำอธิบายงานและการแก้ไข */}
-                                                                    <div className="bg-slate-900/40 p-4 rounded-xl border border-slate-800/80">
-                                                                        <div className="flex justify-between items-center mb-2">
-                                                                            <span className="text-[10px] font-black text-[#00E676] uppercase tracking-wider">รายละเอียดเชิงวิศวกรรม / ขั้นตอนหน้างาน</span>
+                                                                    {/* Engineering Specs Description Field */}
+                                                                    <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                                                                        <div className="flex justify-between items-center mb-2 border-b border-slate-100 pb-2">
+                                                                            <span className="text-[10px] font-black text-emerald-600 uppercase tracking-wider">TECHNICAL SPECIFICATIONS / ACTION STEPS</span>
                                                                             {!isReadOnly && editingDescId !== t._id && (
-                                                                                <button onClick={() => setEditingDescId(t._id)} className="text-[10px] text-blue-400 font-bold hover:underline">แก้ไขขั้นตอน</button>
+                                                                                <button onClick={() => setEditingDescId(t._id)} className="text-[10px] text-blue-600 font-bold hover:underline">EDIT DETAIL</button>
                                                                             )}
                                                                         </div>
                                                                         
                                                                         {editingDescId === t._id ? (
-                                                                            <div className="space-y-2">
-                                                                                <textarea className="w-full p-3 bg-slate-950 border border-slate-800 rounded-lg text-slate-100" value={tempDesc} onChange={e => setTempDesc(e.target.value)} rows={4} />
+                                                                            <div className="space-y-2 pt-1">
+                                                                                <textarea className="w-full p-3 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 font-light italic" value={tempDesc} onChange={e => setTempDesc(e.target.value)} rows={4} />
                                                                                 <div className="flex gap-2">
-                                                                                    <button onClick={() => saveDescEdit(t)} className="bg-[#00E676] text-black px-3 py-1 rounded font-bold">บันทึก</button>
-                                                                                    <button onClick={() => setEditingDescId(null)} className="bg-slate-800 px-3 py-1 rounded">ยกเลิก</button>
+                                                                                    <button onClick={() => saveDescEdit(t)} className="bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1 rounded font-bold transition">SAVE</button>
+                                                                                    <button onClick={() => setEditingDescId(null)} className="bg-slate-200 text-slate-700 px-3 py-1 rounded hover:bg-slate-300 transition">CANCEL</button>
                                                                                 </div>
                                                                             </div>
                                                                         ) : (
-                                                                            <p className="text-slate-300 font-light whitespace-pre-line leading-relaxed italic">{t.Description || 'ไม่มีข้อมูลรายละเอียดเชิงเทคนิคกรอกไว้ครับ'}</p>
+                                                                            <p className="text-slate-700 font-light whitespace-pre-line leading-relaxed italic pt-1">{t.Description || 'No detailed tech specifications registered for this log.'}</p>
                                                                         )}
                                                                     </div>
 
-                                                                    {/* แผงช่วยเหลือ AI */}
-                                                                    <AiNextStep title={t.Title} description={t.Description} setMsg={setMsg} fetchGemini={fetchGemini} userApiKey={userApiKey} setShowApiKeyModal={setShowApiKeyModal} isReadOnly={isReadOnly} />
+                                                                    {/* AI Assistant panel integration */}
+                                                                    <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                                                                        <AiNextStep title={t.Title} description={t.Description} setMsg={setMsg} fetchGemini={fetchGemini} userApiKey={userApiKey} setShowApiKeyModal={setShowApiKeyModal} isReadOnly={isReadOnly} />
+                                                                    </div>
 
-                                                                    {/* บล็อกแนบภาพหน้างาน */}
-                                                                    <div className="bg-slate-900/40 p-4 rounded-xl border border-slate-800/80">
-                                                                        <span className="text-[10px] font-black text-[#00E676] uppercase tracking-wider block mb-3">ภาพหลักฐานปฏิบัติหน้างานประกอบ (Operational Capture)</span>
+                                                                    {/* Engineering proof photos (Operational Capture) */}
+                                                                    <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                                                                        <span className="text-[10px] font-black text-emerald-600 uppercase tracking-wider block mb-3 border-b border-slate-100 pb-2">OPERATIONAL PROOF (CAMERA CAPTURE)</span>
                                                                         {t.Image ? (
-                                                                            <div className="space-y-3">
-                                                                                <img src={t.Image} className="max-h-72 object-cover rounded-lg cursor-pointer border border-slate-800 hover:border-[#00E676] transition" onClick={() => setPreviewUrl(t.Image)} />
+                                                                            <div className="space-y-3 pt-1">
+                                                                                <img src={t.Image} className="max-h-72 object-cover rounded-lg cursor-pointer border border-slate-200 hover:border-emerald-500 transition shadow-sm" onClick={() => setPreviewUrl(t.Image)} />
                                                                                 {!isReadOnly && (
-                                                                                    <label className="text-[10px] text-rose-500 font-bold cursor-pointer hover:underline">
-                                                                                        อัปโหลดรูปภาพใหม่เพื่อเปลี่ยนแทน
+                                                                                    <label className="text-[10px] text-rose-600 font-bold cursor-pointer hover:underline block mt-2">
+                                                                                        Replace operational photo
                                                                                         <input type="file" className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, t._id)} />
                                                                                     </label>
                                                                                 )}
                                                                             </div>
                                                                         ) : (
-                                                                            <div className="border border-dashed border-slate-800/80 p-6 rounded-lg text-center flex flex-col items-center justify-center">
-                                                                                <p className="text-slate-500 mb-2 font-bold uppercase tracking-wider">ไม่มีการแนบรูปภาพสำหรับการดำเนินงานนี้</p>
+                                                                            <div className="border border-dashed border-slate-300 p-6 rounded-lg text-center flex flex-col items-center justify-center">
+                                                                                <p className="text-slate-400 mb-2 font-bold uppercase tracking-wider">No proof photography linked to this action item</p>
                                                                                 {!isReadOnly && (
-                                                                                    <label className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-slate-300 font-bold rounded-lg border border-slate-800 cursor-pointer active:scale-95 transition">
-                                                                                        อัปโหลดไฟล์รูปภาพหน้างาน
+                                                                                    <label className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg border border-slate-300 cursor-pointer active:scale-95 transition shadow-sm">
+                                                                                        ATTACH PROOF PHOTO
                                                                                         <input type="file" className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, t._id)} />
                                                                                     </label>
                                                                                 )}
@@ -1110,19 +1098,19 @@
                                                                     </div>
                                                                 </div>
 
-                                                                {/* ฝั่งขวา: รายละเอียดสถานะ บัดเจท กำหนดเสร็จ และลิงก์อ้างอิง */}
+                                                                {/* Panel Right: Metadata, costs, due dates, & actions */}
                                                                 <div className="space-y-4">
                                                                     
-                                                                    {/* สับเปลี่ยนสถานะหน้างาน */}
+                                                                    {/* Update Job Status Switch */}
                                                                     {!isReadOnly && (
-                                                                        <div className="bg-slate-900/40 p-4 rounded-xl border border-slate-800/80">
-                                                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-2">อัปเดตสถานะการปฏิบัติงาน</span>
-                                                                            <div className="grid grid-cols-3 gap-1.5">
+                                                                        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                                                                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider block mb-2 border-b border-slate-100 pb-1">SWAP JOB STATUS</span>
+                                                                            <div className="grid grid-cols-3 gap-1.5 pt-1">
                                                                                 {['Open', 'In Progress', 'Closed'].map(status => (
                                                                                     <button 
                                                                                         key={status} 
                                                                                         onClick={() => updateStatus(t._id, status)} 
-                                                                                        className={`py-2 rounded font-black text-[9px] uppercase border tracking-wider transition ${statusLower === status.toLowerCase() || (status === 'Closed' && statusLower.includes('close')) ? 'bg-[#00E676] text-black border-[#00E676]' : 'bg-slate-950 text-slate-400 border-slate-850 hover:bg-slate-900'}`}
+                                                                                        className={`py-2 rounded font-black text-[9px] uppercase border tracking-wider transition ${statusLower === status.toLowerCase() || (status === 'Closed' && statusLower.includes('close')) ? 'bg-emerald-500 text-white border-emerald-500 shadow-sm' : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'}`}
                                                                                     >
                                                                                         {status}
                                                                                     </button>
@@ -1131,88 +1119,88 @@
                                                                         </div>
                                                                     )}
 
-                                                                    {/* แผงแสดงค่า Cost */}
-                                                                    <div className="bg-slate-900/40 p-4 rounded-xl border border-slate-800/80">
-                                                                        <div className="flex justify-between items-center mb-2">
-                                                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">งบประมาณดำเนินงาน (COST)</span>
+                                                                    {/* Financial allocations */}
+                                                                    <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                                                                        <div className="flex justify-between items-center mb-2 border-b border-slate-100 pb-1">
+                                                                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">ESTIMATED BUDGET COST</span>
                                                                             {!isReadOnly && editingCostId !== t._id && (
-                                                                                <button onClick={() => setEditingCostId(t._id)} className="text-[10px] text-blue-400 font-bold hover:underline">แก้ไขงบ</button>
+                                                                                <button onClick={() => setEditingCostId(t._id)} className="text-[10px] text-blue-600 font-bold hover:underline">EDIT COST</button>
                                                                             )}
                                                                         </div>
                                                                         {editingCostId === t._id ? (
-                                                                            <div className="space-y-2">
-                                                                                <input className="w-full p-2 bg-slate-950 border border-slate-800 rounded-lg text-slate-100 text-xs font-bold" value={tempCost} onChange={e => setTempCost(e.target.value)} />
+                                                                            <div className="space-y-2 pt-1">
+                                                                                <input className="w-full p-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 text-xs font-bold" value={tempCost} onChange={e => setTempCost(e.target.value)} />
                                                                                 <div className="flex gap-2">
-                                                                                    <button onClick={() => saveCostEdit(t._id)} className="bg-[#00E676] text-black px-2.5 py-1 rounded font-bold text-[10px]">บันทึก</button>
-                                                                                    <button onClick={() => setEditingCostId(null)} className="bg-slate-800 px-2.5 py-1 rounded text-[10px]">ยกเลิก</button>
+                                                                                    <button onClick={() => saveCostEdit(t._id)} className="bg-emerald-500 hover:bg-emerald-600 text-white px-2.5 py-1 rounded font-bold text-[10px] transition">SAVE</button>
+                                                                                    <button onClick={() => setEditingCostId(null)} className="bg-slate-200 text-slate-700 px-2.5 py-1 rounded text-[10px] hover:bg-slate-300 transition">CANCEL</button>
                                                                                 </div>
                                                                             </div>
                                                                         ) : (
-                                                                            <p className="text-base font-black text-white italic tracking-wider tabular-nums">{t.Cost ? parseFloat(String(t.Cost).replace(/,/g, '')).toLocaleString() + ' บาท' : '---'}</p>
+                                                                            <p className="text-base font-black text-slate-950 italic tracking-wider tabular-nums pt-1">{t.Cost ? parseFloat(String(t.Cost).replace(/,/g, '')).toLocaleString() + ' THB' : '---'}</p>
                                                                         )}
                                                                     </div>
 
-                                                                    {/* กำหนดเสร็จงาน (Due Date) */}
-                                                                    <div className="bg-slate-900/40 p-4 rounded-xl border border-slate-800/80">
-                                                                        <div className="flex justify-between items-center mb-2">
-                                                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">กำหนดส่งเสร็จสิ้น (DUE DATE)</span>
+                                                                    {/* Target Deadlines */}
+                                                                    <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                                                                        <div className="flex justify-between items-center mb-2 border-b border-slate-100 pb-1">
+                                                                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">TARGET DEADLINE (DUE DATE)</span>
                                                                             {!isReadOnly && editingDueDateId !== t._id && (
-                                                                                <button onClick={() => setEditingDueDateId(t._id)} className="text-[10px] text-blue-400 font-bold hover:underline">เปลี่ยนวัน</button>
+                                                                                <button onClick={() => setEditingDueDateId(t._id)} className="text-[10px] text-blue-600 font-bold hover:underline">SET DATE</button>
                                                                             )}
                                                                         </div>
                                                                         {editingDueDateId === t._id ? (
-                                                                            <div className="space-y-2">
-                                                                                <input type="date" className="w-full p-2 bg-slate-950 border border-slate-800 rounded-lg text-slate-100 text-xs font-bold" value={tempDueDate} onChange={e => setTempDueDate(e.target.value)} />
+                                                                            <div className="space-y-2 pt-1">
+                                                                                <input type="date" className="w-full p-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-100 text-xs font-bold" value={tempDueDate} onChange={e => setTempDueDate(e.target.value)} />
                                                                                 <div className="flex gap-2">
-                                                                                    <button onClick={() => saveDueDateEdit(t)} className="bg-[#00E676] text-black px-2.5 py-1 rounded font-bold text-[10px]">บันทึก</button>
-                                                                                    <button onClick={() => setEditingDueDateId(null)} className="bg-slate-800 px-2.5 py-1 rounded text-[10px]">ยกเลิก</button>
+                                                                                    <button onClick={() => saveDueDateEdit(t)} className="bg-emerald-500 hover:bg-emerald-600 text-white px-2.5 py-1 rounded font-bold text-[10px] transition">SAVE</button>
+                                                                                    <button onClick={() => setEditingDueDateId(null)} className="bg-slate-200 text-slate-700 px-2.5 py-1 rounded text-[10px] hover:bg-slate-300 transition">CANCEL</button>
                                                                                 </div>
                                                                             </div>
                                                                         ) : (
-                                                                            <p className="text-sm font-bold text-slate-200 tabular-nums">{formatDate(t['Due Date'] || t.DueDate)}</p>
+                                                                            <p className="text-sm font-bold text-slate-800 tabular-nums pt-1">{formatDate(t['Due Date'] || t.DueDate)}</p>
                                                                         )}
                                                                     </div>
 
-                                                                    {/* ลิงก์อ้างอิงเอกสารแนบประกอบ */}
-                                                                    <div className="bg-slate-900/40 p-4 rounded-xl border border-slate-800/80">
-                                                                        <div className="flex justify-between items-center mb-2">
-                                                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">เอกสารแนบอ้างอิง</span>
+                                                                    {/* Document links attachment reference */}
+                                                                    <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                                                                        <div className="flex justify-between items-center mb-2 border-b border-slate-100 pb-1">
+                                                                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider">REFERENCE LINK (CLOUD/URL)</span>
                                                                             {!isReadOnly && editingAttachmentId !== t._id && (
-                                                                                <button onClick={() => setEditingAttachmentId(t._id)} className="text-[10px] text-blue-400 font-bold hover:underline">แก้ไขลิงก์</button>
+                                                                                <button onClick={() => setEditingAttachmentId(t._id)} className="text-[10px] text-blue-600 font-bold hover:underline">SET LINK</button>
                                                                             )}
                                                                         </div>
                                                                         {editingAttachmentId === t._id ? (
-                                                                            <div className="space-y-2">
-                                                                                <input className="w-full p-2 bg-slate-950 border border-slate-800 rounded-lg text-slate-100 text-xs" value={tempAttachment} onChange={e => setTempAttachment(e.target.value)} placeholder="https://..." />
+                                                                            <div className="space-y-2 pt-1">
+                                                                                <input className="w-full p-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-950 text-xs" value={tempAttachment} onChange={e => setTempAttachment(e.target.value)} placeholder="https://..." />
                                                                                 <div className="flex gap-2">
-                                                                                    <button onClick={() => saveAttachmentEdit(t)} className="bg-[#00E676] text-black px-2.5 py-1 rounded font-bold text-[10px]">บันทึก</button>
-                                                                                    <button onClick={() => setEditingAttachmentId(null)} className="bg-slate-800 px-2.5 py-1 rounded text-[10px]">ยกเลิก</button>
+                                                                                    <button onClick={() => saveAttachmentEdit(t)} className="bg-emerald-500 hover:bg-emerald-600 text-white px-2.5 py-1 rounded font-bold text-[10px] transition">SAVE</button>
+                                                                                    <button onClick={() => setEditingAttachmentId(null)} className="bg-slate-200 text-slate-700 px-2.5 py-1 rounded text-[10px] hover:bg-slate-300 transition">CANCEL</button>
                                                                                 </div>
                                                                             </div>
                                                                         ) : (
                                                                             t.Attachment ? (
-                                                                                <a href={t.Attachment} target="_blank" rel="noopener noreferrer" className="text-xs text-[#00E676] font-bold underline flex items-center gap-1 hover:text-[#00c853] break-all">
+                                                                                <a href={t.Attachment} target="_blank" rel="noopener noreferrer" className="text-xs text-emerald-600 font-bold underline flex items-center gap-1 hover:text-emerald-700 break-all pt-1">
                                                                                     <Icon name="Cloud" size={12} /> {t.Attachment}
                                                                                 </a>
                                                                             ) : (
-                                                                                <p className="text-xs text-slate-500 font-bold uppercase">ไม่มีการแนบลิงก์เอกสาร</p>
+                                                                                <p className="text-xs text-slate-400 font-bold uppercase pt-1">No attached links recorded</p>
                                                                             )
                                                                         )}
                                                                     </div>
 
-                                                                    {/* ผู้ดูแลรับผิดชอบหลัก */}
-                                                                    <div className="bg-slate-900/40 p-4 rounded-xl border border-slate-800/80">
-                                                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">ผู้รับผิดชอบงานปฏิบัติงาน (RESPONSIBLE)</span>
-                                                                        <p className="text-xs font-bold text-slate-200">{t.In_Charge || 'รัตนโชติ ศิริวาณิชย์ (Rattanachot)'}</p>
+                                                                    {/* Main Assigned Operator in charge */}
+                                                                    <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                                                                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider block mb-1">ASSIGNED RESPONSIBLE ENGINEER</span>
+                                                                        <p className="text-xs font-bold text-slate-800">{t.In_Charge || 'Rattanachot Siriwanit'}</p>
                                                                     </div>
 
-                                                                    {/* ปุ่มลบงาน (ถ้ามีสิทธิ์) */}
+                                                                    {/* Remove Job Button */}
                                                                     {!isReadOnly && (
                                                                         <button 
                                                                             onClick={() => setDeleteConfirm({ id: t._id, title: t.Title })} 
-                                                                            className="w-full py-2.5 border border-rose-900/40 hover:bg-rose-950/20 text-rose-500 rounded-lg font-black uppercase text-[10px] transition active:scale-95"
+                                                                            className="w-full py-2.5 border border-rose-300 hover:bg-rose-50 text-rose-600 rounded-lg font-black uppercase text-[10px] transition active:scale-95 shadow-sm"
                                                                         >
-                                                                            ลบงานนี้ออก (REMOVE ACTION)
+                                                                            DELETE ACTION LOG
                                                                         </button>
                                                                     )}
                                                                 </div>
@@ -1228,42 +1216,43 @@
                         </div>
                     </main>
 
-                    {/* หน้าต่างยืนยันลบงาน (Delete Confirmation Modal) */}
+                    {}
+                    {/* Delete Confirmation Alert Modal */}
                     {deleteConfirm && (
                         <div className="fixed inset-0 z-[500] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-                            <div className="bg-[#0c0f16] border border-rose-900/50 p-8 rounded-2xl max-w-md w-full shadow-2xl relative text-center">
-                                <h4 className="text-lg font-black text-white uppercase italic tracking-wider mb-2">ยืนยันลบคำสั่งงานนี้ใช่หรือไม่?</h4>
-                                <p className="text-xs text-slate-400 mb-6 font-bold leading-relaxed">งานหัวข้อ "{deleteConfirm.title}" จะถูกเอาออกอย่างถาวรจากฐานข้อมูลกลาง</p>
+                            <div className="bg-[#0c0f16] border border-rose-900/50 p-8 rounded-2xl max-w-md w-full shadow-2xl relative text-center animate-in">
+                                <h4 className="text-lg font-black text-white uppercase italic tracking-wider mb-2">ERASE RECORD?</h4>
+                                <p className="text-xs text-slate-400 mb-6 font-bold leading-relaxed">The action log "{deleteConfirm.title}" will be permanently wiped out from cloud data clusters.</p>
                                 <div className="flex gap-4">
-                                    <button onClick={confirmDelete} className="flex-1 py-3 bg-rose-600 hover:bg-rose-700 text-white font-black uppercase text-xs rounded-lg active:scale-95 transition">ยืนยันลบ</button>
-                                    <button onClick={() => setDeleteConfirm(null)} className="flex-1 py-3 bg-slate-900 hover:bg-slate-850 text-slate-300 font-bold uppercase text-xs rounded-lg active:scale-95 transition border border-slate-800">ยกเลิก</button>
+                                    <button onClick={confirmDelete} className="flex-1 py-3 bg-rose-600 hover:bg-rose-700 text-white font-black uppercase text-xs rounded-lg active:scale-95 transition shadow-lg">CONFIRM DELETE</button>
+                                    <button onClick={() => setDeleteConfirm(null)} className="flex-1 py-3 bg-slate-900 hover:bg-slate-850 text-slate-300 font-bold uppercase text-xs rounded-lg active:scale-95 transition border border-slate-800">CANCEL</button>
                                 </div>
                             </div>
                         </div>
                     )}
 
-                    {/* หน้าต่างตั้งค่า API Key คอนโทรลเลอร์ (API settings) */}
+                    {/* Gemini AI API Key Controller Modal */}
                     {showApiKeyModal && (
                         <div className="fixed inset-0 z-[500] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-                            <div className="bg-[#0c0f16] border border-slate-800 p-8 rounded-2xl max-w-md w-full shadow-2xl relative">
+                            <div className="bg-[#0c0f16] border border-slate-800 p-8 rounded-2xl max-w-md w-full shadow-2xl relative animate-in">
                                 <button onClick={() => setShowApiKeyModal(false)} className="absolute top-4 right-4 text-slate-500 hover:text-white"><Icon name="X" size={20} /></button>
-                                <h4 className="text-sm font-black text-white uppercase italic tracking-wider mb-2 flex items-center gap-1.5"><Icon name="Settings" className="text-[#00E676]" /> พอร์ตเชื่อมต่อ Gemini AI API Key</h4>
-                                <p className="text-[10px] text-slate-500 mb-6 font-bold uppercase">กรอกกุญแจ API ในการเชื่อมต่อระบบวิเคราะห์สรุปและเสนอแนะปฏิบัติการ</p>
+                                <h4 className="text-sm font-black text-white uppercase italic tracking-wider mb-2 flex items-center gap-1.5"><Icon name="Settings" className="text-[#00E676]" /> GEMINI COGNITIVE API KEY</h4>
+                                <p className="text-[10px] text-slate-500 mb-6 font-bold uppercase">Insert private AI model credential keys to activate automated project audits.</p>
                                 <div className="space-y-4">
                                     <FormInput label="Gemini API Key" val={tempApiKey} onChange={setTempApiKey} placeholder="AIzaSy..." />
                                     <div className="flex gap-3 pt-2">
-                                        <button onClick={saveApiKey} className="flex-1 py-3 bg-[#00E676] text-black font-black uppercase text-xs rounded-lg active:scale-95 transition">บันทึกคีย์</button>
-                                        <button onClick={clearApiKey} className="py-3 px-4 bg-slate-900 hover:bg-slate-850 text-slate-500 font-bold uppercase text-xs rounded-lg active:scale-95 transition border border-slate-800">เคลียร์คีย์</button>
+                                        <button onClick={saveApiKey} className="flex-1 py-3 bg-[#00E676] text-black font-black uppercase text-xs rounded-lg active:scale-95 transition">SAVE KEY</button>
+                                        <button onClick={clearApiKey} className="py-3 px-4 bg-slate-900 hover:bg-slate-850 text-slate-500 font-bold uppercase text-xs rounded-lg active:scale-95 transition border border-slate-800">WIPE KEY</button>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     )}
 
-                    {/* พรีวิวภาพใหญ่ (Large Image Preview) */}
+                    {/* Full Scale Immersive Image Lightbox */}
                     {previewUrl && (
-                        <div className="fixed inset-0 bg-black/95 backdrop-blur-sm z-[400] flex items-center justify-center p-4" onClick={() => setPreviewUrl(null)}>
-                            <img src={previewUrl} className="max-w-full max-h-[85vh] object-contain bg-[#121824] p-3 rounded-xl border border-slate-800" />
+                        <div className="fixed inset-0 bg-black/95 backdrop-blur-sm z-[400] flex items-center justify-center p-4 animate-in" onClick={() => setPreviewUrl(null)}>
+                            <img src={previewUrl} className="max-w-full max-h-[85vh] object-contain bg-white p-3 rounded-xl border border-slate-300 shadow-2xl" />
                         </div>
                     )}
                 </div>
