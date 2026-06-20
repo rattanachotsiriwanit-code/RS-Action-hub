@@ -109,6 +109,27 @@
             "SA Pole assy 1", "SA Pole assy 2", "SA Pole assy 3", "SA Pole assy 4"
         ];
 
+        // 💾 ข้อมูลตัวอย่างเริ่มต้นของระบบ (Sample Data) - ประกาศตัวแปรเพียงจุดเดียว
+        const INITIAL_SAMPLE_DATA = [
+            {
+                _id: "TASK-2026-001",
+                "Action Id": "TASK-2026-001",
+                "Title": "ติดตั้งเซนเซอร์ตรวจจับความร้อนเครื่องจักร No.1",
+                "Description": "ทำการติดตั้งตัวเซนเซอร์วัดอุณหภูมิความร้อนในส่วน D Auto Thermal เพื่อส่งข้อมูลแจ้งเตือนเมื่อระบบมีความร้อนสูงเกินปกติ",
+                "Cost": "18500",
+                "Opening Date": "2026-06-15T08:00:00.000Z",
+                "Due Date": "2026-06-25T17:00:00.000Z",
+                "Closed Date": "",
+                "Status": "In Progress",
+                "In_Charge": "Rattanachot Siriwanit",
+                "Line": "D Auto Thermal (W03-W07) No.1",
+                "Attachment": "",
+                "Note": "อยู่ระหว่างประกอบชุดคอนโทรลเลอร์",
+                "Source": "System Sample",
+                "Image": ""
+            }
+        ];
+
         // 🛠️ ฟังก์ชันการล้างข้อมูล ID และสร้างรหัสให้ดูเป็นระบบ มีโครงสร้างสากล
         const cleanAndFormatId = (rawId) => {
             if (!rawId) return '';
@@ -993,7 +1014,8 @@
                     'Closed Date': finalClosedDate,
                     Source: 'Manual Entry', 
                     'Action Id': formattedId, 
-                    editCount: 0 
+                    editCount: 0,
+                    Image: ''
                 };
 
                 const updated = [taskObj, ...allData.filter(t => t._id !== formattedId)];
@@ -1145,25 +1167,6 @@
                 setShowSettingsModal(false);
                 showToast("ลิงก์ Google Sheets บันทึกเสร็จเรียบร้อย!");
             };
-
-            const INITIAL_SAMPLE_DATA = [
-                {
-                    _id: "TASK-2026-001",
-                    "Action Id": "TASK-2026-001",
-                    "Title": "ติดตั้งเซนเซอร์ตรวจจับความร้อนเครื่องจักร No.1",
-                    "Description": "ทำการติดตั้งตัวเซนเซอร์วัดอุณหภูมิความร้อนในส่วน D Auto Thermal เพื่อส่งข้อมูลแจ้งเตือนเมื่อระบบมีความร้อนสูงเกินปกติ",
-                    "Cost": "18500",
-                    "Opening Date": "2026-06-15T08:00:00.000Z",
-                    "Due Date": "2026-06-25T17:00:00.000Z",
-                    "Closed Date": "",
-                    "Status": "In Progress",
-                    "In_Charge": "Rattanachot Siriwanit",
-                    "Line": "D Auto Thermal (W03-W07) No.1",
-                    "Attachment": "",
-                    "Note": "อยู่ระหว่างประกอบชุดคอนโทรลเลอร์",
-                    "Source": "System Sample"
-                }
-            ];
 
             if (!session) {
                 return (
@@ -1569,7 +1572,7 @@
                                                     className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 cursor-pointer hover:bg-slate-900/30 transition-colors duration-150"
                                                 >
                                                     {/* Left Section: ID และ Objective (ชื่องาน) */}
-                                                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 min-w-0 flex-1 w-full">
+                                                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 min-w-0 flex-1 w-full text-left">
                                                         {/* บล็อก Action ID แสดงเรียงแนวนอนบนมือถือ และซ้อนแนวตั้งบนคอมพิวเตอร์ */}
                                                         <div className="flex items-center sm:flex-col sm:items-start gap-2 sm:gap-0 shrink-0 text-xs text-slate-500">
                                                             <span className="font-bold text-teal-400">FY {selectedYear}</span>
@@ -1639,7 +1642,7 @@
                                                                                 </span>
                                                                             </div>
                                                                         )}
-                                                                        <div className="pr-16 leading-relaxed">
+                                                                        <div className="pr-16 leading-relaxed text-left">
                                                                             {t.Description || '--- No Specifications Defined ---'}
                                                                         </div>
                                                                         <div className="mt-4 pt-4 border-t border-slate-800/80" onClick={(e) => e.stopPropagation()}>
@@ -1649,7 +1652,7 @@
                                                                 )}
                                                             </div>
 
-                                                            <div className="grid grid-cols-2 gap-3">
+                                                            <div className="grid grid-cols-2 gap-3 text-left">
                                                                 <DetailRow label="In Charge" val={t.In_Charge || t.Raiser} isLight={false} />
                                                                 <DetailRow label="Line" val={t.Line || t.Area} isLight={false} />
                                                                 
@@ -1658,7 +1661,7 @@
                                                                         <span className="text-[10px] font-bold text-teal-400 uppercase tracking-wider">Cost (THB)</span>
                                                                         <input 
                                                                             type="text" 
-                                                                            className="bg-slate-950 text-base md:text-sm text-white font-semibold border border-slate-850 rounded px-2 py-1 outline-none"
+                                                                            className="bg-slate-950 text-base md:text-sm text-white font-semibold border border-slate-850 rounded px-2 py-1 outline-none animate-pulse"
                                                                             value={tempCost}
                                                                             onChange={e => setTempCost(e.target.value)}
                                                                             onBlur={() => saveCostEdit(t._id, tempCost)}
@@ -1682,7 +1685,7 @@
                                                                         <span className="text-[10px] font-bold text-teal-400 uppercase tracking-wider">Due Date</span>
                                                                         <input 
                                                                             type="date" 
-                                                                            className="bg-slate-950 text-base text-white border border-slate-850 rounded px-2 py-1 outline-none"
+                                                                            className="bg-slate-950 text-base text-white border border-slate-850 rounded px-2 py-1 outline-none animate-pulse"
                                                                             value={tempDueDate ? tempDueDate.split('T')[0] : ''}
                                                                             onChange={e => setTempDueDate(e.target.value)}
                                                                             onBlur={() => saveDueDateEdit(t._id, tempDueDate)}
@@ -1707,7 +1710,7 @@
                                                         </div>
 
                                                         {/* Follow-up Notes & Interactive Files */}
-                                                        <div className="space-y-4">
+                                                        <div className="space-y-4 text-left">
                                                             <textarea 
                                                                 className="w-full p-4 bg-[#0f172a]/60 border border-slate-800 rounded-xl text-xs text-slate-200 h-24 placeholder-slate-600 outline-none focus:border-slate-700 font-light" 
                                                                 placeholder={isReadOnly ? "No Follow-up Notes" : "เขียนบันทึกความคืบหน้า... (ระบบจะบันทึกอัตโนมัติเมื่อกดข้างนอก)"} 
@@ -1897,25 +1900,6 @@
                 </div>
             );
         };
-
-        const INITIAL_SAMPLE_DATA = [
-            {
-                _id: "TASK-2026-001",
-                "Action Id": "TASK-2026-001",
-                "Title": "ติดตั้งเซนเซอร์ตรวจจับความร้อนเครื่องจักร No.1",
-                "Description": "ทำการติดตั้งตัวเซนเซอร์วัดอุณหภูมิความร้อนในส่วน D Auto Thermal เพื่อส่งข้อมูลแจ้งเตือนเมื่อระบบมีความร้อนสูงเกินปกติ",
-                "Cost": "18500",
-                "Opening Date": "2026-06-15T08:00:00.000Z",
-                "Due Date": "2026-06-25T17:00:00.000Z",
-                "Closed Date": "",
-                "Status": "In Progress",
-                "In_Charge": "Rattanachot Siriwanit",
-                "Line": "D Auto Thermal (W03-W07) No.1",
-                "Attachment": "",
-                "Note": "อยู่ระหว่างประกอบชุดคอนโทรลเลอร์",
-                "Source": "System Sample"
-            }
-        ];
     </script>
 
     <!-- Secure Compilation and Execution Sandbox Engine -->
@@ -1925,7 +1909,7 @@
                 const rawText = document.getElementById('react-code-holder').textContent;
                 const compiled = Babel.transform(rawText, {
                     presets: [
-                        ['react', { runtime: 'classic' }] // Force Classic Runtime
+                        ['react', { runtime: 'classic' }] // Force Classic Runtime to prevent automatic JSX Import injections
                     ]
                 }).code;
                 
