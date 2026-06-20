@@ -625,11 +625,12 @@
                         
                         showToast(`ยินดีต้อนรับเข้าสู่ระบบ ระดับสิทธิ์: ${userLevel.toUpperCase()}`);
                     } else {
+                        // ปรับปรุงการดึงข้อความ Error จริงจาก Apps Script เพื่อให้คุณเห็นความผิดปกติที่ชัดเจนขึ้น
                         setAuthError(result.message || 'รหัสพนักงานหรือรหัสผ่านผู้ดูแลระบบควบคุมไม่ถูกต้อง');
                     }
                 } catch (e) {
                     console.error(e);
-                    setAuthError('ไม่สามารถตรวจสอบผู้ใช้งานได้ โปรดตรวจสอบความถูกต้องของ URL สิทธิ์ CORS และ "ปิดการใช้งานป้องกันติดตามข้ามไซต์" ใน Safari มือถือ');
+                    setAuthError('ไม่สามารถตรวจสอบผู้ใช้งานได้ โปรดตรวจสอบความถูกต้องของ URL, ตรวจสอบ Sheet2 และตรวจสอบฟังก์ชัน Apps Script ว่าได้เผยแพร่ Deploy ใหม่แบบมีสิทธิ์เข้าถึงของทุกคน (Anyone) หรือยัง');
                 } finally {
                     setLoginLoading(false);
                 }
@@ -1541,28 +1542,35 @@
                                             </div>
                                         ) : filteredTasks.map(t => (
                                             <div key={t._id} className="flex flex-col">
-                                                {/* Header Row */}
+                                                {/* Header Row (ปรับให้รองรับ Responsive แบบไม่หดชื่องานหายบนจอมือถือ) */}
                                                 <div 
                                                     onClick={() => setExpandedId(expandedId === t._id ? null : t._id)} 
-                                                    className="p-5 flex items-center justify-between cursor-pointer hover:bg-slate-900/30 transition-colors duration-150"
+                                                    className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 cursor-pointer hover:bg-slate-900/30 transition-colors duration-150"
                                                 >
-                                                    <div className="flex items-center gap-4 min-w-0 flex-1">
-                                                        <div className="flex flex-col w-32 shrink-0 text-xs text-slate-500">
+                                                    {/* Left Section: ID และ Objective (ชื่องาน) */}
+                                                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 min-w-0 flex-1 w-full">
+                                                        {/* บล็อก Action ID แสดงเรียงแนวนอนบนมือถือ และซ้อนแนวตั้งบนคอมพิวเตอร์ */}
+                                                        <div className="flex items-center sm:flex-col sm:items-start gap-2 sm:gap-0 shrink-0 text-xs text-slate-500">
                                                             <span className="font-bold text-teal-400">FY {selectedYear}</span>
-                                                            <span className="font-mono mt-0.5 text-slate-400 truncate">{t['Action Id']}</span>
+                                                            <span className="font-mono text-slate-400">{t['Action Id']}</span>
                                                         </div>
-                                                        <h4 className={'text-xs sm:text-sm md:text-base font-semibold truncate pr-4 flex-1 max-w-[200px] xs:max-w-xs sm:max-w-md md:max-w-lg lg:max-w-2xl ' + 
+                                                        {/* ชื่องาน Job Title สามารถยืดหดได้เต็มที่ตามขนาดอุปกรณ์ */}
+                                                        <h4 className={'text-xs sm:text-sm md:text-base font-semibold truncate sm:pr-4 flex-1 ' + 
                                                             (String(t.Status).toLowerCase().includes('close') ? 'text-slate-600 line-through' : 'text-slate-200')}>
                                                             {t.Title || t.Description || '--- No Specifications Defined ---'}
                                                         </h4>
                                                     </div>
-                                                    <div className="flex items-center gap-3">
-                                                        <span className="text-xs font-semibold text-emerald-400 font-mono bg-emerald-950/20 border border-emerald-900/25 px-2.5 py-1 rounded-xl">
-                                                            {t.Cost ? `${parseFloat(t.Cost).toLocaleString()} ฿` : '0 ฿'}
-                                                        </span>
-                                                        <span className="text-[10px] font-semibold bg-slate-950/60 text-slate-400 border border-slate-800 px-3 py-1.5 rounded-xl uppercase tracking-wider">
-                                                            {t.Status}
-                                                        </span>
+
+                                                    {/* Right Section: ข้อมูลราคา (Cost) และ สถานะงาน (Status) */}
+                                                    <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto shrink-0 pt-2 sm:pt-0 border-t border-slate-900 sm:border-0">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-xs font-semibold text-emerald-400 font-mono bg-emerald-950/20 border border-emerald-900/25 px-2.5 py-1 rounded-xl">
+                                                                {t.Cost ? `${parseFloat(t.Cost).toLocaleString()} ฿` : '0 ฿'}
+                                                            </span>
+                                                            <span className="text-[10px] font-semibold bg-slate-950/60 text-slate-400 border border-slate-800 px-3 py-1.5 rounded-xl uppercase tracking-wider">
+                                                                {t.Status}
+                                                            </span>
+                                                        </div>
                                                         {!isReadOnly && (
                                                             <button 
                                                                 onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ id: t._id }); }} 
