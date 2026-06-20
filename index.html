@@ -45,6 +45,30 @@
     <script id="react-code-holder" type="text/plain">
         const { useState, useEffect, useMemo, Fragment } = React;
 
+        // --- UTILITY SECURITY FUNCTIONS ---
+        // ฟังก์ชันบดบังข้อมูลเบื้องต้น ป้องกันการแอบมอง URL หรือ API Key ผ่าน localStorage ตรงๆ
+        const obfuscate = (text) => {
+            if (!text) return "";
+            try {
+                return btoa(encodeURIComponent(text).split('').map((c, i) => 
+                    String.fromCharCode(c.charCodeAt(0) ^ (77 + (i % 5)))
+                ).join(''));
+            } catch (e) {
+                return "";
+            }
+        };
+
+        const deobfuscate = (encoded) => {
+            if (!encoded) return "";
+            try {
+                return decodeURIComponent(atob(encoded).split('').map((c, i) => 
+                    String.fromCharCode(c.charCodeAt(0) ^ (77 + (i % 5)))
+                ).join(''));
+            } catch (e) {
+                return "";
+            }
+        };
+
         // ⚡ รายชื่อไลน์ผลิตหลักสำหรับระบบ
         const MASTER_LINE_NAMES = [
             "D Auto Pole assembly machine 1", "D Auto Pole assembly manual 1",
@@ -63,10 +87,8 @@
         // 🛠️ ฟังก์ชันการล้างข้อมูล ID และสร้างรหัสให้ดูเป็นระบบ มีโครงสร้างสากล (เช่น TASK-17-032-104)
         const cleanAndFormatId = (rawId) => {
             if (!rawId) return '';
-            // ลบช่องว่าง คอมม่า หรือฟันหนูที่ติดมา
             let clean = String(rawId).replace(/[\s,'"]/g, '').trim();
             
-            // ตรวจสอบว่าเป็นตัวเลขล้วน (เช่น 117032104 หรือ 17032104)
             if (/^\d+$/.test(clean)) {
                 if (clean.length === 9) {
                     return `TASK-${clean.slice(0, 3)}-${clean.slice(3, 6)}-${clean.slice(6)}`;
@@ -77,7 +99,6 @@
                 return `TASK-${clean}`;
             }
             
-            // ตรวจสอบว่ามาเป็นเลขขีด เช่น 17-032-104 หรือ 22-938-604
             if (/^\d+-\d+-\d+$/.test(clean)) {
                 return `TASK-${clean}`;
             }
@@ -88,25 +109,6 @@
             
             return `TASK-${clean.toUpperCase()}`;
         };
-
-        const INITIAL_SAMPLE_DATA = [
-            {
-                _id: "TASK-2026-001",
-                "Action Id": "TASK-2026-001",
-                "Title": "ติดตั้งเซนเซอร์ตรวจจับความร้อนเครื่องจักร No.1",
-                "Description": "ทำการติดตั้งตัวเซนเซอร์วัดอุณหภูมิความร้อนในส่วน D Auto Thermal เพื่อส่งข้อมูลแจ้งเตือนเมื่อระบบมีความร้อนสูงเกินปกติ",
-                "Cost": "18500",
-                "Opening Date": "2026-06-15T08:00:00.000Z",
-                "Due Date": "2026-06-25T17:00:00.000Z",
-                "Closed Date": "",
-                "Status": "In Progress",
-                "In_Charge": "Rattanachot Siriwanit",
-                "Line": "D Auto Thermal (W03-W07) No.1",
-                "Attachment": "",
-                "Note": "อยู่ระหว่างประกอบชุดคอนโทรลเลอร์",
-                "Source": "System Sample"
-            }
-        ];
 
         const formatDate = (dateStr) => {
             if (!dateStr) return '---';
@@ -151,7 +153,7 @@
                 Menu: <Fragment><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></Fragment>,
                 X: <Fragment><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></Fragment>,
                 Sparkle: <Fragment><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></Fragment>,
-                Settings: <Fragment><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></Fragment>,
+                Settings: <Fragment><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 a2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></Fragment>,
                 Calendar: <Fragment><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></Fragment>,
                 Lock: <Fragment><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></Fragment>,
                 LogOut: <Fragment><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></Fragment>,
@@ -224,7 +226,6 @@
             </div>
         );
 
-        // 🛠️ อัปเดต FormInput Component ให้รองรับ disabled state และสไตล์ควบคุมการป้อนค่า
         const FormInput = ({ label, val, onChange, placeholder, type="text", disabled=false }) => (
             <div className="space-y-1.5">
                 <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">{label}</label>
@@ -256,22 +257,18 @@
             </div>
         );
 
-        const LoginScreen = ({ onLogin, onGuestAccess, errorMsg }) => {
+        const LoginScreen = ({ onLogin, onGuestAccess, errorMsg, sheetUrl, setSheetUrl, loading }) => {
             const [username, setUsername] = useState('');
             const [password, setPassword] = useState('');
-            const [loading, setLoading] = useState(false);
 
             const handleSubmit = (e) => {
                 e.preventDefault();
                 if (!username || !password) return;
-                setLoading(true);
                 onLogin(username, password);
-                setLoading(false);
             };
 
             return (
                 <div className="min-h-screen flex items-center justify-center p-4 relative bg-radial-gradient from-slate-900 to-slate-950 overflow-hidden">
-                    {/* Glowing Modern Scanner Background Effect */}
                     <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-teal-500/40 to-transparent shadow-[0_0_15px_#14b8a6] animate-pulse z-[2]" style={{
                         animation: 'scannerMove 5s infinite ease-in-out'
                     }} />
@@ -284,13 +281,13 @@
                     `}</style>
                     
                     <div className="w-full max-w-md bg-[#090d16]/80 border border-slate-800 rounded-3xl p-8 md:p-10 shadow-2xl relative z-10 backdrop-blur-xl">
-                        <div className="flex flex-col items-center text-center mb-8">
+                        <div className="flex flex-col items-center text-center mb-6">
                             <div className="w-14 h-14 bg-gradient-to-tr from-teal-500 to-emerald-400 rounded-2xl flex items-center justify-center shadow-lg shadow-teal-500/10 mb-4">
                                 <Icon name="Lock" size={26} className="text-slate-950" />
                             </div>
                             <h2 className="text-xl font-bold tracking-tight text-white leading-none">Rattanachot Task</h2>
                             <span className="text-[9px] font-bold text-teal-400 uppercase tracking-widest mt-2 bg-teal-950/40 px-3 py-1 border border-teal-800/30 rounded-full">
-                                Secure Operational Access
+                                Operational Access Control (Sheet2 Linked)
                             </span>
                         </div>
 
@@ -302,10 +299,16 @@
 
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <FormInput 
+                                label="Google Sheets API Web App URL" 
+                                val={sheetUrl} 
+                                onChange={setSheetUrl} 
+                                placeholder="https://script.google.com/macros/s/.../exec" 
+                            />
+                            <FormInput 
                                 label="Operational Username" 
                                 val={username} 
                                 onChange={setUsername} 
-                                placeholder="SESAXXXXXX" 
+                                placeholder="Username" 
                             />
                             <FormInput 
                                 label="Clearance Password" 
@@ -320,38 +323,27 @@
                                 disabled={loading}
                                 className="w-full py-3.5 mt-2 bg-gradient-to-r from-teal-500 to-emerald-400 text-slate-950 rounded-xl font-bold uppercase text-xs tracking-wider hover:opacity-95 transition-all duration-200 shadow-lg shadow-teal-500/10 active:scale-[0.98] disabled:opacity-50"
                             >
-                                {loading ? "AUTHORIZING..." : "UNLOCK CONTROL SYSTEM"}
+                                {loading ? "AUTHORIZING WITH SHEET2..." : "UNLOCK CONTROL SYSTEM"}
                             </button>
                         </form>
-
-                        <div className="mt-8 pt-6 border-t border-slate-900 flex flex-col gap-3">
-                            <div className="text-center text-[10px] text-slate-500 font-semibold uppercase tracking-widest">
-                                Or bypass via general monitor
-                            </div>
-                            <button 
-                                onClick={onGuestAccess}
-                                className="w-full py-3 bg-slate-900/60 hover:bg-slate-900 text-slate-300 rounded-xl border border-slate-800/60 font-semibold text-xs tracking-wide flex items-center justify-center gap-2 transition active:scale-[0.98]"
-                            >
-                                <Icon name="Eye" size={14} className="text-teal-400" /> GUEST ACCESS (READ-ONLY)
-                            </button>
-                        </div>
                     </div>
                 </div>
             );
         };
 
         const App = () => {
-            const [session, setSession] = useState(sessionStorage.getItem('rs_task_session') || null);
+            const [session, setSession] = useState(sessionStorage.getItem('rs_task_session') || null); // 'admin' or 'view_only' or 'guest'
             const [authError, setAuthError] = useState('');
+            const [loginLoading, setLoginLoading] = useState(false);
 
             // 💾 ฐานข้อมูล Local Storage
-            const [allData, setAllData] = useState(() => {
-                const local = localStorage.getItem('rs_local_actions_db_v3');
-                return local ? JSON.parse(local) : INITIAL_SAMPLE_DATA;
-            });
+            const [allData, setAllData] = useState([]);
 
             // ☁️ Google Sheets API Setup
-            const [sheetUrl, setSheetUrl] = useState(() => localStorage.getItem('rs_google_sheet_api_url') || '');
+            const [sheetUrl, setSheetUrl] = useState(() => {
+                const stored = localStorage.getItem('rs_google_sheet_api_url_enc');
+                return stored ? deobfuscate(stored) : (localStorage.getItem('rs_google_sheet_api_url') || '');
+            });
             const [isCloudSyncing, setIsCloudSyncing] = useState(false);
             const [showCorsAlert, setShowCorsAlert] = useState(false); 
             const [cloudDebugInfo, setCloudDebugInfo] = useState(null); 
@@ -384,7 +376,11 @@
             const [tempAttachment, setTempAttachment] = useState('');
             const [previewUrl, setPreviewUrl] = useState(null);
 
-            const [userApiKey, setUserApiKey] = useState(localStorage.getItem('gemini_api_key') || '');
+            // ดึงค่าสิทธิ์การเชื่อมโยง AI ที่บดบังข้อมูลไว้
+            const [userApiKey, setUserApiKey] = useState(() => {
+                const stored = localStorage.getItem('gemini_api_key_enc');
+                return stored ? deobfuscate(stored) : (localStorage.getItem('gemini_api_key') || '');
+            });
             const [selectedModel, setSelectedModel] = useState(() => localStorage.getItem('gemini_model_selection') || 'gemini-2.5-flash-preview-09-2025');
             const [showApiKeyModal, setShowApiKeyModal] = useState(false);
             const [tempApiKey, setTempApiKey] = useState('');
@@ -397,17 +393,38 @@
                 'Action Id': '', 'Title': '', 'Description': '', 'Cost': '', 'Opening Date': new Date().toISOString(), 'Due Date': '', 'Closed Date': '', 'Status': 'Open', 'In_Charge': 'Rattanachot Siriwanit', 'Line': '', 'Attachment': '' 
             });
 
-            const isReadOnly = session === 'guest';
+            // ปรับเปลี่ยนเกณฑ์สิทธิ์ Read-Only เพื่อรองรับการล็อกอินระดับ view_only ด้วย
+            const isReadOnly = session === 'view_only' || session === 'guest';
 
+            // ⚡ บังคับดึงข้อมูลใหม่โดยตรงจากคลาวด์สด ๆ ทันทีเมื่อเปิดตัวแอปพลิเคชัน
             useEffect(() => {
-                localStorage.setItem('rs_local_actions_db_v3', JSON.stringify(allData));
-            }, [allData]);
-
-            useEffect(() => {
-                if (sheetUrl && session) {
-                    pullFromGoogleSheets();
+                if (session) {
+                    if (sheetUrl) {
+                        pullFromGoogleSheets();
+                    } else {
+                        // หากไม่มี Cloud API ให้ใช้ข้อมูลตั้งต้นเป็น Sample ไปก่อน
+                        const local = localStorage.getItem('rs_local_actions_db_v3');
+                        setAllData(local ? JSON.parse(local) : INITIAL_SAMPLE_DATA);
+                    }
                 }
             }, [sheetUrl, session]);
+
+            // บันทึกลง LocalStorage เฉพาะเมื่อข้อมูลมีการขยับจริง ๆ
+            useEffect(() => {
+                if (allData && allData.length > 0) {
+                    localStorage.setItem('rs_local_actions_db_v3', JSON.stringify(allData));
+                }
+            }, [allData]);
+
+            // 🛠️ ยิงคำสั่งสร้าง ID อัตโนมัติใส่เข้าไปในแบบฟอร์มตอนเปิดหน้า Add
+            useEffect(() => {
+                if (view === 'add') {
+                    setNewItem(prev => ({
+                        ...prev,
+                        'Action Id': generateNextId()
+                    }));
+                }
+            }, [view, allData]);
 
             const showToast = (txt) => {
                 setMsg(txt);
@@ -428,7 +445,7 @@
                 if (!trimmedUrl) return;
 
                 if (!isValidUrl(trimmedUrl)) {
-                    showToast("⚠️ รูปแบบลิงก์ Google Sheets ไม่ถูกต้อง (ตรวจสอบการสลับค่ากับ API Key)");
+                    showToast("⚠️ รูปแบบลิงก์ Google Sheets ไม่ถูกต้อง");
                     return;
                 }
 
@@ -436,7 +453,8 @@
                 setShowCorsAlert(false);
                 setCloudDebugInfo(null);
                 try {
-                    const response = await fetch(trimmedUrl);
+                    const separator = trimmedUrl.includes('?') ? '&' : '?';
+                    const response = await fetch(`${trimmedUrl}${separator}action=read`);
                     if (response.ok) {
                         const cloudData = await response.json();
                         
@@ -449,10 +467,14 @@
                             });
                         }
 
-                        if (Array.isArray(cloudData) && cloudData.length > 0) {
+                        // 🛠️ ตรวจจับกรณีชีตว่างเปล่าจริง (มีการลบข้อมูลทั้งหมดในชีตจนเกลี้ยง)
+                        if (Array.isArray(cloudData) && cloudData.length === 0) {
+                            setAllData([]); // ล้างหน้ากากข้อมูลบนทุกอุปกรณ์ให้ตรงกันทันที 100%
+                            localStorage.setItem('rs_local_actions_db_v3', JSON.stringify([]));
+                            showToast("ซิงค์สำเร็จ: คลาวด์ว่างเปล่า (ล้างข้อมูลเครื่องทั้งหมดแล้ว)");
+                        } else if (Array.isArray(cloudData) && cloudData.length > 0) {
                             const mapped = cloudData.map(row => {
                                 const rawActionId = row._id || row['Action Id'] || row['ActionId'] || row['id'] || '';
-                                // 🛠️ ทำความสะอาดและแปลงฟอร์แมตใหม่อัตโนมัติ (TASK-XX-XXX-XXX)
                                 const cleanActionId = cleanAndFormatId(rawActionId);
                                 return {
                                     ...row,
@@ -472,9 +494,9 @@
                                 };
                             });
                             setAllData(mapped);
-                            showToast("ซิงค์ดึงข้อมูลและฟอร์แมต Action ID ใหม่จาก Google Sheets สำเร็จ!");
+                            showToast("อัปเดตข้อมูลสดตรงจาก Google Sheets เรียบร้อย!");
                         } else {
-                            showToast("ดึงข้อมูลสำเร็จ แต่ข้อมูลโครงสร้าง JSON ไม่เป็น Array หรือไม่มีข้อมูล");
+                            showToast("ดึงข้อมูลสำเร็จ แต่ข้อมูลโครงสร้าง JSON ไม่เป็นระเบียบ");
                         }
                     } else {
                         throw new Error(`HTTP Error Status: ${response.status}`);
@@ -486,6 +508,12 @@
                         showToast("⚠️ ไม่สามารถดึงข้อมูลได้เนื่องจากสิทธิ์ CORS บน Apps Script");
                     } else {
                         showToast(`เชื่อมต่อไม่ได้: ${e.message}`);
+                    }
+                    
+                    // Fallback กรณีไม่มีเน็ต ให้หยิบประวัติชุดล่าสุดในเครื่องมาแสดงพลาง ๆ
+                    const local = localStorage.getItem('rs_local_actions_db_v3');
+                    if (local) {
+                        setAllData(JSON.parse(local));
                     }
                 }
                 setIsCloudSyncing(false);
@@ -502,7 +530,6 @@
                         delete cleanPayload.Image;
                     }
 
-                    // กำจัดฟิลด์ที่ไม่ได้อยู่บนตารางสเปรดชีตออกไปเพื่อความเสถียร
                     const payloadToSend = {
                         action: action,
                         data: {
@@ -523,10 +550,12 @@
 
                     await fetch(trimmedUrl, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // ใช้ text/plain เลี่ยงปัญหา CORS Preflight ใน GAS Web App
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                         body: JSON.stringify(payloadToSend)
                     });
-                    showToast("บันทึกคำสั่งอัปเดตไปยัง Google Sheets สำเร็จ!");
+                    
+                    // หลังจากส่งเขียนข้อมูลสำเร็จ ให้โหลดชีตสดใหม่กลับมาอัปเดตหน้าจอทันทีเพื่อป้องกันแคชข้อมูลขัดแย้ง
+                    await pullFromGoogleSheets();
                 } catch(e) {
                     console.error("Push failed:", e);
                     showToast("⚠️ บันทึกข้อมูลคลาวด์ขัดข้อง แต่บันทึกในเครื่องเรียบร้อย");
@@ -534,20 +563,55 @@
                 setIsCloudSyncing(false);
             };
 
-            const handleLogin = (username, password) => {
+            // ระบบตรวจสอบรหัสผ่านเชื่อมโยงสดไปยัง Sheet2 ของ Google Sheets
+            const handleLogin = async (username, password) => {
                 setAuthError('');
-                if (username.toUpperCase() === 'SESA650194' && password === '3010075') {
-                    setSession('admin');
-                    sessionStorage.setItem('rs_task_session', 'admin');
-                    showToast('ยินดีต้อนรับเข้าสู่ระบบ Rattanachot Task');
-                } else {
-                    setAuthError('รหัสผ่านผู้ดูแลระบบควบคุมไม่ถูกต้อง');
+                const trimmedUrl = String(sheetUrl || '').trim();
+                if (!trimmedUrl) {
+                    setAuthError('กรุณากรอก Google Sheets API Web App URL ก่อนเข้าสู่ระบบ');
+                    return;
+                }
+                if (!isValidUrl(trimmedUrl)) {
+                    setAuthError('รูปแบบลิงก์ Google Sheets Web App URL ไม่ถูกต้อง');
+                    return;
+                }
+
+                setLoginLoading(true);
+                try {
+                    const separator = trimmedUrl.includes('?') ? '&' : '?';
+                    const targetLoginUrl = `${trimmedUrl}${separator}action=login&username=${encodeURIComponent(username.trim())}&password=${encodeURIComponent(password.trim())}`;
+                    
+                    const response = await fetch(targetLoginUrl);
+                    if (!response.ok) throw new Error(`HTTP Error Status ${response.status}`);
+                    const result = await response.json();
+
+                    if (result && result.success) {
+                        const userLevel = result.level === 'admin' ? 'admin' : 'view_only';
+                        setSession(userLevel);
+                        
+                        const readOnlyVal = userLevel === 'view_only';
+                        
+                        // จดจำเซสชันลง Storage ของเบราว์เซอร์
+                        sessionStorage.setItem('rs_task_session', userLevel);
+                        sessionStorage.setItem('rs_task_readonly', String(readOnlyVal));
+                        localStorage.setItem('rs_google_sheet_api_url_enc', obfuscate(trimmedUrl));
+                        
+                        showToast(`ยินดีต้อนรับเข้าสู่ระบบ ระดับสิทธิ์: ${userLevel.toUpperCase()}`);
+                    } else {
+                        setAuthError(result.message || 'รหัสพนักงานหรือรหัสผ่านผู้ดูแลระบบควบคุมไม่ถูกต้อง');
+                    }
+                } catch (e) {
+                    console.error(e);
+                    setAuthError('ไม่สามารถตรวจสอบผู้ใช้งานได้ โปรดตรวจสอบความถูกต้องของ Web App URL และการเปิดสิทธิ์ CORS');
+                } finally {
+                    setLoginLoading(false);
                 }
             };
 
             const handleGuestAccess = () => {
-                setSession('guest');
-                sessionStorage.setItem('rs_task_session', 'guest');
+                setSession('view_only');
+                sessionStorage.setItem('rs_task_session', 'view_only');
+                sessionStorage.setItem('rs_task_readonly', 'true');
                 showToast('โหมดรับชมข้อมูลทั่วไปเปิดใช้งานแล้ว');
                 if (view === 'add') setView('dashboard');
             };
@@ -555,7 +619,101 @@
             const handleSignOut = () => {
                 setSession(null);
                 sessionStorage.removeItem('rs_task_session');
+                sessionStorage.removeItem('rs_task_readonly');
                 showToast('ออกจากระบบอย่างปลอดภัย');
+            };
+
+            const handleUploadCSV = (e) => {
+                if (isReadOnly) return;
+                const file = e.target.files[0]; if (!file) return;
+                setSyncProgress("กำลังสกัดและกรองข้อมูลเฉพาะ Rattanachot...");
+                const reader = new FileReader();
+                reader.onload = async (ev) => {
+                    try {
+                        const cleanText = ev.target.result.replace(/^\uFEFF/, '').trim();
+                        const delimiter = cleanText.indexOf(';') !== -1 ? ';' : ',';
+                        const rows = []; let row = []; let cur = ''; let inQuote = false;
+                        for (let i = 0; i < cleanText.length; i++) {
+                            const char = cleanText[i];
+                            if (char === '"') inQuote = !inQuote;
+                            else if (char === delimiter && !inQuote) { row.push(cur.trim().replace(/^"|"$/g, '')); cur = ''; }
+                            else if (char === '\n' && !inQuote) { row.push(cur.trim().replace(/^"|"$/g, '')); rows.push(row); row = []; cur = ''; }
+                            else if (char !== '\r') cur += char;
+                        }
+                        if (cur || row.length > 0) { row.push(cur.trim().replace(/^"|"$/g, '')); rows.push(row); }
+                        
+                        const hIdx = rows.findIndex(r => r.some(c => String(c).toLowerCase().includes('id')));
+                        if (hIdx === -1) {
+                            showToast("❌ ไม่พบรูปแบบหัวตารางของ SIM2 CSV");
+                            setSyncProgress(null);
+                            return;
+                        }
+                        
+                        const headers = rows[hIdx].map(h => h.trim());
+                        let idIdx = headers.findIndex(h => h.toLowerCase() === 'action id');
+                        if (idIdx === -1) idIdx = headers.findIndex(h => h.toLowerCase().includes('id'));
+                        
+                        let ownerIdx = headers.findIndex(h => h.toLowerCase() === 'owner');
+                        if (ownerIdx === -1) ownerIdx = headers.findIndex(h => h.toLowerCase().includes('owner'));
+                        
+                        let raiserIdx = headers.findIndex(h => h.toLowerCase() === 'raiser');
+                        if (raiserIdx === -1) raiserIdx = headers.findIndex(h => h.toLowerCase().includes('raiser'));
+
+                        const dataRows = rows.slice(hIdx + 1).filter(r => r[idIdx]);
+                        let acceptedCount = 0;
+                        const updated = [...allData];
+
+                        for (let r of dataRows) {
+                            const rawId = String(r[idIdx]);
+                            const formattedCleanId = cleanAndFormatId(rawId);
+                            
+                            const ownerName = ownerIdx !== -1 ? String(r[ownerIdx] || '').toLowerCase() : '';
+                            const raiserName = raiserIdx !== -1 ? String(r[raiserIdx] || '').toLowerCase() : '';
+                            
+                            const isMyTask = ownerName.includes('rattanachot') || 
+                                             ownerName.includes('siriwanit') || 
+                                             ownerName.includes('รัตนโชติ') || 
+                                             ownerName.includes('650194') ||
+                                             raiserName.includes('rattanachot') || 
+                                             raiserName.includes('siriwanit') || 
+                                             raiserName.includes('รัตนโชติ') || 
+                                             raiserName.includes('650194');
+
+                            if (formattedCleanId.length > 1 && isMyTask) {
+                                acceptedCount++;
+                                const obj = { 
+                                    _id: formattedCleanId, 
+                                    'Action Id': formattedCleanId,
+                                    Source: 'SIM2 CSV Import' 
+                                };
+                                headers.forEach((h, idx) => { 
+                                    if (h && r[idx] !== undefined) {
+                                        obj[h.replace(/[./*\[\]#$]/g, '_')] = r[idx]; 
+                                    } 
+                                });
+                                
+                                const matchIdx = updated.findIndex(t => t._id === formattedCleanId);
+                                if (matchIdx !== -1) {
+                                    updated[matchIdx] = { ...updated[matchIdx], ...obj };
+                                } else {
+                                    updated.push(obj);
+                                }
+
+                                if (sheetUrl) {
+                                    await pushToGoogleSheets('upsert', obj);
+                                }
+                            }
+                        }
+                        
+                        setAllData(updated);
+                        showToast(`สกัดสำเร็จ! นำเข้าเฉพาะงานของ Rattanachot ${acceptedCount} จากทั้งหมด ${dataRows.length} รายการ`);
+                    } catch (err) { 
+                        console.error(err);
+                        showToast("❌ การนำเข้าข้อมูลไฟล์ CSV ขัดข้อง"); 
+                    }
+                    setSyncProgress(null);
+                };
+                reader.readAsText(file);
             };
 
             const availableYearsList = useMemo(() => {
@@ -572,34 +730,29 @@
                 return Array.from(years).sort((a, b) => b - a);
             }, [allData, currentYearValue]);
 
-            // 🛠️ แก้ไขการสแกนหาเลขลำดับสูงสุดสำหรับปีปัจจุบันเฉพาะรูปแบบที่ขึ้นต้นด้วย TASK-selectedYear- เพื่อป้องกันปัญหาระบบ ID ตกหล่น
+            // 🛠️ ปรับแก้ฟังก์ชันสร้างรหัส ID ให้ทำงานปลอดภัย 100% แม้ตอนฐานข้อมูลว่างเปล่า
             const generateNextId = () => {
                 let maxNum = 0;
-                allData.forEach(t => {
-                    const id = String(t['Action Id'] || '').trim().toUpperCase();
-                    if (id.startsWith('TASK-2026-')) {
-                        const parts = id.split('-'); // ["TASK", "2026", "001"]
-                        if (parts.length === 3) {
-                            const numPart = parseInt(parts[2], 10);
-                            if (!isNaN(numPart) && numPart > maxNum) {
-                                maxNum = numPart;
+                const targetYear = selectedYear || 2026;
+                const prefix = `TASK-${targetYear}-`;
+                if (allData && allData.length > 0) {
+                    allData.forEach(t => {
+                        const id = String(t['Action Id'] || t._id || '').trim().toUpperCase();
+                        if (id.startsWith(prefix)) {
+                            const parts = id.split('-'); 
+                            if (parts.length === 3) {
+                                const numPart = parseInt(parts[2], 10);
+                                if (!isNaN(numPart) && numPart > maxNum) {
+                                    maxNum = numPart;
+                                }
                             }
                         }
-                    }
-                });
+                    });
+                }
                 const nextNum = maxNum + 1;
-                return 'TASK-2026-' + String(nextNum).padStart(3, '0');
+                return `${prefix}${String(nextNum).padStart(3, '0')}`;
             };
 
-            useEffect(() => {
-                if (view === 'add') {
-                    setNewItem(prev => ({ ...prev, 'Action Id': generateNextId() }));
-                }
-            }, [view, allData]);
-
-            useEffect(() => setIsSidebarOpen(false), [view]);
-
-            // 🔍 กรองหาข้อมูลชื่อ Rattanachot และ รัตนโชติ ให้ครอบคลุมทุกคีย์
             const myTasksRaw = useMemo(() => {
                 return allData.filter(t => {
                     const nameFields = String(
@@ -682,7 +835,6 @@
                     const statusStr = String(t.Status || '').toLowerCase();
                     const isClosed = statusStr.includes('close') || statusStr.includes('succ');
                     
-                    // 🚨 สรุปวิเคราะห์และแสตมป์ยอดเฉพาะเดือนตามวันที่ Closed Date จริงเท่านั้น
                     if (isClosed) {
                         const dateStr = t['Closed Date'] || t.ClosedAt || t.ClosedDate || t['Opening Date'] || t.OpenedAt;
                         const d = new Date(dateStr);
@@ -742,16 +894,17 @@
             const saveApiKey = () => { 
                 const cleanKey = tempApiKey.trim();
                 const cleanModel = tempModelSelection.trim();
-                localStorage.setItem('gemini_api_key', cleanKey); 
+                localStorage.setItem('gemini_api_key_enc', obfuscate(cleanKey)); 
                 localStorage.setItem('gemini_model_selection', cleanModel);
                 setUserApiKey(cleanKey); 
                 setSelectedModel(cleanModel);
                 setShowApiKeyModal(false); 
                 showToast("บันทึกสิทธิ์การตั้งค่า AI สำเร็จ!"); 
             };
+
             const clearApiKey = () => { 
-                localStorage.removeItem('gemini_api_key'); 
-                localStorage.removeItem('gemini_model_selection');
+                localStorage.removeItem('gemini_api_key_enc'); 
+                localStorage.removeItem('rs_google_sheet_api_url_enc');
                 setUserApiKey(''); 
                 setSelectedModel('gemini-2.5-flash-preview-09-2025');
                 setTempApiKey(''); 
@@ -794,71 +947,15 @@
                 setIsAiLoading(false);
             };
 
-            const handleUploadCSV = (e) => {
-                if (isReadOnly) return;
-                const file = e.target.files[0]; if (!file) return;
-                setSyncProgress("กำลังอ่านไฟล์ CSV...");
-                const reader = new FileReader();
-                reader.onload = async (ev) => {
-                    try {
-                        const cleanText = ev.target.result.replace(/^\uFEFF/, '').trim();
-                        const delimiter = cleanText.indexOf(';') !== -1 ? ';' : ',';
-                        const rows = []; let row = []; let cur = ''; let inQuote = false;
-                        for (let i = 0; i < cleanText.length; i++) {
-                            const char = cleanText[i];
-                            if (char === '"') inQuote = !inQuote;
-                            else if (char === delimiter && !inQuote) { row.push(cur.trim().replace(/^"|"$/g, '')); cur = ''; }
-                            else if (char === '\n' && !inQuote) { row.push(cur.trim().replace(/^"|"$/g, '')); rows.push(row); row = []; cur = ''; }
-                            else if (char !== '\r') cur += char;
-                        }
-                        if (cur || row.length > 0) { row.push(cur.trim().replace(/^"|"$/g, '')); rows.push(row); }
-                        const hIdx = rows.findIndex(r => r.some(c => String(c).toLowerCase().includes('id')));
-                        const headers = rows[hIdx].map(h => h.trim());
-                        let idIdx = headers.findIndex(h => h.toLowerCase() === 'action id');
-                        if (idIdx === -1) idIdx = headers.findIndex(h => h.toLowerCase().includes('id'));
-                        
-                        const dataRows = rows.slice(hIdx + 1).filter(r => r[idIdx]);
-                        const updated = [...allData];
-                        dataRows.forEach(r => {
-                            const rawId = String(r[idIdx]);
-                            const formattedCleanId = cleanAndFormatId(rawId);
-                            if (formattedCleanId.length > 1) {
-                                const obj = { 
-                                    _id: formattedCleanId, 
-                                    'Action Id': formattedCleanId,
-                                    Source: 'SIM2 CSV' 
-                                };
-                                headers.forEach((h, idx) => { if (h && r[idx] !== undefined) obj[h.replace(/[./*\[\]#$]/g, '_')] = r[idx]; });
-                                
-                                const matchIdx = updated.findIndex(t => t._id === formattedCleanId);
-                                if (matchIdx !== -1) {
-                                    updated[matchIdx] = { ...updated[matchIdx], ...obj };
-                                } else {
-                                    updated.push(obj);
-                                }
-                            }
-                        });
-                        setAllData(updated);
-                        showToast(`นำเข้าและแปลง ID สำเร็จเสร็จเรียบร้อยแล้ว ${dataRows.length} รายการ`);
-                        
-                        if (sheetUrl) {
-                            for (let rowObj of updated) {
-                                await pushToGoogleSheets('upsert', rowObj);
-                            }
-                        }
-                    } catch (err) { showToast("Sync CSV Failed"); }
-                    setSyncProgress(null);
-                };
-                reader.readAsText(file);
-            };
-
             const handleAddItem = async (e) => {
                 e.preventDefault();
                 if (isReadOnly) return;
                 
-                if (!newItem['Action Id'] || !newItem.Title || !newItem.Line) { showToast("กรุณากรอกข้อมูลสำคัญให้ครบ"); return; }
+                const finalId = newItem['Action Id'] || generateNextId();
+                const formattedId = cleanAndFormatId(finalId);
 
-                const formattedId = cleanAndFormatId(newItem['Action Id']);
+                if (!formattedId || !newItem.Title || !newItem.Line) { showToast("กรุณากรอกข้อมูลสำคัญให้ครบ"); return; }
+
                 const defaultDueDate = new Date(); 
                 defaultDueDate.setDate(defaultDueDate.getDate() + 7);
                 const finalDueDate = newItem['Due Date'] ? new Date(newItem['Due Date']).toISOString() : defaultDueDate.toISOString();
@@ -1002,14 +1099,42 @@
 
             const saveCloudSettings = (url) => {
                 const cleanUrl = url.trim();
-                localStorage.setItem('rs_google_sheet_api_url', cleanUrl);
+                localStorage.setItem('rs_google_sheet_api_url_enc', obfuscate(cleanUrl));
                 setSheetUrl(cleanUrl);
                 setShowSettingsModal(false);
                 showToast("ลิงก์ Google Sheets บันทึกเสร็จเรียบร้อย!");
             };
 
+            const INITIAL_SAMPLE_DATA = [
+                {
+                    _id: "TASK-2026-001",
+                    "Action Id": "TASK-2026-001",
+                    "Title": "ติดตั้งเซนเซอร์ตรวจจับความร้อนเครื่องจักร No.1",
+                    "Description": "ทำการติดตั้งตัวเซนเซอร์วัดอุณหภูมิความร้อนในส่วน D Auto Thermal เพื่อส่งข้อมูลแจ้งเตือนเมื่อระบบมีความร้อนสูงเกินปกติ",
+                    "Cost": "18500",
+                    "Opening Date": "2026-06-15T08:00:00.000Z",
+                    "Due Date": "2026-06-25T17:00:00.000Z",
+                    "Closed Date": "",
+                    "Status": "In Progress",
+                    "In_Charge": "Rattanachot Siriwanit",
+                    "Line": "D Auto Thermal (W03-W07) No.1",
+                    "Attachment": "",
+                    "Note": "อยู่ระหว่างประกอบชุดคอนโทรลเลอร์",
+                    "Source": "System Sample"
+                }
+            ];
+
             if (!session) {
-                return <LoginScreen onLogin={handleLogin} onGuestAccess={handleGuestAccess} errorMsg={authError} />;
+                return (
+                    <LoginScreen 
+                        onLogin={handleLogin} 
+                        onGuestAccess={handleGuestAccess} 
+                        errorMsg={authError} 
+                        sheetUrl={sheetUrl}
+                        setSheetUrl={setSheetUrl}
+                        loading={loginLoading}
+                    />
+                );
             }
 
             return (
@@ -1025,7 +1150,7 @@
                             </div>
                             <h1 className="font-semibold text-white text-base leading-none">Rattanachot Task</h1>
                             <span className={'text-[9px] font-bold uppercase tracking-widest mt-2.5 px-3 py-1 rounded-full border ' + (isReadOnly ? 'text-teal-400 bg-teal-950/20 border-teal-900/30' : 'text-emerald-400 bg-emerald-950/20 border-emerald-900/30')}>
-                                {isReadOnly ? 'READ-ONLY GUEST' : 'SECURE ADMIN'}
+                                {isReadOnly ? `READ-ONLY (${session.toUpperCase()})` : 'SECURE ADMIN'}
                             </span>
                         </div>
                         
@@ -1044,13 +1169,7 @@
                                 </span>
                             </div>
                             <button 
-                                onClick={() => {
-                                    if (sheetUrl && isValidUrl(sheetUrl)) {
-                                        pullFromGoogleSheets();
-                                    } else {
-                                        setShowSettingsModal(true);
-                                    }
-                                }}
+                                onClick={pullFromGoogleSheets}
                                 disabled={isCloudSyncing}
                                 className="w-full py-2.5 bg-slate-950 border border-slate-800 hover:border-teal-500/40 rounded-xl text-xs font-semibold text-teal-400 flex items-center justify-center gap-2 transition duration-150 disabled:opacity-50"
                             >
@@ -1144,7 +1263,7 @@
                                 </div>
                             )}
 
-                            {/* 🚨 บล็อกแจ้งเตือนสำหรับปัญหา CORS */}
+                            {}
                             {showCorsAlert && (
                                 <div className="mb-6 p-5 bg-amber-950/20 border border-amber-800/40 rounded-2xl flex gap-4 items-start animate-fadeIn text-amber-300">
                                     <div className="p-2 bg-amber-900/30 rounded-xl text-amber-400 shrink-0">
@@ -1158,7 +1277,7 @@
                                         <ul className="list-decimal pl-5 space-y-1 text-slate-300 font-light">
                                             <li>เปิดไฟล์สเปรดชีตหลักของคุณ &gt; ไปที่ <span className="font-semibold text-white">Extensions (ส่วนขยาย) &gt; Apps Script</span></li>
                                             <li>กดปุ่ม <span className="font-semibold text-white">Deploy (การทำให้ใช้งานได้) &gt; Manage deployments (จัดการการทำให้ใช้งานได้)</span></li>
-                                            <li>กดสัญลักษณ์ดินสอเพื่อแก้ไข และให้เลือกเวอร์ชันเป็น <span className="font-semibold text-teal-400">New Version (เวอร์ชันใหม่)</span> ทุกครั้งที่มีการบันทึก</li>
+                                            <li>กดสัญลักษณ์ดินสอเพื่อแก้ไข และให้เลือกเวอร์ชันเป็น <span className="font-semibold text-white">New Version (เวอร์ชันใหม่)</span> ทุกครั้งที่มีการบันทึก</li>
                                             <li>ตรวจสอบให้แน่ใจว่าได้ปรับ <span className="font-semibold text-white">Execute as</span> เป็น <span className="font-semibold text-teal-400">"Me"</span> และปรับ <span className="font-semibold text-white">Who has access</span> เป็น <span className="font-semibold text-teal-400">"Anyone" (ทุกคน)</span> แล้วกด Deploy ใหม่</li>
                                         </ul>
                                         <button 
@@ -1208,27 +1327,7 @@
                                                 <span className="text-teal-500 ml-2 font-mono">({selectedModel})</span>
                                             </p>
                                         </div>
-                                        <button 
-                                            onClick={handleGenerateSummary} 
-                                            disabled={isAiLoading} 
-                                            className="bg-slate-900/80 border border-slate-800 text-teal-400 hover:bg-slate-900 hover:border-teal-500/30 px-5 py-2.5 rounded-xl font-semibold text-xs flex items-center gap-2 transition-all duration-150 shadow-md active:scale-[0.98]"
-                                        >
-                                            <Icon name="Sparkle" size={15} className={isAiLoading ? "animate-spin" : ""} /> AI ANALYSIS
-                                        </button>
                                     </div>
-
-                                    {/* AI Operation Insight Box */}
-                                    {aiSummary && (
-                                        <div className="bg-[#0f172a]/60 p-6 rounded-2xl border border-teal-500/20 shadow-xl animate-fadeIn">
-                                            <div className="flex items-center gap-2 mb-4 font-semibold text-white text-sm">
-                                                <Icon name="Sparkle" className="text-teal-400"/>
-                                                AI Operational Bottleneck Report ({selectedModel})
-                                            </div>
-                                            <div className="text-xs md:text-sm text-slate-300 leading-relaxed whitespace-pre-line font-light">
-                                                {aiSummary}
-                                            </div>
-                                        </div>
-                                    )}
 
                                     {/* Numeric Performance Indicators + Total Spent */}
                                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
@@ -1236,11 +1335,11 @@
                                         <StatCard label="IN PROGRESS" value={dashboardData.stats.progress} color="bg-blue-500" />
                                         <StatCard label="RESOLVED" value={dashboardData.stats.closed} color="bg-emerald-500" />
                                         <StatCard label="TOTAL RUNNING" value={dashboardData.stats.total} color="bg-purple-500" />
-                                        {/* 💰 สรุป Total Spent ในหน้า Overview */}
                                         <StatCard label="TOTAL SPENT" value={`${dashboardData.totalSpent.toLocaleString()} ฿`} color="bg-emerald-400" />
                                     </div>
 
                                     {/* Analytics Chart & Monthly Summaries */}
+                                    {}
                                     <div className="bg-[#0f172a] p-6 md:p-8 rounded-2xl border border-slate-850 shadow-xl space-y-6">
                                         <div>
                                             <h4 className="font-semibold text-white text-sm tracking-wide">Operational Cost Breakdown (FY {selectedYear})</h4>
@@ -1251,7 +1350,6 @@
                                         <div className="flex items-end h-64 gap-2 sm:gap-4 border-b border-slate-800/80 pb-4 pt-8">
                                             {dashboardData.chart.map((c, i) => (
                                                 <div key={i} className="flex-1 flex flex-col items-center group h-full justify-end relative">
-                                                    {/* แสดงจำนวนเงิน (Cost) เหนือแท่งกราฟของเดือนนั้นๆ */}
                                                     {c.val > 0 && (
                                                         <div className="absolute -top-6 text-[9px] sm:text-[10px] font-bold text-emerald-400 bg-slate-950/90 border border-emerald-950 px-1.5 py-0.5 rounded shadow-lg whitespace-nowrap">
                                                             {c.val >= 1000000 ? `${(c.val / 1000000).toFixed(1)}M ฿` : c.val >= 1000 ? `${(c.val / 1000).toFixed(0)}k ฿` : `${c.val} ฿`}
@@ -1270,7 +1368,7 @@
                                             ))}
                                         </div>
 
-                                        {/* 📊 ตารางสรุปจำนวน Action Open และ Close รายเดือนใต้กราฟ */}
+                                        {/* ตารางสรุปจำนวน Action Open และ Close รายเดือนใต้กราฟ */}
                                         <div className="pt-4 border-t border-slate-800/60">
                                             <h5 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
                                                 <Icon name="Calendar" size={14} className="text-teal-400" />
@@ -1282,8 +1380,8 @@
                                                         <span className="font-bold text-slate-300 text-xs block text-center border-b border-slate-800/50 pb-1">{c.label}</span>
                                                         <div className="mt-2 space-y-1">
                                                             <div className="flex justify-between items-center text-[10px]">
-                                                                <span className="text-amber-500 font-semibold">Active</span>
-                                                                <span className="font-bold text-white font-mono">{c.openCount}</span>
+                                                                <span className="text-amber-500 font-semibold">Opened</span>
+                                                                <span className="font-bold text-white font-mono">{c.openCount + c.closedCount}</span>
                                                             </div>
                                                             <div className="flex justify-between items-center text-[10px]">
                                                                 <span className="text-emerald-400 font-semibold">Closed</span>
@@ -1301,17 +1399,9 @@
                                     <div className="bg-[#0f172a] rounded-2xl shadow-xl border border-slate-850 p-6 md:p-8">
                                         <div className="flex justify-between items-center mb-6 border-b border-slate-800/80 pb-4">
                                             <h3 className="text-lg font-semibold text-white">ลงทะเบียน Action งาน</h3>
-                                            <button 
-                                                type="button" 
-                                                onClick={handleSuggestDescription} 
-                                                className="text-teal-400 font-semibold text-xs flex items-center gap-1.5 hover:text-teal-300"
-                                            >
-                                                <Icon name="Sparkle" size={14}/> AI ช่วยเขียนขั้นตอน
-                                            </button>
                                         </div>
                                         <form onSubmit={handleAddItem} className="space-y-5">
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                {/* 🛠️ เปลี่ยน Job ID เป็นระบบ Auto-Generated และบล็อกไม่ให้แก้ไขเอง */}
                                                 <FormInput 
                                                     label="Job ID (Auto-Generated)" 
                                                     val={newItem['Action Id']} 
@@ -1428,6 +1518,7 @@
                                     </div>
 
                                     {/* Master Grid Table */}
+                                    {}
                                     <div className="bg-[#0f172a] border border-slate-850 rounded-2xl overflow-hidden divide-y divide-slate-800/80 shadow-xl">
                                         {filteredTasks.length === 0 ? (
                                             <div className="p-12 text-center text-slate-500 font-semibold text-xs tracking-wider">
@@ -1443,17 +1534,14 @@
                                                     <div className="flex items-center gap-4 min-w-0 flex-1">
                                                         <div className="flex flex-col w-32 shrink-0 text-xs text-slate-500">
                                                             <span className="font-bold text-teal-400">FY {selectedYear}</span>
-                                                            {/* แสดง ID รูปแบบสวยงามเรียบร้อย (เช่น TASK-17-032-104) */}
                                                             <span className="font-mono mt-0.5 text-slate-400 truncate">{t['Action Id']}</span>
                                                         </div>
-                                                        {/* แสดง Title และหดขนาดความกว้างเพื่อป้องกันข้อความล้นเบียดองค์ประกอบอื่น ๆ */}
                                                         <h4 className={'text-xs sm:text-sm md:text-base font-semibold truncate pr-4 flex-1 max-w-[200px] xs:max-w-xs sm:max-w-md md:max-w-lg lg:max-w-2xl ' + 
                                                             (String(t.Status).toLowerCase().includes('close') ? 'text-slate-600 line-through' : 'text-slate-200')}>
                                                             {t.Title || t.Description || '--- No Specifications Defined ---'}
                                                         </h4>
                                                     </div>
                                                     <div className="flex items-center gap-3">
-                                                        {/* 💰 สรุปแสดงยอดเงิน Cost ของแต่ละงานไว้ข้างนอกแถวตาราง */}
                                                         <span className="text-xs font-semibold text-emerald-400 font-mono bg-emerald-950/20 border border-emerald-900/25 px-2.5 py-1 rounded-xl">
                                                             {t.Cost ? `${parseFloat(t.Cost).toLocaleString()} ฿` : '0 ฿'}
                                                         </span>
@@ -1472,6 +1560,7 @@
                                                 </div>
 
                                                 {/* Expanded Area */}
+                                                {}
                                                 {expandedId === t._id && (
                                                     <div className="p-6 bg-slate-950/70 border-t border-slate-800/80 grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fadeIn">
                                                         <div className="space-y-4">
@@ -1681,7 +1770,7 @@
 
                     {/* Delete Confirmation Modal */}
                     {deleteConfirm && !isReadOnly && (
-                        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/85 backdrop-blur-sm animate-fadeIn">
+                        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[300] flex items-center justify-center p-4 animate-fadeIn">
                             <div className="bg-[#0f172a] p-8 rounded-2xl max-w-sm w-full text-center border border-slate-800 shadow-2xl">
                                 <h4 className="font-bold text-white uppercase tracking-wider mb-2">Confirm Action Delete?</h4>
                                 <p className="text-slate-500 text-xs mb-6">This operation will permanently remove this record.</p>
@@ -1710,7 +1799,7 @@
                                     />
                                     <button 
                                         onClick={() => saveCloudSettings(sheetUrl)}
-                                        className="w-full py-3 bg-gradient-to-r from-teal-500 to-emerald-500 text-slate-950 rounded-xl font-bold text-xs uppercase tracking-wider shadow-lg"
+                                        className="w-full py-3 bg-gradient-to-r from-teal-500 to-emerald-400 text-slate-950 rounded-xl font-bold text-xs uppercase tracking-wider shadow-lg"
                                     >
                                         บันทึกสิทธิ์การเชื่อมโยง
                                     </button>
@@ -1765,6 +1854,25 @@
                 </div>
             );
         };
+
+        const INITIAL_SAMPLE_DATA = [
+            {
+                _id: "TASK-2026-001",
+                "Action Id": "TASK-2026-001",
+                "Title": "ติดตั้งเซนเซอร์ตรวจจับความร้อนเครื่องจักร No.1",
+                "Description": "ทำการติดตั้งตัวเซนเซอร์วัดอุณหภูมิความร้อนในส่วน D Auto Thermal เพื่อส่งข้อมูลแจ้งเตือนเมื่อระบบมีความร้อนสูงเกินปกติ",
+                "Cost": "18500",
+                "Opening Date": "2026-06-15T08:00:00.000Z",
+                "Due Date": "2026-06-25T17:00:00.000Z",
+                "Closed Date": "",
+                "Status": "In Progress",
+                "In_Charge": "Rattanachot Siriwanit",
+                "Line": "D Auto Thermal (W03-W07) No.1",
+                "Attachment": "",
+                "Note": "อยู่ระหว่างประกอบชุดคอนโทรลเลอร์",
+                "Source": "System Sample"
+            }
+        ];
     </script>
 
     <!-- Secure Compilation and Execution Sandbox Engine -->
