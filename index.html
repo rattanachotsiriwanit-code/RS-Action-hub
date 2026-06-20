@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Rattanachot Task - Command Center</title>
     
     <!-- React & Babel Standalone CDN -->
@@ -14,12 +14,13 @@
     <!-- Google Fonts: IBM Plex Sans Thai & Inter for Modern Tech Aesthetic -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-    <!-- Custom CSS for Scrollbars & Base Fonts -->
+    <!-- Custom CSS for Scrollbars & Mobile Layout Optimization -->
     <style>
         body {
             font-family: 'Inter', 'IBM Plex Sans Thai', sans-serif;
             background-color: #030712; /* ultra-dark slate */
             color: #f3f4f6;
+            -webkit-tap-highlight-color: transparent;
         }
         /* Custom Modern Scrollbar */
         ::-webkit-scrollbar {
@@ -45,8 +46,32 @@
     <script id="react-code-holder" type="text/plain">
         const { useState, useEffect, useMemo, Fragment } = React;
 
+        // --- SAFE STORAGE HELPERS (แก้ปัญหามือถือโยน SecurityError บนโปรโตคอล file://) ---
+        const safeLocalStorage = {
+            getItem: (key) => {
+                try { return localStorage.getItem(key); } catch (e) { return null; }
+            },
+            setItem: (key, value) => {
+                try { localStorage.setItem(key, value); } catch (e) {}
+            },
+            removeItem: (key) => {
+                try { localStorage.removeItem(key); } catch (e) {}
+            }
+        };
+
+        const safeSessionStorage = {
+            getItem: (key) => {
+                try { return sessionStorage.getItem(key); } catch (e) { return null; }
+            },
+            setItem: (key, value) => {
+                try { sessionStorage.setItem(key, value); } catch (e) {}
+            },
+            removeItem: (key) => {
+                try { sessionStorage.removeItem(key); } catch (e) {}
+            }
+        };
+
         // --- UTILITY SECURITY FUNCTIONS ---
-        // ฟังก์ชันบดบังข้อมูลเบื้องต้น ป้องกันการแอบมอง URL หรือ API Key ผ่าน localStorage ตรงๆ
         const obfuscate = (text) => {
             if (!text) return "";
             try {
@@ -84,7 +109,7 @@
             "SA Pole assy 1", "SA Pole assy 2", "SA Pole assy 3", "SA Pole assy 4"
         ];
 
-        // 🛠️ ฟังก์ชันการล้างข้อมูล ID และสร้างรหัสให้ดูเป็นระบบ มีโครงสร้างสากล (เช่น TASK-17-032-104)
+        // 🛠️ ฟังก์ชันการล้างข้อมูล ID และสร้างรหัสให้ดูเป็นระบบ มีโครงสร้างสากล
         const cleanAndFormatId = (rawId) => {
             if (!rawId) return '';
             let clean = String(rawId).replace(/[\s,'"]/g, '').trim();
@@ -188,7 +213,7 @@
                     <button 
                         onClick={getSteps} 
                         disabled={loading} 
-                        className="text-xs font-semibold text-teal-400 flex items-center gap-2 hover:text-teal-300 transition-colors active:scale-95 disabled:opacity-50"
+                        className="text-xs font-semibold text-teal-400 flex items-center gap-2 hover:text-teal-300 transition-colors active:scale-95 disabled:opacity-50 py-1"
                     >
                         <Icon name="Sparkle" size={14} className={loading ? "animate-spin" : "text-teal-400"} />
                         {suggestion ? "ซ่อนขั้นตอนปฏิบัติการ" : "ขั้นตอนปฏิบัติการโดย AI"}
@@ -226,13 +251,14 @@
             </div>
         );
 
+        // ใส่ text-base (16px) บนจอเล็กเพื่อป้องกัน iOS ซูมหน้าจอ และใช้ md:text-sm บนจอใหญ่เพื่อความสวยงาม
         const FormInput = ({ label, val, onChange, placeholder, type="text", disabled=false }) => (
             <div className="space-y-1.5">
                 <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">{label}</label>
                 <input 
                     type={type} 
                     disabled={disabled}
-                    className="w-full p-3 bg-slate-950/70 border border-slate-800/85 rounded-xl text-xs md:text-sm font-medium text-white placeholder-slate-600 focus:placeholder-slate-500 outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500/10 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:border-slate-800" 
+                    className="w-full p-3 bg-slate-950/70 border border-slate-800/85 rounded-xl text-base md:text-sm font-medium text-white placeholder-slate-600 focus:placeholder-slate-500 outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500/10 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:border-slate-800" 
                     placeholder={placeholder} 
                     value={val} 
                     onChange={(e) => !disabled && onChange(e.target.value)} 
@@ -257,7 +283,8 @@
             </div>
         );
 
-        const LoginScreen = ({ onLogin, onGuestAccess, errorMsg, sheetUrl, setSheetUrl, loading }) => {
+        // นำการบอกใบ้ Username (เช่น SESA650194) และนำปุ่ม Bypass/Guest Access ออก เพื่อความปลอดภัยสูงสุดตามแบบแปลนภาพ image_a4901d.png
+        const LoginScreen = ({ onLogin, errorMsg, sheetUrl, setSheetUrl, loading }) => {
             const [username, setUsername] = useState('');
             const [password, setPassword] = useState('');
 
@@ -287,7 +314,7 @@
                             </div>
                             <h2 className="text-xl font-bold tracking-tight text-white leading-none">Rattanachot Task</h2>
                             <span className="text-[9px] font-bold text-teal-400 uppercase tracking-widest mt-2 bg-teal-950/40 px-3 py-1 border border-teal-800/30 rounded-full">
-                                Operational Access Control (Sheet2 Linked)
+                                OPERATIONAL ACCESS CONTROL (SHEET2 LINKED)
                             </span>
                         </div>
 
@@ -314,7 +341,7 @@
                                 label="Clearance Password" 
                                 val={password} 
                                 onChange={setPassword} 
-                                placeholder="••••••••" 
+                                placeholder="Password" 
                                 type="password"
                             />
 
@@ -332,7 +359,7 @@
         };
 
         const App = () => {
-            const [session, setSession] = useState(sessionStorage.getItem('rs_task_session') || null); // 'admin' or 'view_only' or 'guest'
+            const [session, setSession] = useState(safeSessionStorage.getItem('rs_task_session') || null); // 'admin' or 'view_only'
             const [authError, setAuthError] = useState('');
             const [loginLoading, setLoginLoading] = useState(false);
 
@@ -341,8 +368,8 @@
 
             // ☁️ Google Sheets API Setup
             const [sheetUrl, setSheetUrl] = useState(() => {
-                const stored = localStorage.getItem('rs_google_sheet_api_url_enc');
-                return stored ? deobfuscate(stored) : (localStorage.getItem('rs_google_sheet_api_url') || '');
+                const stored = safeLocalStorage.getItem('rs_google_sheet_api_url_enc');
+                return stored ? deobfuscate(stored) : (safeLocalStorage.getItem('rs_google_sheet_api_url') || '');
             });
             const [isCloudSyncing, setIsCloudSyncing] = useState(false);
             const [showCorsAlert, setShowCorsAlert] = useState(false); 
@@ -378,10 +405,10 @@
 
             // ดึงค่าสิทธิ์การเชื่อมโยง AI ที่บดบังข้อมูลไว้
             const [userApiKey, setUserApiKey] = useState(() => {
-                const stored = localStorage.getItem('gemini_api_key_enc');
-                return stored ? deobfuscate(stored) : (localStorage.getItem('gemini_api_key') || '');
+                const stored = safeLocalStorage.getItem('gemini_api_key_enc');
+                return stored ? deobfuscate(stored) : (safeLocalStorage.getItem('gemini_api_key') || '');
             });
-            const [selectedModel, setSelectedModel] = useState(() => localStorage.getItem('gemini_model_selection') || 'gemini-2.5-flash-preview-09-2025');
+            const [selectedModel, setSelectedModel] = useState(() => safeLocalStorage.getItem('gemini_model_selection') || 'gemini-2.5-flash-preview-09-2025');
             const [showApiKeyModal, setShowApiKeyModal] = useState(false);
             const [tempApiKey, setTempApiKey] = useState('');
             const [tempModelSelection, setTempModelSelection] = useState(selectedModel);
@@ -393,8 +420,7 @@
                 'Action Id': '', 'Title': '', 'Description': '', 'Cost': '', 'Opening Date': new Date().toISOString(), 'Due Date': '', 'Closed Date': '', 'Status': 'Open', 'In_Charge': 'Rattanachot Siriwanit', 'Line': '', 'Attachment': '' 
             });
 
-            // ปรับเปลี่ยนเกณฑ์สิทธิ์ Read-Only เพื่อรองรับการล็อกอินระดับ view_only ด้วย
-            const isReadOnly = session === 'view_only' || session === 'guest';
+            const isReadOnly = session === 'view_only';
 
             // ⚡ บังคับดึงข้อมูลใหม่โดยตรงจากคลาวด์สด ๆ ทันทีเมื่อเปิดตัวแอปพลิเคชัน
             useEffect(() => {
@@ -403,7 +429,7 @@
                         pullFromGoogleSheets();
                     } else {
                         // หากไม่มี Cloud API ให้ใช้ข้อมูลตั้งต้นเป็น Sample ไปก่อน
-                        const local = localStorage.getItem('rs_local_actions_db_v3');
+                        const local = safeLocalStorage.getItem('rs_local_actions_db_v3');
                         setAllData(local ? JSON.parse(local) : INITIAL_SAMPLE_DATA);
                     }
                 }
@@ -412,7 +438,7 @@
             // บันทึกลง LocalStorage เฉพาะเมื่อข้อมูลมีการขยับจริง ๆ
             useEffect(() => {
                 if (allData && allData.length > 0) {
-                    localStorage.setItem('rs_local_actions_db_v3', JSON.stringify(allData));
+                    safeLocalStorage.setItem('rs_local_actions_db_v3', JSON.stringify(allData));
                 }
             }, [allData]);
 
@@ -440,6 +466,7 @@
                 }
             };
 
+            // ป้องกันการ Cache ผลลัพธ์บนเบราว์เซอร์มือถือโดยระบุตัวแปรสุ่มเวลา _=Date.now()
             const pullFromGoogleSheets = async () => {
                 const trimmedUrl = String(sheetUrl || '').trim();
                 if (!trimmedUrl) return;
@@ -454,7 +481,7 @@
                 setCloudDebugInfo(null);
                 try {
                     const separator = trimmedUrl.includes('?') ? '&' : '?';
-                    const response = await fetch(`${trimmedUrl}${separator}action=read`);
+                    const response = await fetch(`${trimmedUrl}${separator}action=read&_=${Date.now()}`);
                     if (response.ok) {
                         const cloudData = await response.json();
                         
@@ -470,7 +497,7 @@
                         // 🛠️ ตรวจจับกรณีชีตว่างเปล่าจริง (มีการลบข้อมูลทั้งหมดในชีตจนเกลี้ยง)
                         if (Array.isArray(cloudData) && cloudData.length === 0) {
                             setAllData([]); // ล้างหน้ากากข้อมูลบนทุกอุปกรณ์ให้ตรงกันทันที 100%
-                            localStorage.setItem('rs_local_actions_db_v3', JSON.stringify([]));
+                            safeLocalStorage.setItem('rs_local_actions_db_v3', JSON.stringify([]));
                             showToast("ซิงค์สำเร็จ: คลาวด์ว่างเปล่า (ล้างข้อมูลเครื่องทั้งหมดแล้ว)");
                         } else if (Array.isArray(cloudData) && cloudData.length > 0) {
                             const mapped = cloudData.map(row => {
@@ -511,7 +538,7 @@
                     }
                     
                     // Fallback กรณีไม่มีเน็ต ให้หยิบประวัติชุดล่าสุดในเครื่องมาแสดงพลาง ๆ
-                    const local = localStorage.getItem('rs_local_actions_db_v3');
+                    const local = safeLocalStorage.getItem('rs_local_actions_db_v3');
                     if (local) {
                         setAllData(JSON.parse(local));
                     }
@@ -563,7 +590,7 @@
                 setIsCloudSyncing(false);
             };
 
-            // ระบบตรวจสอบรหัสผ่านเชื่อมโยงสดไปยัง Sheet2 ของ Google Sheets
+            // ระบบตรวจสอบรหัสผ่านเชื่อมโยงสดไปยัง Sheet2 ของ Google Sheets (เพิ่ม Cache Buster & handle Error บนเบราว์เซอร์มือถือ)
             const handleLogin = async (username, password) => {
                 setAuthError('');
                 const trimmedUrl = String(sheetUrl || '').trim();
@@ -579,7 +606,7 @@
                 setLoginLoading(true);
                 try {
                     const separator = trimmedUrl.includes('?') ? '&' : '?';
-                    const targetLoginUrl = `${trimmedUrl}${separator}action=login&username=${encodeURIComponent(username.trim())}&password=${encodeURIComponent(password.trim())}`;
+                    const targetLoginUrl = `${trimmedUrl}${separator}action=login&username=${encodeURIComponent(username.trim())}&password=${encodeURIComponent(password.trim())}&_=${Date.now()}`;
                     
                     const response = await fetch(targetLoginUrl);
                     if (!response.ok) throw new Error(`HTTP Error Status ${response.status}`);
@@ -591,10 +618,10 @@
                         
                         const readOnlyVal = userLevel === 'view_only';
                         
-                        // จดจำเซสชันลง Storage ของเบราว์เซอร์
-                        sessionStorage.setItem('rs_task_session', userLevel);
-                        sessionStorage.setItem('rs_task_readonly', String(readOnlyVal));
-                        localStorage.setItem('rs_google_sheet_api_url_enc', obfuscate(trimmedUrl));
+                        // จดจำเซสชันลง Storage ของเบราว์เซอร์อย่างปลอดภัย
+                        safeSessionStorage.setItem('rs_task_session', userLevel);
+                        safeSessionStorage.setItem('rs_task_readonly', String(readOnlyVal));
+                        safeLocalStorage.setItem('rs_google_sheet_api_url_enc', obfuscate(trimmedUrl));
                         
                         showToast(`ยินดีต้อนรับเข้าสู่ระบบ ระดับสิทธิ์: ${userLevel.toUpperCase()}`);
                     } else {
@@ -602,24 +629,16 @@
                     }
                 } catch (e) {
                     console.error(e);
-                    setAuthError('ไม่สามารถตรวจสอบผู้ใช้งานได้ โปรดตรวจสอบความถูกต้องของ Web App URL และการเปิดสิทธิ์ CORS');
+                    setAuthError('ไม่สามารถตรวจสอบผู้ใช้งานได้ โปรดตรวจสอบความถูกต้องของ URL สิทธิ์ CORS และ "ปิดการใช้งานป้องกันติดตามข้ามไซต์" ใน Safari มือถือ');
                 } finally {
                     setLoginLoading(false);
                 }
             };
 
-            const handleGuestAccess = () => {
-                setSession('view_only');
-                sessionStorage.setItem('rs_task_session', 'view_only');
-                sessionStorage.setItem('rs_task_readonly', 'true');
-                showToast('โหมดรับชมข้อมูลทั่วไปเปิดใช้งานแล้ว');
-                if (view === 'add') setView('dashboard');
-            };
-
             const handleSignOut = () => {
                 setSession(null);
-                sessionStorage.removeItem('rs_task_session');
-                sessionStorage.removeItem('rs_task_readonly');
+                safeSessionStorage.removeItem('rs_task_session');
+                safeSessionStorage.removeItem('rs_task_readonly');
                 showToast('ออกจากระบบอย่างปลอดภัย');
             };
 
@@ -894,8 +913,8 @@
             const saveApiKey = () => { 
                 const cleanKey = tempApiKey.trim();
                 const cleanModel = tempModelSelection.trim();
-                localStorage.setItem('gemini_api_key_enc', obfuscate(cleanKey)); 
-                localStorage.setItem('gemini_model_selection', cleanModel);
+                safeLocalStorage.setItem('gemini_api_key_enc', obfuscate(cleanKey)); 
+                safeLocalStorage.setItem('gemini_model_selection', cleanModel);
                 setUserApiKey(cleanKey); 
                 setSelectedModel(cleanModel);
                 setShowApiKeyModal(false); 
@@ -903,8 +922,8 @@
             };
 
             const clearApiKey = () => { 
-                localStorage.removeItem('gemini_api_key_enc'); 
-                localStorage.removeItem('rs_google_sheet_api_url_enc');
+                safeLocalStorage.removeItem('gemini_api_key_enc'); 
+                safeLocalStorage.removeItem('rs_google_sheet_api_url_enc');
                 setUserApiKey(''); 
                 setSelectedModel('gemini-2.5-flash-preview-09-2025');
                 setTempApiKey(''); 
@@ -1099,7 +1118,7 @@
 
             const saveCloudSettings = (url) => {
                 const cleanUrl = url.trim();
-                localStorage.setItem('rs_google_sheet_api_url_enc', obfuscate(cleanUrl));
+                safeLocalStorage.setItem('rs_google_sheet_api_url_enc', obfuscate(cleanUrl));
                 setSheetUrl(cleanUrl);
                 setShowSettingsModal(false);
                 showToast("ลิงก์ Google Sheets บันทึกเสร็จเรียบร้อย!");
@@ -1128,7 +1147,6 @@
                 return (
                     <LoginScreen 
                         onLogin={handleLogin} 
-                        onGuestAccess={handleGuestAccess} 
                         errorMsg={authError} 
                         sheetUrl={sheetUrl}
                         setSheetUrl={setSheetUrl}
@@ -1243,7 +1261,7 @@
                                 <input 
                                     type="text" 
                                     placeholder="Intel Search..." 
-                                    className="pl-4 pr-4 py-2 bg-slate-900/80 border border-slate-800 rounded-xl text-xs md:text-sm text-white focus:border-teal-500 outline-none transition placeholder-slate-600 font-medium" 
+                                    className="pl-4 pr-4 py-2 bg-slate-900/80 border border-slate-800 rounded-xl text-base md:text-sm text-white focus:border-teal-500 outline-none transition placeholder-slate-600 font-medium" 
                                     value={search} 
                                     onChange={(e) => setSearch(e.target.value)} 
                                 />
@@ -1263,7 +1281,6 @@
                                 </div>
                             )}
 
-                            {}
                             {showCorsAlert && (
                                 <div className="mb-6 p-5 bg-amber-950/20 border border-amber-800/40 rounded-2xl flex gap-4 items-start animate-fadeIn text-amber-300">
                                     <div className="p-2 bg-amber-900/30 rounded-xl text-amber-400 shrink-0">
@@ -1339,7 +1356,6 @@
                                     </div>
 
                                     {/* Analytics Chart & Monthly Summaries */}
-                                    {}
                                     <div className="bg-[#0f172a] p-6 md:p-8 rounded-2xl border border-slate-850 shadow-xl space-y-6">
                                         <div>
                                             <h4 className="font-semibold text-white text-sm tracking-wide">Operational Cost Breakdown (FY {selectedYear})</h4>
@@ -1414,7 +1430,7 @@
                                             <div className="space-y-1.5">
                                                 <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Action Detail</label>
                                                 <textarea 
-                                                    className="w-full p-4 bg-slate-950/70 border border-slate-800/85 rounded-xl text-xs md:text-sm text-slate-300 outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500/10 transition h-28 font-light" 
+                                                    className="w-full p-4 bg-slate-950/70 border border-slate-800/85 rounded-xl text-base md:text-sm text-slate-300 outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500/10 transition h-28 font-light" 
                                                     placeholder="รายละเอียดเชิงวิศวกรรม..." 
                                                     value={newItem.Description} 
                                                     onChange={e => setNewItem({...newItem, Description: e.target.value})} 
@@ -1428,7 +1444,7 @@
                                                 <div className="space-y-1.5">
                                                     <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Line</label>
                                                     <select 
-                                                        className="w-full p-3 bg-slate-950/70 border border-slate-800 rounded-xl text-xs md:text-sm font-medium text-slate-300 outline-none focus:border-teal-500" 
+                                                        className="w-full p-3 bg-slate-950/70 border border-slate-800 rounded-xl text-base md:text-sm font-medium text-slate-300 outline-none focus:border-teal-500" 
                                                         value={newItem.Line} 
                                                         onChange={e => setNewItem({...newItem, Line: e.target.value})}
                                                     >
@@ -1440,7 +1456,7 @@
                                                     <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Due Date</label>
                                                     <input 
                                                         type="date" 
-                                                        className="w-full p-3 bg-slate-950/70 border border-slate-800 rounded-xl text-xs md:text-sm text-slate-300 outline-none focus:border-teal-500" 
+                                                        className="w-full p-3 bg-slate-950/70 border border-slate-800 rounded-xl text-base md:text-sm text-slate-300 outline-none focus:border-teal-500" 
                                                         value={newItem['Due Date'] ? newItem['Due Date'].split('T')[0] : ''} 
                                                         onChange={(e) => setNewItem({...newItem, 'Due Date': e.target.value})} 
                                                     />
@@ -1448,7 +1464,7 @@
                                                 <div className="space-y-1.5">
                                                     <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Status</label>
                                                     <select 
-                                                        className="w-full p-3 bg-slate-950/70 border border-slate-800 rounded-xl text-xs md:text-sm font-medium text-slate-300 outline-none focus:border-teal-500" 
+                                                        className="w-full p-3 bg-slate-950/70 border border-slate-800 rounded-xl text-base md:text-sm font-medium text-slate-300 outline-none focus:border-teal-500" 
                                                         value={newItem.Status} 
                                                         onChange={e => setNewItem({...newItem, Status: e.target.value})}
                                                     >
@@ -1518,7 +1534,6 @@
                                     </div>
 
                                     {/* Master Grid Table */}
-                                    {}
                                     <div className="bg-[#0f172a] border border-slate-850 rounded-2xl overflow-hidden divide-y divide-slate-800/80 shadow-xl">
                                         {filteredTasks.length === 0 ? (
                                             <div className="p-12 text-center text-slate-500 font-semibold text-xs tracking-wider">
@@ -1560,7 +1575,6 @@
                                                 </div>
 
                                                 {/* Expanded Area */}
-                                                {}
                                                 {expandedId === t._id && (
                                                     <div className="p-6 bg-slate-950/70 border-t border-slate-800/80 grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fadeIn">
                                                         <div className="space-y-4">
@@ -1569,7 +1583,7 @@
                                                                     <div className="p-4 bg-[#0f172a] border border-teal-500/30 rounded-xl flex flex-col gap-3 shadow-inner">
                                                                         <textarea 
                                                                             autoFocus 
-                                                                            className="w-full text-xs md:text-sm text-slate-200 outline-none bg-slate-950/60 border border-slate-800 rounded-lg p-3 min-h-[120px] resize-y font-light" 
+                                                                            className="w-full text-base md:text-sm text-slate-200 outline-none bg-slate-950/60 border border-slate-800 rounded-lg p-3 min-h-[120px] resize-y font-light" 
                                                                             value={tempDesc} 
                                                                             onChange={(e) => setTempDesc(e.target.value)} 
                                                                         />
@@ -1615,7 +1629,7 @@
                                                                         <span className="text-[10px] font-bold text-teal-400 uppercase tracking-wider">Cost (THB)</span>
                                                                         <input 
                                                                             type="text" 
-                                                                            className="bg-slate-950 text-xs md:text-sm text-white font-semibold border border-slate-850 rounded px-2 py-1 outline-none"
+                                                                            className="bg-slate-950 text-base md:text-sm text-white font-semibold border border-slate-850 rounded px-2 py-1 outline-none"
                                                                             value={tempCost}
                                                                             onChange={e => setTempCost(e.target.value)}
                                                                             onBlur={() => saveCostEdit(t._id, tempCost)}
@@ -1639,7 +1653,7 @@
                                                                         <span className="text-[10px] font-bold text-teal-400 uppercase tracking-wider">Due Date</span>
                                                                         <input 
                                                                             type="date" 
-                                                                            className="bg-slate-950 text-xs text-white border border-slate-850 rounded px-2 py-1 outline-none"
+                                                                            className="bg-slate-950 text-base text-white border border-slate-850 rounded px-2 py-1 outline-none"
                                                                             value={tempDueDate ? tempDueDate.split('T')[0] : ''}
                                                                             onChange={e => setTempDueDate(e.target.value)}
                                                                             onBlur={() => saveDueDateEdit(t._id, tempDueDate)}
@@ -1679,7 +1693,7 @@
                                                                     <span>🔗 Link Attachment</span>
                                                                 </span>
                                                                 <input 
-                                                                    className="w-full text-xs text-slate-300 bg-slate-950/60 border border-slate-800/80 rounded-xl p-2.5 outline-none focus:border-teal-500/50 transition-all duration-150 font-mono" 
+                                                                    className="w-full text-base md:text-sm text-slate-300 bg-slate-950/60 border border-slate-800/80 rounded-xl p-2.5 outline-none focus:border-teal-500/50 transition-all duration-150 font-mono" 
                                                                     placeholder={isReadOnly ? "No attachment linked" : "เพิ่ม Google Drive ลิงก์แนบ..."} 
                                                                     value={editingAttachmentId === t._id ? tempAttachment : (t.Attachment || '')} 
                                                                     readOnly={isReadOnly}
@@ -1821,7 +1835,7 @@
                                         <input 
                                             type="password" 
                                             placeholder="AIzaSy..." 
-                                            className="w-full p-4 bg-slate-950 border border-slate-850 rounded-xl text-xs font-mono text-slate-200 outline-none focus:border-teal-500 transition-colors" 
+                                            className="w-full p-4 bg-slate-950 border border-slate-850 rounded-xl text-base font-mono text-slate-200 outline-none focus:border-teal-500 transition-colors" 
                                             value={tempApiKey} 
                                             onChange={e => setTempApiKey(e.target.value)} 
                                         />
@@ -1832,7 +1846,7 @@
                                         <input 
                                             type="text" 
                                             placeholder="gemini-2.5-flash-preview-09-2025" 
-                                            className="w-full p-4 bg-slate-950 border border-slate-850 rounded-xl text-xs font-mono text-slate-200 outline-none focus:border-teal-500 transition-colors" 
+                                            className="w-full p-4 bg-slate-950 border border-slate-850 rounded-xl text-base font-mono text-slate-200 outline-none focus:border-teal-500 transition-colors" 
                                             value={tempModelSelection} 
                                             onChange={e => setTempModelSelection(e.target.value)} 
                                         />
@@ -1882,7 +1896,7 @@
                 const rawText = document.getElementById('react-code-holder').textContent;
                 const compiled = Babel.transform(rawText, {
                     presets: [
-                        ['react', { runtime: 'classic' }] // Force Classic Runtime to prevent automatic JSX Import injections
+                        ['react', { runtime: 'classic' }] // Force Classic Runtime
                     ]
                 }).code;
                 
