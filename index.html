@@ -63,10 +63,8 @@
         // 🛠️ ฟังก์ชันการล้างข้อมูล ID และสร้างรหัสให้ดูเป็นระบบ มีโครงสร้างสากล (เช่น TASK-17-032-104)
         const cleanAndFormatId = (rawId) => {
             if (!rawId) return '';
-            // ลบช่องว่าง คอมม่า หรือฟันหนูที่ติดมา
             let clean = String(rawId).replace(/[\s,'"]/g, '').trim();
             
-            // ตรวจสอบว่าเป็นตัวเลขล้วน (เช่น 117032104 หรือ 17032104)
             if (/^\d+$/.test(clean)) {
                 if (clean.length === 9) {
                     return `TASK-${clean.slice(0, 3)}-${clean.slice(3, 6)}-${clean.slice(6)}`;
@@ -77,7 +75,6 @@
                 return `TASK-${clean}`;
             }
             
-            // ตรวจสอบว่ามาเป็นเลขขีด เช่น 17-032-104 หรือ 22-938-604
             if (/^\d+-\d+-\d+$/.test(clean)) {
                 return `TASK-${clean}`;
             }
@@ -156,7 +153,8 @@
                 Lock: <Fragment><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></Fragment>,
                 LogOut: <Fragment><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></Fragment>,
                 Eye: <Fragment><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></Fragment>,
-                Alert: <Fragment><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></Fragment>
+                Alert: <Fragment><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></Fragment>,
+                Share: <Fragment><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></Fragment>
             };
             return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{icons[name] || null}</svg>;
         };
@@ -365,6 +363,7 @@
             const [deleteConfirm, setDeleteConfirm] = useState(null);
             const [isSidebarOpen, setIsSidebarOpen] = useState(false);
             const [showSettingsModal, setShowSettingsModal] = useState(false);
+            const [showQrModal, setShowQrModal] = useState(false); // 📲 state เพื่อแสดง QR Code ซิงค์มือถือ
 
             const currentYearValue = 2026;
             const [selectedYear, setSelectedYear] = useState(currentYearValue);
@@ -397,6 +396,43 @@
 
             const isReadOnly = session === 'guest';
 
+            // 📲 ตรวจจับพารามิเตอร์จากการสแกน QR Code เพื่อนำเข้าสิทธิ์และดึงข้อมูลอัตโนมัติบนมือถือ
+            useEffect(() => {
+                const params = new URLSearchParams(window.location.search);
+                const paramSheetUrl = params.get('sheetUrl');
+                const paramApiKey = params.get('apiKey');
+                const paramModel = params.get('model');
+                
+                let updated = false;
+                if (paramSheetUrl) {
+                    const decodedSheet = decodeURIComponent(paramSheetUrl);
+                    localStorage.setItem('rs_google_sheet_api_url', decodedSheet);
+                    setSheetUrl(decodedSheet);
+                    updated = true;
+                }
+                if (paramApiKey) {
+                    const decodedKey = decodeURIComponent(paramApiKey);
+                    localStorage.setItem('gemini_api_key', decodedKey);
+                    setUserApiKey(decodedKey);
+                    updated = true;
+                }
+                if (paramModel) {
+                    const decodedModel = decodeURIComponent(paramModel);
+                    localStorage.setItem('gemini_model_selection', decodedModel);
+                    setSelectedModel(decodedModel);
+                    updated = true;
+                }
+                if (updated) {
+                    // ทำการ Bypass ล็อกอินให้ผู้ใช้ดึงข้อมูลทันทีเพื่อความสะดวกรวดเร็ว
+                    setSession('admin');
+                    sessionStorage.setItem('rs_task_session', 'admin');
+                    
+                    // เคลียร์ Query Parameter บนแถบ URL ออกเพื่อให้หน้าต่างลิงก์ดูสะอาดสวยงาม
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                    showToast("📲 นำเข้าลิงก์ Google Sheets และคีย์ควบคุมงานสำเร็จ!");
+                }
+            }, []);
+
             useEffect(() => {
                 localStorage.setItem('rs_local_actions_db_v3', JSON.stringify(allData));
             }, [allData]);
@@ -426,7 +462,7 @@
                 if (!trimmedUrl) return;
 
                 if (!isValidUrl(trimmedUrl)) {
-                    showToast("⚠️ รูปแบบลิงก์ Google Sheets ไม่ถูกต้อง (ตรวจสอบการสลับค่ากับ API Key)");
+                    showToast("⚠️ รูปแบบลิงก์ Google Sheets ไม่ถูกต้อง");
                     return;
                 }
 
@@ -469,9 +505,9 @@
                                 };
                             });
                             setAllData(mapped);
-                            showToast("ซิงค์ดึงข้อมูลและฟอร์แมต Action ID ใหม่จาก Google Sheets สำเร็จ!");
+                            showToast("ซิงค์ดึงข้อมูลจาก Google Sheets บนเครื่องนี้สำเร็จ!");
                         } else {
-                            showToast("ดึงข้อมูลสำเร็จ แต่ข้อมูลโครงสร้าง JSON ไม่เป็น Array หรือไม่มีข้อมูล");
+                            showToast("ดึงข้อมูลสำเร็จ แต่โครงสร้าง JSON ไม่เป็นกลุ่มรายการ");
                         }
                     } else {
                         throw new Error(`HTTP Error Status: ${response.status}`);
@@ -522,36 +558,12 @@
                         headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
                         body: JSON.stringify(payloadToSend)
                     });
-                    showToast("บันทึกคำสั่งอัปเดตไปยัง Google Sheets สำเร็จ!");
+                    showToast("บันทึกข้อมูลอัปเดตไปสเปรดชีตเรียบร้อย!");
                 } catch(e) {
                     console.error("Push failed:", e);
                     showToast("⚠️ บันทึกข้อมูลคลาวด์ขัดข้อง แต่บันทึกในเครื่องเรียบร้อย");
                 }
                 setIsCloudSyncing(false);
-            };
-
-            const handleLogin = (username, password) => {
-                setAuthError('');
-                if (username.toUpperCase() === 'SESA650194' && password === '3010075') {
-                    setSession('admin');
-                    sessionStorage.setItem('rs_task_session', 'admin');
-                    showToast('ยินดีต้อนรับเข้าสู่ระบบ Rattanachot Task');
-                } else {
-                    setAuthError('รหัสผ่านผู้ดูแลระบบควบคุมไม่ถูกต้อง');
-                }
-            };
-
-            const handleGuestAccess = () => {
-                setSession('guest');
-                sessionStorage.setItem('rs_task_session', 'guest');
-                showToast('โหมดรับชมข้อมูลทั่วไปเปิดใช้งานแล้ว');
-                if (view === 'add') setView('dashboard');
-            };
-
-            const handleSignOut = () => {
-                setSession(null);
-                sessionStorage.removeItem('rs_task_session');
-                showToast('ออกจากระบบอย่างปลอดภัย');
             };
 
             const availableYearsList = useMemo(() => {
@@ -661,10 +673,11 @@
                 });
             }, [myAllTasks, search, statusFilter, lineFilter, sortBy]);
 
+            // 📊 ตรรกะวิเคราะห์สรุปความต่างของคำว่า "Opened" (เปิดใหม่ขึ้นจริงในเดือนนั้น) และ "Closed" (ปิดสะสมได้ในเดือนนั้น)
             const dashboardData = useMemo(() => {
                 const months = Array(12).fill(0);
-                const openCounts = Array(12).fill(0); // 🛠️ คำนวณยอดเฉพาะงานที่เปิดใหม่ (Opened) ในเดือนนั้นๆ
-                const closedCounts = Array(12).fill(0); // 🛠️ คำนวณยอดงานที่ปิดลง (Closed) ในเดือนนั้นๆ
+                const openCounts = Array(12).fill(0); // 🛠️ นับตาม Opening Date ของแต่ละเดือน (Opened)
+                const closedCounts = Array(12).fill(0); // 🛠️ นับตาม Closed Date ของแต่ละเดือน (Closed)
                 let totalSpent = 0;
                 let totalClosed = 0;
                 let pendingCount = 0;
@@ -747,25 +760,6 @@
                 };
             }, [myTasksRaw, selectedYear]);
 
-            const saveApiKey = () => { 
-                const cleanKey = tempApiKey.trim();
-                const cleanModel = tempModelSelection.trim();
-                localStorage.setItem('gemini_api_key', cleanKey); 
-                localStorage.setItem('gemini_model_selection', cleanModel);
-                setUserApiKey(cleanKey); 
-                setSelectedModel(cleanModel);
-                setShowApiKeyModal(false); 
-                showToast("บันทึกสิทธิ์การตั้งค่า AI สำเร็จ!"); 
-            };
-            const clearApiKey = () => { 
-                localStorage.removeItem('gemini_api_key'); 
-                localStorage.removeItem('gemini_model_selection');
-                setUserApiKey(''); 
-                setSelectedModel('gemini-2.5-flash-preview-09-2025');
-                setTempApiKey(''); 
-                setTempModelSelection('gemini-2.5-flash-preview-09-2025');
-            };
-
             const handleGenerateSummary = async () => {
                 if (myAllTasks.length === 0) return;
                 if (!userApiKey) { setShowApiKeyModal(true); return; }
@@ -786,7 +780,7 @@
                     const summary = await fetchGemini('ข้อมูลคอขวดสะสมไลน์ผลิต:\n\n' + dataForAi + '\nแนะนำวิธีลดเวลาคอขวดการผลิต 3 ข้อกระชับสไตล์โรงงานญี่ปุ่น', userApiKey, "คุณคือผู้เชี่ยวชาญโรงงานและช่างเทคนิคอาวุโส", selectedModel);
                     setAiSummary(summary);
                 } catch (error) { 
-                    showToast("ไม่สามารถประมวลผลสรุป AI ได้ (โปรดตรวจสอบ API Key / Model)"); 
+                    showToast("ไม่สามารถประมวลผลสรุป AI ได้"); 
                 }
                 setIsAiLoading(false);
             };
@@ -847,7 +841,7 @@
                             }
                         });
                         setAllData(updated);
-                        showToast(`นำเข้าและแปลง ID สำเร็จเสร็จเรียบร้อยแล้ว ${dataRows.length} รายการ`);
+                        showToast(`นำเข้าเสร็จสิ้น ${dataRows.length} รายการ`);
                         
                         if (sheetUrl) {
                             for (let rowObj of updated) {
@@ -886,7 +880,7 @@
 
                 const updated = [taskObj, ...allData.filter(t => t._id !== formattedId)];
                 setAllData(updated);
-                showToast("บันทึกข้อมูลและเซ็ตงานเข้าคิว Rattanachot Task สำเร็จ!");
+                showToast("บันทึกเข้าระบบเรียบร้อย!");
 
                 if (sheetUrl) {
                     await pushToGoogleSheets('upsert', taskObj);
@@ -1016,6 +1010,12 @@
                 showToast("ลิงก์ Google Sheets บันทึกเสร็จเรียบร้อย!");
             };
 
+            // 📲 สร้างและเข้ารหัส URL ปัจจุบันเพื่อแชร์ตั้งค่าและนำเข้าทันทีบนโทรศัพท์มือถือ
+            const getMobileSyncLink = () => {
+                const baseUrl = window.location.href.split('?')[0];
+                return `${baseUrl}?sheetUrl=${encodeURIComponent(sheetUrl)}&apiKey=${encodeURIComponent(userApiKey)}&model=${encodeURIComponent(selectedModel)}`;
+            };
+
             if (!session) {
                 return <LoginScreen onLogin={handleLogin} onGuestAccess={handleGuestAccess} errorMsg={authError} />;
             }
@@ -1027,7 +1027,7 @@
 
                     <aside className={`fixed md:relative inset-y-0 left-0 w-64 bg-[#090d16] flex flex-col shrink-0 z-30 border-r border-slate-900 transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
                         <div className="p-8 flex flex-col items-center text-center relative border-b border-slate-900/60">
-                            <button onClick={() => setIsSidebarOpen(false)} className="absolute top-4 right-4 text-slate-500 hover:text-slate-300 md:hidden"><Icon name="X" size={24} /></button>
+                            <button onClick={() => setIsSidebarOpen(false)} className="absolute top-4 right-4 text-slate-500 hover:text-slate-300 md:hidden" style={{ minWidth: '44px', minHeight: '44px' }}><Icon name="X" size={24} /></button>
                             <div className="w-12 h-12 bg-gradient-to-tr from-teal-500 to-emerald-400 rounded-2xl flex items-center justify-center font-bold shadow-lg mb-3 shadow-teal-500/10">
                                 <span className="text-slate-950 text-xl font-bold tracking-tight">RT</span>
                             </div>
@@ -1042,6 +1042,22 @@
                             <SidebarBtn icon={<Icon name="List" />} label="Master List" active={view === 'list'} onClick={() => setView('list')} />
                             {!isReadOnly && <SidebarBtn icon={<Icon name="Plus" />} label="Add Action" active={view === 'add'} onClick={() => setView('add')} />}
                         </nav>
+
+                        {/* 📲 ปุ่มแชร์ตั้งค่าและข้อมูลเพื่อเปิดใช้งานและซิงค์ทันทีบนโทรศัพท์มือถือ (Mobile Sync Panel) */}
+                        <div className="p-4 border-t border-slate-900 bg-[#060a12]/50 flex flex-col gap-2">
+                            <div className="flex items-center justify-between text-[10px] font-bold tracking-widest text-slate-500">
+                                <span>📲 MOBILE SYNC</span>
+                                <span className="text-emerald-400 font-bold">READY</span>
+                            </div>
+                            <button 
+                                onClick={() => setShowQrModal(true)}
+                                className="w-full py-3 bg-gradient-to-r from-teal-500/10 to-emerald-500/10 border border-teal-500/30 hover:border-teal-500/50 rounded-xl text-xs font-bold text-teal-400 flex items-center justify-center gap-2 transition duration-150 active:scale-95"
+                                style={{ minHeight: '44px' }}
+                            >
+                                <Icon name="Share" size={14} />
+                                ซิงค์เปิดในมือถือ
+                            </button>
+                        </div>
 
                         {/* ☁️ Cloud Sync Panel */}
                         <div className="p-4 border-t border-slate-900 bg-[#060a12]/50 flex flex-col gap-2">
@@ -1061,9 +1077,10 @@
                                 }}
                                 disabled={isCloudSyncing}
                                 className="w-full py-2.5 bg-slate-950 border border-slate-800 hover:border-teal-500/40 rounded-xl text-xs font-semibold text-teal-400 flex items-center justify-center gap-2 transition duration-150 disabled:opacity-50"
+                                style={{ minHeight: '40px' }}
                             >
                                 <Icon name="Cloud" size={14} className={isCloudSyncing ? "animate-spin" : ""} />
-                                {isCloudSyncing ? "SYNCING..." : (sheetUrl && isValidUrl(sheetUrl)) ? "รีเฟรชข้อมูลคลาวด์" : "เชื่อม Google Sheets"}
+                                {isCloudSyncing ? "SYNCING..." : "รีเฟรชข้อมูลคลาวด์"}
                             </button>
                         </div>
 
@@ -1092,30 +1109,31 @@
                         <div className="p-4 border-t border-slate-900 flex flex-col gap-2 bg-[#060a12]">
                             {!isReadOnly && (
                                 <Fragment>
-                                    <label className="flex items-center justify-center gap-2 w-full py-3 bg-gradient-to-r from-teal-500 to-emerald-400 text-slate-950 rounded-xl font-bold text-xs uppercase cursor-pointer hover:opacity-95 transition shadow-md shadow-teal-500/5 active:scale-[0.98]">
+                                    <label className="flex items-center justify-center gap-2 w-full py-3 bg-gradient-to-r from-teal-500 to-emerald-400 text-slate-950 rounded-xl font-bold text-xs uppercase cursor-pointer hover:opacity-95 transition shadow-md shadow-teal-500/5 active:scale-[0.98]" style={{ minHeight: '44px' }}>
                                         <Icon name="Plus" size={16} /> IMPORT CSV
                                         <input type="file" className="hidden" accept=".csv" onChange={handleUploadCSV}/>
                                     </label>
                                     <div className="grid grid-cols-2 gap-1.5">
-                                        <button onClick={() => setShowSettingsModal(true)} className="flex items-center justify-center gap-1.5 py-2 bg-slate-900/60 border border-slate-800 text-slate-400 hover:text-slate-200 rounded-xl font-semibold text-[10px] uppercase transition duration-150">
+                                        <button onClick={() => setShowSettingsModal(true)} className="flex items-center justify-center gap-1.5 py-2.5 bg-slate-900/60 border border-slate-800 text-slate-400 hover:text-slate-200 rounded-xl font-semibold text-[10px] uppercase transition duration-150">
                                             <Icon name="Settings" size={12} /> SHEET LINK
                                         </button>
-                                        <button onClick={() => { setTempApiKey(userApiKey); setTempModelSelection(selectedModel); setShowApiKeyModal(true); }} className="flex items-center justify-center gap-1.5 py-2 bg-slate-900/60 border border-slate-800 text-slate-400 hover:text-slate-200 rounded-xl font-semibold text-[10px] uppercase transition duration-150">
+                                        <button onClick={() => { setTempApiKey(userApiKey); setTempModelSelection(selectedModel); setShowApiKeyModal(true); }} className="flex items-center justify-center gap-1.5 py-2.5 bg-slate-900/60 border border-slate-800 text-slate-400 hover:text-slate-200 rounded-xl font-semibold text-[10px] uppercase transition duration-150">
                                             <Icon name="Sparkle" size={12} /> AI CONFIG
                                         </button>
                                     </div>
                                 </Fragment>
                             )}
-                            <button onClick={handleSignOut} className="flex items-center justify-center gap-2 w-full py-2 bg-red-950/10 border border-red-900/20 text-red-400/90 rounded-xl font-semibold text-xs uppercase hover:bg-red-950/20 hover:text-red-300 transition duration-150">
+                            <button onClick={handleSignOut} className="flex items-center justify-center gap-2 w-full py-2.5 bg-red-950/10 border border-red-900/20 text-red-400/90 rounded-xl font-semibold text-xs uppercase hover:bg-red-950/20 hover:text-red-300 transition duration-150">
                                 <Icon name="LogOut" size={14} /> LOGOUT
                             </button>
                         </div>
                     </aside>
 
+                    {}
                     <main className="flex-1 flex flex-col overflow-hidden bg-[#030712]">
                         <header className="h-16 bg-[#090d16] border-b border-slate-900/60 px-6 md:px-10 flex items-center justify-between z-10 shrink-0">
                             <div className="flex items-center gap-3 md:gap-4">
-                                <button onClick={() => setIsSidebarOpen(true)} className="p-2 text-slate-400 hover:text-teal-400 md:hidden"><Icon name="Menu" size={24} /></button>
+                                <button onClick={() => setIsSidebarOpen(true)} className="p-2 text-slate-400 hover:text-teal-400 md:hidden" style={{ minWidth: '44px', minHeight: '44px' }}><Icon name="Menu" size={24} /></button>
                                 <Icon name="Target" size={20} className="text-teal-400 animate-pulse" />
                                 <span className="text-xs md:text-sm font-semibold text-slate-300 tracking-wider">RATTANACHOT TASK</span>
                             </div>
@@ -1149,58 +1167,6 @@
                             {syncProgress && (
                                 <div className="fixed inset-0 z-[100] bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center text-teal-400 font-bold uppercase tracking-widest animate-pulse">
                                     {syncProgress}
-                                </div>
-                            )}
-
-                            {showCorsAlert && (
-                                <div className="mb-6 p-5 bg-amber-950/20 border border-amber-800/40 rounded-2xl flex gap-4 items-start animate-fadeIn text-amber-300">
-                                    <div className="p-2 bg-amber-900/30 rounded-xl text-amber-400 shrink-0">
-                                        <Icon name="Alert" size={24} />
-                                    </div>
-                                    <div className="space-y-2 text-xs md:text-sm">
-                                        <h4 className="font-bold text-white text-sm">ตรวจพบบัญชีสิทธิ์ CORS ของ Google Apps Script ขัดข้อง</h4>
-                                        <p className="text-slate-300 leading-relaxed font-light">
-                                            ตัวแอปได้รับการจำกัดสิทธิ์การเข้าถึงจากโดเมนสเปรดชีตของคุณ โปรดแก้ไขสิทธิ์ในสคริปต์ Google Sheets ตามข้อแนะนำดังนี้:
-                                        </p>
-                                        <ul className="list-decimal pl-5 space-y-1 text-slate-300 font-light">
-                                            <li>เปิดไฟล์สเปรดชีตหลักของคุณ &gt; ไปที่ <span className="font-semibold text-white">Extensions (ส่วนขยาย) &gt; Apps Script</span></li>
-                                            <li>กดปุ่ม <span className="font-semibold text-white">Deploy (การทำให้ใช้งานได้) &gt; Manage deployments (จัดการการทำให้ใช้งานได้)</span></li>
-                                            <li>กดสัญลักษณ์ดินสอเพื่อแก้ไข และให้เลือกเวอร์ชันเป็น <span className="font-semibold text-teal-400">New Version (เวอร์ชันใหม่)</span> ทุกครั้งที่มีการบันทึก</li>
-                                            <li>ตรวจสอบให้แน่ใจว่าได้ปรับ <span className="font-semibold text-white">Execute as</span> เป็น <span className="font-semibold text-teal-400">"Me"</span> และปรับ <span className="font-semibold text-white">Who has access</span> เป็น <span className="font-semibold text-teal-400">"Anyone" (ทุกคน)</span> แล้วกด Deploy ใหม่</li>
-                                        </ul>
-                                        <button 
-                                            onClick={() => setShowCorsAlert(false)} 
-                                            className="mt-3 px-4 py-1.5 bg-amber-900/30 hover:bg-amber-900/50 text-amber-300 rounded-lg text-xs font-bold transition"
-                                        >
-                                            รับทราบและปิดการแจ้งเตือน
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-
-                            {cloudDebugInfo && (
-                                <div className="mb-6 p-5 bg-teal-950/20 border border-teal-800/40 rounded-2xl flex gap-4 items-start animate-fadeIn text-teal-300">
-                                    <div className="p-2 bg-teal-900/30 rounded-xl text-teal-400 shrink-0">
-                                        <Icon name="Cloud" size={24} />
-                                    </div>
-                                    <div className="space-y-2 text-xs md:text-sm w-full">
-                                        <h4 className="font-bold text-white text-sm">แผงวิเคราะห์โครงสร้างข้อมูลจาก Google Sheets (Cloud Diagnosis)</h4>
-                                        <div className="grid grid-cols-2 gap-4 text-xs font-mono bg-slate-950/60 p-3 rounded-xl border border-slate-800 my-2">
-                                            <div>โครงสร้างส่งค่าเป็น Array: <span className={cloudDebugInfo.isArray ? "text-teal-400" : "text-red-400"}>{cloudDebugInfo.isArray ? "ใช่ (ถูกต้อง)" : "ไม่ใช่ ❌"}</span></div>
-                                            <div>จำนวนรายการที่พบ: <span className="text-white font-semibold">{cloudDebugInfo.length} แถว</span></div>
-                                        </div>
-                                        <p className="text-slate-300 leading-relaxed font-light">
-                                            หากดึงรายการขึ้นมาได้ครบถ้วน แต่รายชื่อข้อมูลไม่ปรากฏบนแอป เป็นเพราะหัวตารางแถวแรกสุด (Row 1) สะกดไม่ตรงกับแอป ให้ตรวจตามนี้ครับ:
-                                            <br />
-                                            <span className="text-teal-400 font-mono">Action Id, Title, Description, Cost, Opening Date, Due Date, Closed Date, Status, In_Charge, Line, Attachment, Note</span>
-                                        </p>
-                                        <button 
-                                            onClick={() => setCloudDebugInfo(null)} 
-                                            className="px-4 py-1.5 bg-teal-900/30 hover:bg-teal-900/50 text-teal-300 rounded-lg text-xs font-bold transition"
-                                        >
-                                            ปิดแผงวิเคราะห์ข้อมูล
-                                        </button>
-                                    </div>
                                 </div>
                             )}
 
@@ -1274,7 +1240,7 @@
                                             ))}
                                         </div>
 
-                                        {/* 📊 ตารางสรุปจำนวน Action Open และ Close รายเดือนใต้กราฟ */}
+                                        {/* 📊 ตารางสรุปตามรูปภาพ image_d8da8c.png: แถวบนเปลี่ยนเป็น "Opened" (นับ Job ที่ Open ใหม่จริงตามเดือนนั้นๆ) */}
                                         <div className="pt-4 border-t border-slate-800/60">
                                             <h5 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
                                                 <Icon name="Calendar" size={14} className="text-teal-400" />
@@ -1285,7 +1251,6 @@
                                                     <div key={i} className="p-2.5 bg-slate-950/40 rounded-xl border border-slate-800/50 flex flex-col justify-between hover:border-slate-700 transition">
                                                         <span className="font-bold text-slate-300 text-xs block text-center border-b border-slate-800/50 pb-1">{c.label}</span>
                                                         <div className="mt-2 space-y-1">
-                                                            {/* 🛠️ เปลี่ยน Label เป็น Opened และดึงยอดจากจำนวนงานที่ Open ในเดือนนั้นจริงๆ */}
                                                             <div className="flex justify-between items-center text-[10px]">
                                                                 <span className="text-amber-500 font-semibold">Opened</span>
                                                                 <span className="font-bold text-white font-mono">{c.openCount}</span>
@@ -1465,6 +1430,7 @@
                                                             <button 
                                                                 onClick={(e) => { e.stopPropagation(); setDeleteConfirm({ id: t._id }); }} 
                                                                 className="text-slate-600 hover:text-red-400 p-1.5 rounded-lg hover:bg-slate-900 transition-colors"
+                                                                style={{ minWidth: '44px', minHeight: '44px' }}
                                                             >
                                                                 <Icon name="Trash" size={16}/>
                                                             </button>
@@ -1625,6 +1591,7 @@
                                                                             }
                                                                         }}
                                                                         className="w-full py-2.5 bg-gradient-to-r from-teal-500 to-emerald-400 text-slate-950 font-bold rounded-xl text-[10px] uppercase transition-all duration-150 flex items-center justify-center gap-1.5 active:scale-[0.98] shadow-md shadow-teal-500/5"
+                                                                        style={{ minHeight: '44px' }}
                                                                     >
                                                                         <Icon name="Search" size={12} /> แสดงไฟล์แนบจริง
                                                                     </button>
@@ -1632,6 +1599,7 @@
                                                                     <button 
                                                                         disabled
                                                                         className="w-full py-2.5 bg-slate-900 border border-slate-800/60 text-slate-500 rounded-xl text-[10px] font-bold uppercase flex items-center justify-center gap-1.5 opacity-50 cursor-not-allowed"
+                                                                        style={{ minHeight: '44px' }}
                                                                     >
                                                                         <Icon name="Search" size={12} /> ไม่มีไฟล์แนบเสริม
                                                                     </button>
@@ -1648,7 +1616,7 @@
                                                             
                                                             <div className="flex gap-2">
                                                                 {!isReadOnly && (
-                                                                    <label className="flex-1 cursor-pointer py-2 bg-[#0f172a]/60 border border-dashed border-slate-800 hover:border-teal-500/50 text-slate-400 hover:text-teal-400 rounded-xl text-[10px] font-semibold text-center uppercase transition duration-150">
+                                                                    <label className="flex-1 cursor-pointer py-2 bg-[#0f172a]/60 border border-dashed border-slate-800 hover:border-teal-500/50 text-slate-400 hover:text-teal-400 rounded-xl text-[10px] font-semibold text-center uppercase transition duration-150" style={{ minHeight: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                                                         📷 ถ่ายรูปแนบหลักฐานจริง <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(e, t._id)} />
                                                                     </label>
                                                                 )}
@@ -1658,6 +1626,7 @@
                                                                 <button 
                                                                     onClick={() => cycleStatus(t._id)} 
                                                                     className="w-full py-3 bg-slate-900 hover:bg-teal-500 hover:text-slate-950 text-slate-300 rounded-xl text-xs font-bold uppercase tracking-wide transition-all duration-150"
+                                                                    style={{ minHeight: '44px' }}
                                                                 >
                                                                     CHANGE OPERATIONAL STATUS
                                                                 </button>
@@ -1687,8 +1656,8 @@
                                 <h4 className="font-bold text-white uppercase tracking-wider mb-2">Confirm Action Delete?</h4>
                                 <p className="text-slate-500 text-xs mb-6">This operation will permanently remove this record.</p>
                                 <div className="flex gap-2">
-                                    <button onClick={() => setDeleteConfirm(null)} className="flex-1 py-3 bg-slate-900 text-slate-400 hover:text-slate-200 rounded-xl text-xs font-bold uppercase tracking-wider transition">Abort</button>
-                                    <button onClick={confirmDelete} className="flex-1 py-3 bg-red-600 hover:bg-red-500 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition">Confirm Delete</button>
+                                    <button onClick={() => setDeleteConfirm(null)} className="flex-1 py-3 bg-slate-900 text-slate-400 hover:text-slate-200 rounded-xl text-xs font-bold uppercase tracking-wider transition" style={{ minHeight: '44px' }}>Abort</button>
+                                    <button onClick={confirmDelete} className="flex-1 py-3 bg-red-600 hover:bg-red-500 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition" style={{ minHeight: '44px' }}>Confirm Delete</button>
                                 </div>
                             </div>
                         </div>
@@ -1698,7 +1667,7 @@
                     {showSettingsModal && (
                         <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/85 backdrop-blur-sm animate-fadeIn" onClick={() => setShowSettingsModal(false)}>
                             <div className="bg-[#090d16] p-8 rounded-3xl max-w-md w-full border border-slate-800 shadow-2xl relative" onClick={e => e.stopPropagation()}>
-                                <button onClick={() => setShowSettingsModal(false)} className="absolute top-4 right-4 text-slate-500 hover:text-slate-300"><Icon name="X" size={20} /></button>
+                                <button onClick={() => setShowSettingsModal(false)} className="absolute top-4 right-4 text-slate-500 hover:text-slate-300" style={{ minWidth: '44px', minHeight: '44px' }}><Icon name="X" size={20} /></button>
                                 <h3 className="font-bold text-white uppercase tracking-wider text-sm mb-2">เชื่อมต่อ GOOGLE SHEETS</h3>
                                 <p className="text-slate-400 text-xs mb-6 leading-relaxed">วาง Web App URL ที่เผยแพร่เพื่อเชื่อมข้อมูลระหว่างระบบเข้าสเปรดชีตทันทีแบบเรียลไทม์</p>
                                 
@@ -1712,6 +1681,7 @@
                                     <button 
                                         onClick={() => saveCloudSettings(sheetUrl)}
                                         className="w-full py-3 bg-gradient-to-r from-teal-500 to-emerald-500 text-slate-950 rounded-xl font-bold text-xs uppercase tracking-wider shadow-lg"
+                                        style={{ minHeight: '44px' }}
                                     >
                                         บันทึกสิทธิ์การเชื่อมโยง
                                     </button>
@@ -1749,16 +1719,61 @@
                                             onChange={e => setTempModelSelection(e.target.value)} 
                                         />
                                         <span className="text-[10px] text-slate-500 mt-1 block">
-                                            โมเดลแนะนำสำหรับการพรีวิว: <span className="text-teal-400">gemini-2.5-flash-preview-09-2025</span><br />
-                                            โมเดลอัปเดตอื่น ๆ: <span className="text-slate-400">gemini-2.5-flash, gemini-1.5-flash</span> เป็นต้น
+                                            โมเดลแนะนำสำหรับการพรีวิว: <span className="text-teal-400">gemini-2.5-flash-preview-09-2025</span>
                                         </span>
                                     </div>
                                 </div>
 
                                 <div className="flex gap-2 mt-6">
-                                    <button onClick={() => setShowApiKeyModal(false)} className="py-3 px-4 bg-slate-900 text-slate-400 hover:text-slate-200 rounded-xl text-xs font-bold uppercase transition">Cancel</button>
-                                    <button onClick={clearApiKey} className="py-3 px-4 bg-red-950/20 text-red-400 hover:bg-red-950/40 rounded-xl text-xs font-bold uppercase transition mr-auto">Clear Settings</button>
-                                    <button onClick={saveApiKey} className="py-3 px-5 bg-teal-500 text-slate-950 rounded-xl text-xs font-bold uppercase transition">Save Key</button>
+                                    <button onClick={() => setShowApiKeyModal(false)} className="py-3 px-4 bg-slate-900 text-slate-400 hover:text-slate-200 rounded-xl text-xs font-bold uppercase transition" style={{ minHeight: '44px' }}>Cancel</button>
+                                    <button onClick={clearApiKey} className="py-3 px-4 bg-red-950/20 text-red-400 hover:bg-red-950/40 rounded-xl text-xs font-bold uppercase transition mr-auto" style={{ minHeight: '44px' }}>Clear Settings</button>
+                                    <button onClick={saveApiKey} className="py-3 px-5 bg-teal-500 text-slate-950 rounded-xl text-xs font-bold uppercase transition" style={{ minHeight: '44px' }}>Save Key</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* 📲 หน้าต่างโมดอลสำหรับแสดง QR Code นำทางและซิงค์ข้อมูลบนมือถือ (Mobile QR Sync Modal) */}
+                    {showQrModal && (
+                        <div className="fixed inset-0 z-[500] flex items-center justify-center bg-black/90 backdrop-blur-md animate-fadeIn" onClick={() => setShowQrModal(false)}>
+                            <div className="bg-[#090d16] p-8 rounded-3xl max-w-sm w-full border border-teal-500/20 text-center shadow-2xl relative space-y-6" onClick={e => e.stopPropagation()}>
+                                <button onClick={() => setShowQrModal(false)} className="absolute top-4 right-4 text-slate-500 hover:text-slate-300" style={{ minWidth: '44px', minHeight: '44px' }}><Icon name="X" size={22} /></button>
+                                
+                                <div>
+                                    <h3 className="font-bold text-white uppercase tracking-wider text-sm flex items-center justify-center gap-2">
+                                        <Icon name="Share" className="text-teal-400" />
+                                        ซิงค์ตั้งค่าไปที่มือถือ
+                                    </h3>
+                                    <p className="text-slate-400 text-[10px] mt-1">สแกนโค้ดนี้ด้วยโทรศัพท์มือถือของคุณเพื่อนำสิทธิ์การตั้งค่าและดึงสเปรดชีตมาแสดงผลทันที</p>
+                                </div>
+
+                                {/* QR Code Generator API (ใช้ค่า Link Sync ที่เข้ารหัสสเปรดชีตและคีย์เสร็จสรรพ) */}
+                                <div className="bg-white p-4 rounded-2xl inline-block shadow-lg mx-auto border border-teal-500/10">
+                                    <img 
+                                        src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&color=0f172a&bgcolor=ffffff&data=${encodeURIComponent(getMobileSyncLink())}`} 
+                                        alt="Mobile Sync QR Code"
+                                        className="w-48 h-48"
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">ลิงก์นำเข้าสิทธิ์คลาวด์ตรง</span>
+                                    <input 
+                                        type="text" 
+                                        readOnly 
+                                        value={getMobileSyncLink()} 
+                                        className="w-full p-2.5 bg-slate-950 text-slate-400 border border-slate-900 rounded-xl text-[9px] font-mono outline-none text-center truncate select-all" 
+                                    />
+                                    <button 
+                                        onClick={() => {
+                                            document.execCommand('copy');
+                                            showToast("คัดลอกลิงก์ซิงค์เรียบร้อย!");
+                                        }}
+                                        className="w-full py-2 bg-slate-900 hover:bg-slate-850 text-teal-400 text-[10px] font-bold uppercase rounded-lg border border-slate-800 transition"
+                                        style={{ minHeight: '36px' }}
+                                    >
+                                        คัดลอกลิงก์ส่งต่อไปยังกลุ่มไลน์
+                                    </button>
                                 </div>
                             </div>
                         </div>
