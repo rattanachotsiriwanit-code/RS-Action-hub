@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RS Action Hub - Command Center</title>
+    <title>Rattanachot Task - Command Center</title>
     
     <!-- React & Babel Standalone CDN -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -41,6 +41,7 @@
 <body class="bg-[#030712] text-slate-100 overflow-hidden">
     <div id="root"></div>
 
+    <!-- React App Source Holder (Preventing auto-compile issues) -->
     <script id="react-code-holder" type="text/plain">
         const { useState, useEffect, useMemo, Fragment } = React;
 
@@ -59,15 +60,45 @@
             "SA Pole assy 1", "SA Pole assy 2", "SA Pole assy 3", "SA Pole assy 4"
         ];
 
+        // 🛠️ ฟังก์ชันการล้างข้อมูล ID และสร้างรหัสให้ดูเป็นระบบ มีโครงสร้างสากล (เช่น TASK-17-032-104)
+        const cleanAndFormatId = (rawId) => {
+            if (!rawId) return '';
+            // ลบช่องว่าง คอมม่า หรือฟันหนูที่ติดมา
+            let clean = String(rawId).replace(/[\s,'"]/g, '').trim();
+            
+            // ตรวจสอบว่าเป็นตัวเลขล้วน (เช่น 117032104 หรือ 17032104)
+            if (/^\d+$/.test(clean)) {
+                if (clean.length === 9) {
+                    return `TASK-${clean.slice(0, 3)}-${clean.slice(3, 6)}-${clean.slice(6)}`;
+                }
+                if (clean.length === 8) {
+                    return `TASK-0${clean.slice(0, 2)}-${clean.slice(2, 5)}-${clean.slice(5)}`;
+                }
+                return `TASK-${clean}`;
+            }
+            
+            // ตรวจสอบว่ามาเป็นเลขขีด เช่น 17-032-104 หรือ 22-938-604
+            if (/^\d+-\d+-\d+$/.test(clean)) {
+                return `TASK-${clean}`;
+            }
+            
+            if (clean.toUpperCase().startsWith("TASK-") || clean.toUpperCase().startsWith("ACT-")) {
+                return clean.toUpperCase().replace("ACT-", "TASK-");
+            }
+            
+            return `TASK-${clean.toUpperCase()}`;
+        };
+
         const INITIAL_SAMPLE_DATA = [
             {
-                _id: "2026-001",
-                "Action Id": "2026-001",
+                _id: "TASK-2026-001",
+                "Action Id": "TASK-2026-001",
                 "Title": "ติดตั้งเซนเซอร์ตรวจจับความร้อนเครื่องจักร No.1",
                 "Description": "ทำการติดตั้งตัวเซนเซอร์วัดอุณหภูมิความร้อนในส่วน D Auto Thermal เพื่อส่งข้อมูลแจ้งเตือนเมื่อระบบมีความร้อนสูงเกินปกติ",
                 "Cost": "18500",
                 "Opening Date": "2026-06-15T08:00:00.000Z",
                 "Due Date": "2026-06-25T17:00:00.000Z",
+                "Closed Date": "",
                 "Status": "In Progress",
                 "In_Charge": "Rattanachot Siriwanit",
                 "Line": "D Auto Thermal (W03-W07) No.1",
@@ -84,20 +115,20 @@
             return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ /g, '-');
         };
 
-        const GEMINI_MODEL = "gemini-2.5-flash-preview-09-2025";
-        
-        const fetchGemini = async (prompt, userKey, systemPrompt = "คุณคือผู้ช่วยจัดการโครงการอุตสาหกรรมมืออาชีพ") => {
+        const fetchGemini = async (prompt, userKey, systemPrompt = "คุณคือผู้ช่วยจัดการโครงการอุตสาหกรรมมืออาชีพ", modelName = "gemini-2.5-flash-preview-09-2025") => {
             if (!userKey) throw new Error("NO_API_KEY");
+            const cleanKey = String(userKey).trim();
+            const cleanModel = String(modelName || "gemini-2.5-flash-preview-09-2025").trim();
             let retries = 0;
             const delays = [1000, 2000, 4000, 8000, 16000];
             while (retries < 5) {
                 try {
-                    const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + GEMINI_MODEL + ':generateContent?key=' + userKey, {
+                    const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + cleanModel + ':generateContent?key=' + cleanKey, {
                         method: 'POST', headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], systemInstruction: { parts: [{ text: systemPrompt }] } })
                     });
                     const result = await response.json();
-                    if (!response.ok) throw new Error(result.error?.message || "API Error");
+                    if (!response.ok) throw new Error(result.error?.message || `API Error Status ${response.status}`);
                     return result.candidates?.[0]?.content?.parts?.[0]?.text;
                 } catch (error) {
                     if (error.message === "NO_API_KEY") throw error;
@@ -124,12 +155,13 @@
                 Calendar: <Fragment><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></Fragment>,
                 Lock: <Fragment><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></Fragment>,
                 LogOut: <Fragment><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></Fragment>,
-                Eye: <Fragment><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></Fragment>
+                Eye: <Fragment><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></Fragment>,
+                Alert: <Fragment><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></Fragment>
             };
             return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{icons[name] || null}</svg>;
         };
 
-        const AiNextStep = ({ title, description, setMsg, fetchGemini, userApiKey, setShowApiKeyModal, isReadOnly }) => {
+        const AiNextStep = ({ title, description, setMsg, fetchGemini, userApiKey, setShowApiKeyModal, isReadOnly, activeModel }) => {
             const [loading, setLoading] = useState(false);
             const [suggestion, setSuggestion] = useState("");
             const getSteps = async () => {
@@ -138,11 +170,14 @@
                 setLoading(true);
                 try {
                     const prompt = 'งานคือ "' + title + '". คำอธิบาย: "' + description + '". ช่วยแนะนำ 3 ขั้นตอนปฏิบัติการเชิงวิศวรรกรรมสั้นๆ ภาษาไทย';
-                    const result = await fetchGemini(prompt, userApiKey, "คุณคือผู้เชี่ยวชาญโรงงานและช่างเทคนิคอาวุโส");
+                    const result = await fetchGemini(prompt, userApiKey, "คุณคือผู้เชี่ยวชาญโรงงานและช่างเทคนิคอาวุโส", activeModel);
                     setSuggestion(result);
                 } catch (e) { 
-                    if(e.message === "NO_API_KEY") setShowApiKeyModal(true);
-                    else setMsg("AI Insight failed: " + e.message); 
+                    if(e.message === "NO_API_KEY") {
+                        setShowApiKeyModal(true);
+                    } else {
+                        setMsg("AI Error: โปรดตรวจสอบความถูกต้องของ API Key ในแถบการตั้งค่า"); 
+                    }
                 }
                 setLoading(false);
             };
@@ -183,21 +218,22 @@
             <div className="bg-[#0f172a] p-6 rounded-2xl border border-slate-800/80 shadow-lg flex flex-col group overflow-hidden relative text-left">
                 <div className={'absolute top-0 left-0 w-full h-1 ' + color} />
                 <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{label}</span>
-                <div className="text-3xl font-bold text-white tracking-tight leading-none mt-3 mb-1 group-hover:scale-105 transition-transform duration-300 origin-left tabular-nums">
+                <div className="text-2xl font-bold text-white tracking-tight leading-none mt-3 mb-1 group-hover:scale-105 transition-transform duration-300 origin-left tabular-nums">
                     {value}
                 </div>
             </div>
         );
 
-        const FormInput = ({ label, val, onChange, placeholder, type="text" }) => (
+        const FormInput = ({ label, val, onChange, placeholder, type="text", disabled=false }) => (
             <div className="space-y-1.5">
                 <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">{label}</label>
                 <input 
                     type={type} 
-                    className="w-full p-3 bg-slate-950/70 border border-slate-800/85 rounded-xl text-xs md:text-sm font-medium text-white placeholder-slate-600 focus:placeholder-slate-500 outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500/10 transition-all duration-200" 
+                    disabled={disabled}
+                    className="w-full p-3 bg-slate-950/70 border border-slate-800/85 rounded-xl text-xs md:text-sm font-medium text-white placeholder-slate-600 focus:placeholder-slate-500 outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500/10 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:border-slate-800" 
                     placeholder={placeholder} 
                     value={val} 
-                    onChange={(e) => onChange(e.target.value)} 
+                    onChange={(e) => !disabled && onChange(e.target.value)} 
                 />
             </div>
         );
@@ -234,7 +270,6 @@
 
             return (
                 <div className="min-h-screen flex items-center justify-center p-4 relative bg-radial-gradient from-slate-900 to-slate-950 overflow-hidden">
-                    {/* Glowing Modern Scanner Background Effect */}
                     <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-teal-500/40 to-transparent shadow-[0_0_15px_#14b8a6] animate-pulse z-[2]" style={{
                         animation: 'scannerMove 5s infinite ease-in-out'
                     }} />
@@ -281,7 +316,7 @@
                             <button 
                                 type="submit" 
                                 disabled={loading}
-                                className="w-full py-3.5 mt-2 bg-gradient-to-r from-teal-500 to-emerald-500 text-slate-950 rounded-xl font-bold uppercase text-xs tracking-wider hover:opacity-95 transition-all duration-200 shadow-lg shadow-teal-500/10 active:scale-[0.98] disabled:opacity-50"
+                                className="w-full py-3.5 mt-2 bg-gradient-to-r from-teal-500 to-emerald-400 text-slate-950 rounded-xl font-bold uppercase text-xs tracking-wider hover:opacity-95 transition-all duration-200 shadow-lg shadow-teal-500/10 active:scale-[0.98] disabled:opacity-50"
                             >
                                 {loading ? "AUTHORIZING..." : "UNLOCK CONTROL SYSTEM"}
                             </button>
@@ -316,6 +351,8 @@
             // ☁️ Google Sheets API Setup
             const [sheetUrl, setSheetUrl] = useState(() => localStorage.getItem('rs_google_sheet_api_url') || '');
             const [isCloudSyncing, setIsCloudSyncing] = useState(false);
+            const [showCorsAlert, setShowCorsAlert] = useState(false); 
+            const [cloudDebugInfo, setCloudDebugInfo] = useState(null); 
 
             const [view, setView] = useState('dashboard');
             const [search, setSearch] = useState('');
@@ -346,14 +383,16 @@
             const [previewUrl, setPreviewUrl] = useState(null);
 
             const [userApiKey, setUserApiKey] = useState(localStorage.getItem('gemini_api_key') || '');
+            const [selectedModel, setSelectedModel] = useState(() => localStorage.getItem('gemini_model_selection') || 'gemini-2.5-flash-preview-09-2025');
             const [showApiKeyModal, setShowApiKeyModal] = useState(false);
             const [tempApiKey, setTempApiKey] = useState('');
+            const [tempModelSelection, setTempModelSelection] = useState(selectedModel);
 
             const [aiSummary, setAiSummary] = useState("");
             const [isAiLoading, setIsAiLoading] = useState(false);
 
             const [newItem, setNewItem] = useState({
-                'Action Id': '', 'Title': '', 'Description': '', 'Cost': '', 'Opening Date': new Date().toISOString(), 'Due Date': '', 'Status': 'Open', 'In_Charge': 'Rattanachot Siriwanit', 'Line': '', 'Attachment': '' 
+                'Action Id': '', 'Title': '', 'Description': '', 'Cost': '', 'Opening Date': new Date().toISOString(), 'Due Date': '', 'Closed Date': '', 'Status': 'Open', 'In_Charge': 'Rattanachot Siriwanit', 'Line': '', 'Attachment': '' 
             });
 
             const isReadOnly = session === 'guest';
@@ -373,31 +412,86 @@
                 setTimeout(() => setMsg(null), 3000);
             };
 
-            const pullFromGoogleSheets = async () => {
-                if (!sheetUrl) return;
-                setIsCloudSyncing(true);
+            const isValidUrl = (string) => {
                 try {
-                    const response = await fetch(sheetUrl);
+                    const url = new URL(string.trim());
+                    return url.protocol === "http:" || url.protocol === "https:";
+                } catch (_) {
+                    return false;  
+                }
+            };
+
+            const pullFromGoogleSheets = async () => {
+                const trimmedUrl = String(sheetUrl || '').trim();
+                if (!trimmedUrl) return;
+
+                if (!isValidUrl(trimmedUrl)) {
+                    showToast("⚠️ รูปแบบลิงก์ Google Sheets ไม่ถูกต้อง (ตรวจสอบการสลับค่ากับ API Key)");
+                    return;
+                }
+
+                setIsCloudSyncing(true);
+                setShowCorsAlert(false);
+                setCloudDebugInfo(null);
+                try {
+                    const response = await fetch(trimmedUrl);
                     if (response.ok) {
                         const cloudData = await response.json();
-                        if (Array.isArray(cloudData) && cloudData.length > 0) {
-                            const mapped = cloudData.map(row => ({
-                                ...row,
-                                _id: row._id || row['Action Id']
-                            }));
-                            setAllData(mapped);
-                            showToast("ซิงค์ดึงข้อมูลจาก Google Sheets สำเร็จ!");
+                        
+                        if (cloudData) {
+                            setCloudDebugInfo({
+                                isArray: Array.isArray(cloudData),
+                                length: Array.isArray(cloudData) ? cloudData.length : 0,
+                                sampleRow: Array.isArray(cloudData) && cloudData.length > 0 ? cloudData[0] : cloudData,
+                                raw: JSON.stringify(cloudData).slice(0, 300) + '...'
+                            });
                         }
+
+                        if (Array.isArray(cloudData) && cloudData.length > 0) {
+                            const mapped = cloudData.map(row => {
+                                const rawActionId = row._id || row['Action Id'] || row['ActionId'] || row['id'] || '';
+                                const cleanActionId = cleanAndFormatId(rawActionId);
+                                return {
+                                    ...row,
+                                    _id: cleanActionId,
+                                    'Action Id': cleanActionId,
+                                    'Title': row.Title || row['title'] || row['Objective'] || 'Untitled',
+                                    'Description': row.Description || row['description'] || row['Action Detail'] || '',
+                                    'Cost': String(row.Cost || row['cost'] || row['Budget'] || '0'),
+                                    'Opening Date': row['Opening Date'] || row['OpeningDate'] || row['OpenedAt'] || new Date().toISOString(),
+                                    'Due Date': row['Due Date'] || row['DueDate'] || row['Due Date R/S*'] || '',
+                                    'Closed Date': row['Closed Date'] || row['ClosedDate'] || '',
+                                    'Status': row.Status || row['status'] || 'Open',
+                                    'In_Charge': row.In_Charge || row['In Charge'] || row['InCharge'] || row['Owner'] || row['Responsible'] || 'Rattanachot Siriwanit',
+                                    'Line': row.Line || row['line'] || row['Area'] || '',
+                                    'Attachment': row.Attachment || row['attachment'] || row['Attachment URL'] || '',
+                                    'Note': row.Note || row['note'] || row['Note_Comments'] || ''
+                                };
+                            });
+                            setAllData(mapped);
+                            showToast("ซิงค์ดึงข้อมูลและฟอร์แมต Action ID ใหม่จาก Google Sheets สำเร็จ!");
+                        } else {
+                            showToast("ดึงข้อมูลสำเร็จ แต่ข้อมูลโครงสร้าง JSON ไม่เป็น Array หรือไม่มีข้อมูล");
+                        }
+                    } else {
+                        throw new Error(`HTTP Error Status: ${response.status}`);
                     }
                 } catch(e) {
                     console.error("Failed to pull from sheets:", e);
-                    showToast("ไม่สามารถดึงข้อมูลจาก Sheets ได้ (ตรวจสอบสิทธิ์ URL)");
+                    if (e.name === 'TypeError' || String(e).includes('Failed to fetch')) {
+                        setShowCorsAlert(true);
+                        showToast("⚠️ ไม่สามารถดึงข้อมูลได้เนื่องจากสิทธิ์ CORS บน Apps Script");
+                    } else {
+                        showToast(`เชื่อมต่อไม่ได้: ${e.message}`);
+                    }
                 }
                 setIsCloudSyncing(false);
             };
 
             const pushToGoogleSheets = async (action, dataPayload) => {
-                if (!sheetUrl) return;
+                const trimmedUrl = String(sheetUrl || '').trim();
+                if (!trimmedUrl || !isValidUrl(trimmedUrl)) return;
+
                 setIsCloudSyncing(true);
                 try {
                     const cleanPayload = { ...dataPayload };
@@ -405,15 +499,33 @@
                         delete cleanPayload.Image;
                     }
 
-                    await fetch(sheetUrl, {
+                    const payloadToSend = {
+                        action: action,
+                        data: {
+                            'Action Id': cleanAndFormatId(cleanPayload['Action Id'] || cleanPayload._id || ''),
+                            'Title': cleanPayload['Title'] || '',
+                            'Description': cleanPayload['Description'] || '',
+                            'Cost': cleanPayload['Cost'] || '0',
+                            'Opening Date': cleanPayload['Opening Date'] || '',
+                            'Due Date': cleanPayload['Due Date'] || '',
+                            'Closed Date': cleanPayload['Closed Date'] || '',
+                            'Status': cleanPayload['Status'] || 'Open',
+                            'In_Charge': cleanPayload['In_Charge'] || '',
+                            'Line': cleanPayload['Line'] || '',
+                            'Attachment': cleanPayload['Attachment'] || '',
+                            'Note': cleanPayload['Note'] || ''
+                        }
+                    };
+
+                    await fetch(trimmedUrl, {
                         method: 'POST',
-                        mode: 'no-cors',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ action, data: cleanPayload })
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
+                        body: JSON.stringify(payloadToSend)
                     });
-                    showToast("บันทึกข้อมูลเข้า Google Sheets สำเร็จ!");
+                    showToast("บันทึกคำสั่งอัปเดตไปยัง Google Sheets สำเร็จ!");
                 } catch(e) {
                     console.error("Push failed:", e);
+                    showToast("⚠️ บันทึกข้อมูลคลาวด์ขัดข้อง แต่บันทึกในเครื่องเรียบร้อย");
                 }
                 setIsCloudSyncing(false);
             };
@@ -423,7 +535,7 @@
                 if (username.toUpperCase() === 'SESA650194' && password === '3010075') {
                     setSession('admin');
                     sessionStorage.setItem('rs_task_session', 'admin');
-                    showToast('ยินดีต้อนรับเข้าสู่ระบบควบคุมวิศวกรรม');
+                    showToast('ยินดีต้อนรับเข้าสู่ระบบ Rattanachot Task');
                 } else {
                     setAuthError('รหัสผ่านผู้ดูแลระบบควบคุมไม่ถูกต้อง');
                 }
@@ -460,16 +572,22 @@
                 let maxNum = 0;
                 allData.forEach(t => {
                     const id = String(t['Action Id'] || '').trim().toUpperCase();
-                    if (id.startsWith('2026-')) {
-                        const numPart = parseInt(id.replace('2026-', ''), 10);
-                        if (!isNaN(numPart) && numPart > maxNum) maxNum = numPart;
+                    if (id.startsWith('TASK-2026-')) {
+                        const parts = id.split('-'); 
+                        if (parts.length === 3) {
+                            const numPart = parseInt(parts[2], 10);
+                            if (!isNaN(numPart) && numPart > maxNum) {
+                                maxNum = numPart;
+                            }
+                        }
                     }
                 });
-                return '2026-' + String(maxNum + 1).padStart(3, '0');
+                const nextNum = maxNum + 1;
+                return 'TASK-2026-' + String(nextNum).padStart(3, '0');
             };
 
             useEffect(() => {
-                if (view === 'add' && newItem['Action Id'] === '') {
+                if (view === 'add') {
                     setNewItem(prev => ({ ...prev, 'Action Id': generateNextId() }));
                 }
             }, [view, allData]);
@@ -478,8 +596,10 @@
 
             const myTasksRaw = useMemo(() => {
                 return allData.filter(t => {
-                    const nameFields = String(t.In_Charge || t.Owner || t.Raiser || t.Responsible || t.OwnerName || t.Rattanachot || '').toLowerCase();
-                    return nameFields.includes('rattanachot') || nameFields.includes('siriwanit') || nameFields.includes('รัตนโชติ');
+                    const nameFields = String(
+                        t.In_Charge || t.InCharge || t.Owner || t.Raiser || t.Responsible || t.OwnerName || t.Rattanachot || ''
+                    ).toLowerCase();
+                    return nameFields.includes('rattanachot') || nameFields.includes('siriwanit') || nameFields.includes('รัตนโชติ') || nameFields.includes('650194');
                 });
             }, [allData]);
 
@@ -488,7 +608,7 @@
                     const statusStr = String(t.Status || '').toLowerCase();
                     const isClosed = statusStr.includes('close') || statusStr.includes('succ');
                     const dateStr = isClosed 
-                        ? (t.ClosedAt || t.ClosedDate || t['Opening Date'] || t.OpenedAt)
+                        ? (t['Closed Date'] || t.ClosedAt || t.ClosedDate || t['Opening Date'] || t.OpenedAt)
                         : (t['Opening Date'] || t.OpenedAt || t['Due Date']);
                     const d = new Date(dateStr);
                     return !isNaN(d.getTime()) && d.getFullYear() === selectedYear;
@@ -543,8 +663,8 @@
 
             const dashboardData = useMemo(() => {
                 const months = Array(12).fill(0);
-                const openCounts = Array(12).fill(0);
-                const closedCounts = Array(12).fill(0);
+                const openCounts = Array(12).fill(0); // 🛠️ คำนวณยอดเฉพาะงานที่เปิดใหม่ (Opened) ในเดือนนั้นๆ
+                const closedCounts = Array(12).fill(0); // 🛠️ คำนวณยอดงานที่ปิดลง (Closed) ในเดือนนั้นๆ
                 let totalSpent = 0;
                 let totalClosed = 0;
                 let pendingCount = 0;
@@ -556,17 +676,22 @@
                     const statusStr = String(t.Status || '').toLowerCase();
                     const isClosed = statusStr.includes('close') || statusStr.includes('succ');
                     
-                    const dateStr = isClosed 
-                        ? (t.ClosedAt || t.ClosedDate || t['Opening Date'] || t.OpenedAt)
-                        : (t['Opening Date'] || t.OpenedAt || t['Due Date']);
-                    
-                    const d = new Date(dateStr);
-                    if (!isNaN(d.getTime()) && d.getFullYear() === selectedYear) {
-                        totalCount++;
-                        const month = d.getMonth();
-                        
-                        if (isClosed) {
-                            successCount++;
+                    // 1. ตรวจสอบจำนวน Job ที่ "เปิดใหม่" ในเดือนนั้นๆ โดยใช้ Opening Date เป็นหลัก
+                    const openDateStr = t['Opening Date'] || t.OpenedAt;
+                    if (openDateStr) {
+                        const od = new Date(openDateStr);
+                        if (!isNaN(od.getTime()) && od.getFullYear() === selectedYear) {
+                            const month = od.getMonth();
+                            openCounts[month] += 1;
+                        }
+                    }
+
+                    // 2. ตรวจสอบจำนวนงานที่ปิดลงและยอดการใช้จ่าย
+                    if (isClosed) {
+                        const dateStr = t['Closed Date'] || t.ClosedAt || t.ClosedDate || t['Opening Date'] || t.OpenedAt;
+                        const d = new Date(dateStr);
+                        if (!isNaN(d.getTime()) && d.getFullYear() === selectedYear) {
+                            const month = d.getMonth();
                             closedCounts[month] += 1;
                             totalClosed += 1;
                             
@@ -575,13 +700,25 @@
                                 months[month] += cost;
                                 totalSpent += cost;
                             }
-                        } else {
-                            if (statusStr.includes('progress')) {
+                        }
+                    }
+
+                    // 3. คำนวณสรุปสถิติทั่วไปในแถบ Overview
+                    const activeOrOpenedDateStr = isClosed 
+                        ? (t['Closed Date'] || t.ClosedAt || t.ClosedDate || t['Opening Date'] || t.OpenedAt)
+                        : (t['Opening Date'] || t.OpenedAt || t['Due Date']);
+                    
+                    if (activeOrOpenedDateStr) {
+                        const d = new Date(activeOrOpenedDateStr);
+                        if (!isNaN(d.getTime()) && d.getFullYear() === selectedYear) {
+                            totalCount++;
+                            if (isClosed) {
+                                successCount++;
+                            } else if (statusStr.includes('progress')) {
                                 progressCount++;
                             } else {
                                 pendingCount++;
                             }
-                            openCounts[month] += 1;
                         }
                     }
                 });
@@ -610,8 +747,24 @@
                 };
             }, [myTasksRaw, selectedYear]);
 
-            const saveApiKey = () => { localStorage.setItem('gemini_api_key', tempApiKey); setUserApiKey(tempApiKey); setShowApiKeyModal(false); showToast("API Key Saved!"); };
-            const clearApiKey = () => { localStorage.removeItem('gemini_api_key'); setUserApiKey(''); setTempApiKey(''); };
+            const saveApiKey = () => { 
+                const cleanKey = tempApiKey.trim();
+                const cleanModel = tempModelSelection.trim();
+                localStorage.setItem('gemini_api_key', cleanKey); 
+                localStorage.setItem('gemini_model_selection', cleanModel);
+                setUserApiKey(cleanKey); 
+                setSelectedModel(cleanModel);
+                setShowApiKeyModal(false); 
+                showToast("บันทึกสิทธิ์การตั้งค่า AI สำเร็จ!"); 
+            };
+            const clearApiKey = () => { 
+                localStorage.removeItem('gemini_api_key'); 
+                localStorage.removeItem('gemini_model_selection');
+                setUserApiKey(''); 
+                setSelectedModel('gemini-2.5-flash-preview-09-2025');
+                setTempApiKey(''); 
+                setTempModelSelection('gemini-2.5-flash-preview-09-2025');
+            };
 
             const handleGenerateSummary = async () => {
                 if (myAllTasks.length === 0) return;
@@ -630,9 +783,11 @@
                     Object.entries(lineAnalysis).sort((a,b)=>b[1].count-a[1].count).slice(0,5).forEach(([line, data]) => {
                         dataForAi += 'Line: ' + line + ' (' + data.count + ' items):\n' + data.actions.join('\n') + '\n\n';
                     });
-                    const summary = await fetchGemini('ข้อมูลคอขวดสะสมไลน์ผลิต:\n\n' + dataForAi + '\nแนะนำวิธีลดเวลาคอขวดการผลิต 3 ข้อกระชับสไตล์โรงงานญี่ปุ่น', userApiKey);
+                    const summary = await fetchGemini('ข้อมูลคอขวดสะสมไลน์ผลิต:\n\n' + dataForAi + '\nแนะนำวิธีลดเวลาคอขวดการผลิต 3 ข้อกระชับสไตล์โรงงานญี่ปุ่น', userApiKey, "คุณคือผู้เชี่ยวชาญโรงงานและช่างเทคนิคอาวุโส", selectedModel);
                     setAiSummary(summary);
-                } catch (error) { showToast("AI Summary Error"); }
+                } catch (error) { 
+                    showToast("ไม่สามารถประมวลผลสรุป AI ได้ (โปรดตรวจสอบ API Key / Model)"); 
+                }
                 setIsAiLoading(false);
             };
 
@@ -641,9 +796,9 @@
                 if (!userApiKey) { setShowApiKeyModal(true); return; }
                 setIsAiLoading(true);
                 try {
-                    const suggested = await fetchGemini('ช่วยเขียนอธิบายขั้นตอนดำเนินการวิศวกรรมการผลิตสั้นๆ สำหรับชื่องาน: "' + newItem.Title + '"', userApiKey);
+                    const suggested = await fetchGemini('ช่วยเขียนอธิบายขั้นตอนดำเนินการวิศวกรรมการผลิตสั้นๆ สำหรับชื่องาน: "' + newItem.Title + '"', userApiKey, "คุณคือผู้เชี่ยวชาญโรงงานและช่างเทคนิคอาวุโส", selectedModel);
                     setNewItem(prev => ({ ...prev, Description: suggested }));
-                } catch (error) { showToast("AI Describe Failed"); }
+                } catch (error) { showToast("AI ทำงานขัดข้อง โปรดเช็คความถูกต้องของ API Key"); }
                 setIsAiLoading(false);
             };
 
@@ -673,12 +828,17 @@
                         const dataRows = rows.slice(hIdx + 1).filter(r => r[idIdx]);
                         const updated = [...allData];
                         dataRows.forEach(r => {
-                            const cleanId = String(r[idIdx]).toUpperCase().replace(/[^a-zA-Z0-9-]/g, '-').trim();
-                            if (cleanId.length > 1) {
-                                const obj = { _id: cleanId, Source: 'SIM2 CSV' };
+                            const rawId = String(r[idIdx]);
+                            const formattedCleanId = cleanAndFormatId(rawId);
+                            if (formattedCleanId.length > 1) {
+                                const obj = { 
+                                    _id: formattedCleanId, 
+                                    'Action Id': formattedCleanId,
+                                    Source: 'SIM2 CSV' 
+                                };
                                 headers.forEach((h, idx) => { if (h && r[idx] !== undefined) obj[h.replace(/[./*\[\]#$]/g, '_')] = r[idx]; });
                                 
-                                const matchIdx = updated.findIndex(t => t._id === cleanId);
+                                const matchIdx = updated.findIndex(t => t._id === formattedCleanId);
                                 if (matchIdx !== -1) {
                                     updated[matchIdx] = { ...updated[matchIdx], ...obj };
                                 } else {
@@ -687,7 +847,7 @@
                             }
                         });
                         setAllData(updated);
-                        showToast(`นำเข้าเสร็จเรียบร้อยแล้ว ${dataRows.length} รายการ`);
+                        showToast(`นำเข้าและแปลง ID สำเร็จเสร็จเรียบร้อยแล้ว ${dataRows.length} รายการ`);
                         
                         if (sheetUrl) {
                             for (let rowObj of updated) {
@@ -706,30 +866,34 @@
                 
                 if (!newItem['Action Id'] || !newItem.Title || !newItem.Line) { showToast("กรุณากรอกข้อมูลสำคัญให้ครบ"); return; }
 
-                const cleanId = newItem['Action Id'].toUpperCase().replace(/[^a-zA-Z0-9-]/g, '-').trim();
+                const formattedId = cleanAndFormatId(newItem['Action Id']);
                 const defaultDueDate = new Date(); 
                 defaultDueDate.setDate(defaultDueDate.getDate() + 7);
                 const finalDueDate = newItem['Due Date'] ? new Date(newItem['Due Date']).toISOString() : defaultDueDate.toISOString();
                 
+                const isStatusClosed = String(newItem.Status).toLowerCase().includes('close');
+                const finalClosedDate = isStatusClosed ? new Date().toISOString() : '';
+
                 const taskObj = { 
                     ...newItem, 
-                    _id: cleanId,
+                    _id: formattedId,
                     'Due Date': finalDueDate, 
+                    'Closed Date': finalClosedDate,
                     Source: 'Manual Entry', 
-                    'Action Id': cleanId, 
+                    'Action Id': formattedId, 
                     editCount: 0 
                 };
 
-                const updated = [taskObj, ...allData.filter(t => t._id !== cleanId)];
+                const updated = [taskObj, ...allData.filter(t => t._id !== formattedId)];
                 setAllData(updated);
-                showToast("บันทึกข้อมูลและเซ็ตงานเข้าคิวโรงงานสำเร็จ!");
+                showToast("บันทึกข้อมูลและเซ็ตงานเข้าคิว Rattanachot Task สำเร็จ!");
 
                 if (sheetUrl) {
                     await pushToGoogleSheets('upsert', taskObj);
                 }
 
                 setNewItem({ 
-                    'Action Id': '', 'Title': '', 'Description': '', 'Cost': '', 'Opening Date': new Date().toISOString(), 'Due Date': '', 'Status': 'Open', 'In_Charge': 'Rattanachot Siriwanit', 'Line': '', 'Attachment': '' 
+                    'Action Id': '', 'Title': '', 'Description': '', 'Cost': '', 'Opening Date': new Date().toISOString(), 'Due Date': '', 'Closed Date': '', 'Status': 'Open', 'In_Charge': 'Rattanachot Siriwanit', 'Line': '', 'Attachment': '' 
                 });
                 setView('list');
             };
@@ -740,7 +904,7 @@
                 showToast("ลบ Action ดำเนินการเสร็จสิ้น"); 
                 
                 if (sheetUrl) {
-                    await pushToGoogleSheets('delete', { _id: deleteConfirm.id });
+                    await pushToGoogleSheets('delete', { 'Action Id': deleteConfirm.id });
                 }
                 setDeleteConfirm(null); 
             };
@@ -796,8 +960,15 @@
                 const updated = allData.map(t => {
                     if (t._id === id) {
                         const s = String(t.Status).toLowerCase();
-                        const next = s.includes('open') ? 'In Progress' : s.includes('progress') ? 'Closed' : 'Open';
-                        return { ...t, Status: next };
+                        let next = 'Open';
+                        let closedDateVal = '';
+                        if (s.includes('open')) {
+                            next = 'In Progress';
+                        } else if (s.includes('progress')) {
+                            next = 'Closed';
+                            closedDateVal = new Date().toISOString(); 
+                        }
+                        return { ...t, Status: next, 'Closed Date': closedDateVal };
                     }
                     return t;
                 });
@@ -838,8 +1009,9 @@
             };
 
             const saveCloudSettings = (url) => {
-                localStorage.setItem('rs_google_sheet_api_url', url.trim());
-                setSheetUrl(url.trim());
+                const cleanUrl = url.trim();
+                localStorage.setItem('rs_google_sheet_api_url', cleanUrl);
+                setSheetUrl(cleanUrl);
                 setShowSettingsModal(false);
                 showToast("ลิงก์ Google Sheets บันทึกเสร็จเรียบร้อย!");
             };
@@ -857,7 +1029,7 @@
                         <div className="p-8 flex flex-col items-center text-center relative border-b border-slate-900/60">
                             <button onClick={() => setIsSidebarOpen(false)} className="absolute top-4 right-4 text-slate-500 hover:text-slate-300 md:hidden"><Icon name="X" size={24} /></button>
                             <div className="w-12 h-12 bg-gradient-to-tr from-teal-500 to-emerald-400 rounded-2xl flex items-center justify-center font-bold shadow-lg mb-3 shadow-teal-500/10">
-                                <span className="text-slate-950 text-xl font-bold tracking-tight">RS</span>
+                                <span className="text-slate-950 text-xl font-bold tracking-tight">RT</span>
                             </div>
                             <h1 className="font-semibold text-white text-base leading-none">Rattanachot Task</h1>
                             <span className={'text-[9px] font-bold uppercase tracking-widest mt-2.5 px-3 py-1 rounded-full border ' + (isReadOnly ? 'text-teal-400 bg-teal-950/20 border-teal-900/30' : 'text-emerald-400 bg-emerald-950/20 border-emerald-900/30')}>
@@ -875,13 +1047,13 @@
                         <div className="p-4 border-t border-slate-900 bg-[#060a12]/50 flex flex-col gap-2">
                             <div className="flex items-center justify-between text-[10px] font-bold tracking-widest text-slate-500">
                                 <span>DATABASE CLOUD</span>
-                                <span className={sheetUrl ? "text-teal-400" : "text-amber-500"}>
-                                    {sheetUrl ? "CONNECTED" : "LOCAL-ONLY"}
+                                <span className={(sheetUrl && isValidUrl(sheetUrl)) ? "text-teal-400" : "text-amber-500"}>
+                                    {(sheetUrl && isValidUrl(sheetUrl)) ? "CONNECTED" : "LOCAL-ONLY"}
                                 </span>
                             </div>
                             <button 
                                 onClick={() => {
-                                    if (sheetUrl) {
+                                    if (sheetUrl && isValidUrl(sheetUrl)) {
                                         pullFromGoogleSheets();
                                     } else {
                                         setShowSettingsModal(true);
@@ -891,7 +1063,7 @@
                                 className="w-full py-2.5 bg-slate-950 border border-slate-800 hover:border-teal-500/40 rounded-xl text-xs font-semibold text-teal-400 flex items-center justify-center gap-2 transition duration-150 disabled:opacity-50"
                             >
                                 <Icon name="Cloud" size={14} className={isCloudSyncing ? "animate-spin" : ""} />
-                                {isCloudSyncing ? "SYNCING..." : sheetUrl ? "รีเฟรชข้อมูลคลาวด์" : "เชื่อม Google Sheets"}
+                                {isCloudSyncing ? "SYNCING..." : (sheetUrl && isValidUrl(sheetUrl)) ? "รีเฟรชข้อมูลคลาวด์" : "เชื่อม Google Sheets"}
                             </button>
                         </div>
 
@@ -928,7 +1100,7 @@
                                         <button onClick={() => setShowSettingsModal(true)} className="flex items-center justify-center gap-1.5 py-2 bg-slate-900/60 border border-slate-800 text-slate-400 hover:text-slate-200 rounded-xl font-semibold text-[10px] uppercase transition duration-150">
                                             <Icon name="Settings" size={12} /> SHEET LINK
                                         </button>
-                                        <button onClick={() => { setTempApiKey(userApiKey); setShowApiKeyModal(true); }} className="flex items-center justify-center gap-1.5 py-2 bg-slate-900/60 border border-slate-800 text-slate-400 hover:text-slate-200 rounded-xl font-semibold text-[10px] uppercase transition duration-150">
+                                        <button onClick={() => { setTempApiKey(userApiKey); setTempModelSelection(selectedModel); setShowApiKeyModal(true); }} className="flex items-center justify-center gap-1.5 py-2 bg-slate-900/60 border border-slate-800 text-slate-400 hover:text-slate-200 rounded-xl font-semibold text-[10px] uppercase transition duration-150">
                                             <Icon name="Sparkle" size={12} /> AI CONFIG
                                         </button>
                                     </div>
@@ -940,13 +1112,12 @@
                         </div>
                     </aside>
 
-                    {}
                     <main className="flex-1 flex flex-col overflow-hidden bg-[#030712]">
                         <header className="h-16 bg-[#090d16] border-b border-slate-900/60 px-6 md:px-10 flex items-center justify-between z-10 shrink-0">
                             <div className="flex items-center gap-3 md:gap-4">
                                 <button onClick={() => setIsSidebarOpen(true)} className="p-2 text-slate-400 hover:text-teal-400 md:hidden"><Icon name="Menu" size={24} /></button>
                                 <Icon name="Target" size={20} className="text-teal-400 animate-pulse" />
-                                <span className="text-xs md:text-sm font-semibold text-slate-300 tracking-wider">COMMAND WORKSPACE</span>
+                                <span className="text-xs md:text-sm font-semibold text-slate-300 tracking-wider">RATTANACHOT TASK</span>
                             </div>
                             
                             <div className="flex items-center gap-2">
@@ -981,14 +1152,66 @@
                                 </div>
                             )}
 
-                            {}
+                            {showCorsAlert && (
+                                <div className="mb-6 p-5 bg-amber-950/20 border border-amber-800/40 rounded-2xl flex gap-4 items-start animate-fadeIn text-amber-300">
+                                    <div className="p-2 bg-amber-900/30 rounded-xl text-amber-400 shrink-0">
+                                        <Icon name="Alert" size={24} />
+                                    </div>
+                                    <div className="space-y-2 text-xs md:text-sm">
+                                        <h4 className="font-bold text-white text-sm">ตรวจพบบัญชีสิทธิ์ CORS ของ Google Apps Script ขัดข้อง</h4>
+                                        <p className="text-slate-300 leading-relaxed font-light">
+                                            ตัวแอปได้รับการจำกัดสิทธิ์การเข้าถึงจากโดเมนสเปรดชีตของคุณ โปรดแก้ไขสิทธิ์ในสคริปต์ Google Sheets ตามข้อแนะนำดังนี้:
+                                        </p>
+                                        <ul className="list-decimal pl-5 space-y-1 text-slate-300 font-light">
+                                            <li>เปิดไฟล์สเปรดชีตหลักของคุณ &gt; ไปที่ <span className="font-semibold text-white">Extensions (ส่วนขยาย) &gt; Apps Script</span></li>
+                                            <li>กดปุ่ม <span className="font-semibold text-white">Deploy (การทำให้ใช้งานได้) &gt; Manage deployments (จัดการการทำให้ใช้งานได้)</span></li>
+                                            <li>กดสัญลักษณ์ดินสอเพื่อแก้ไข และให้เลือกเวอร์ชันเป็น <span className="font-semibold text-teal-400">New Version (เวอร์ชันใหม่)</span> ทุกครั้งที่มีการบันทึก</li>
+                                            <li>ตรวจสอบให้แน่ใจว่าได้ปรับ <span className="font-semibold text-white">Execute as</span> เป็น <span className="font-semibold text-teal-400">"Me"</span> และปรับ <span className="font-semibold text-white">Who has access</span> เป็น <span className="font-semibold text-teal-400">"Anyone" (ทุกคน)</span> แล้วกด Deploy ใหม่</li>
+                                        </ul>
+                                        <button 
+                                            onClick={() => setShowCorsAlert(false)} 
+                                            className="mt-3 px-4 py-1.5 bg-amber-900/30 hover:bg-amber-900/50 text-amber-300 rounded-lg text-xs font-bold transition"
+                                        >
+                                            รับทราบและปิดการแจ้งเตือน
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {cloudDebugInfo && (
+                                <div className="mb-6 p-5 bg-teal-950/20 border border-teal-800/40 rounded-2xl flex gap-4 items-start animate-fadeIn text-teal-300">
+                                    <div className="p-2 bg-teal-900/30 rounded-xl text-teal-400 shrink-0">
+                                        <Icon name="Cloud" size={24} />
+                                    </div>
+                                    <div className="space-y-2 text-xs md:text-sm w-full">
+                                        <h4 className="font-bold text-white text-sm">แผงวิเคราะห์โครงสร้างข้อมูลจาก Google Sheets (Cloud Diagnosis)</h4>
+                                        <div className="grid grid-cols-2 gap-4 text-xs font-mono bg-slate-950/60 p-3 rounded-xl border border-slate-800 my-2">
+                                            <div>โครงสร้างส่งค่าเป็น Array: <span className={cloudDebugInfo.isArray ? "text-teal-400" : "text-red-400"}>{cloudDebugInfo.isArray ? "ใช่ (ถูกต้อง)" : "ไม่ใช่ ❌"}</span></div>
+                                            <div>จำนวนรายการที่พบ: <span className="text-white font-semibold">{cloudDebugInfo.length} แถว</span></div>
+                                        </div>
+                                        <p className="text-slate-300 leading-relaxed font-light">
+                                            หากดึงรายการขึ้นมาได้ครบถ้วน แต่รายชื่อข้อมูลไม่ปรากฏบนแอป เป็นเพราะหัวตารางแถวแรกสุด (Row 1) สะกดไม่ตรงกับแอป ให้ตรวจตามนี้ครับ:
+                                            <br />
+                                            <span className="text-teal-400 font-mono">Action Id, Title, Description, Cost, Opening Date, Due Date, Closed Date, Status, In_Charge, Line, Attachment, Note</span>
+                                        </p>
+                                        <button 
+                                            onClick={() => setCloudDebugInfo(null)} 
+                                            className="px-4 py-1.5 bg-teal-900/30 hover:bg-teal-900/50 text-teal-300 rounded-lg text-xs font-bold transition"
+                                        >
+                                            ปิดแผงวิเคราะห์ข้อมูล
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
                             {view === 'dashboard' ? (
                                 <div className="max-w-6xl mx-auto space-y-8 animate-fadeIn">
                                     <div className="flex justify-between items-end border-b border-slate-900 pb-5">
                                         <div>
                                             <h3 className="text-xl md:text-2xl font-semibold text-white tracking-tight">Performance Intel</h3>
                                             <p className="text-[11px] font-medium text-slate-500 mt-1">
-                                                {sheetUrl ? "☁️ Google Sheets Cloud Synced" : "📂 Internal Local Database Active"}
+                                                {(sheetUrl && isValidUrl(sheetUrl)) ? "☁️ Google Sheets Cloud Synced" : "📂 Internal Local Database Active"}
+                                                <span className="text-teal-500 ml-2 font-mono">({selectedModel})</span>
                                             </p>
                                         </div>
                                         <button 
@@ -1005,7 +1228,7 @@
                                         <div className="bg-[#0f172a]/60 p-6 rounded-2xl border border-teal-500/20 shadow-xl animate-fadeIn">
                                             <div className="flex items-center gap-2 mb-4 font-semibold text-white text-sm">
                                                 <Icon name="Sparkle" className="text-teal-400"/>
-                                                AI Operational Bottleneck Report
+                                                AI Operational Bottleneck Report ({selectedModel})
                                             </div>
                                             <div className="text-xs md:text-sm text-slate-300 leading-relaxed whitespace-pre-line font-light">
                                                 {aiSummary}
@@ -1013,32 +1236,68 @@
                                         </div>
                                     )}
 
-                                    {/* Numeric Performance Indicators */}
-                                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                                    {/* Numeric Performance Indicators + Total Spent */}
+                                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                                         <StatCard label="PENDING" value={dashboardData.stats.open} color="bg-amber-500" />
                                         <StatCard label="IN PROGRESS" value={dashboardData.stats.progress} color="bg-blue-500" />
                                         <StatCard label="RESOLVED" value={dashboardData.stats.closed} color="bg-emerald-500" />
                                         <StatCard label="TOTAL RUNNING" value={dashboardData.stats.total} color="bg-purple-500" />
+                                        <StatCard label="TOTAL SPENT" value={`${dashboardData.totalSpent.toLocaleString()} ฿`} color="bg-emerald-400" />
                                     </div>
 
-                                    {/* Analytics Chart */}
+                                    {/* Analytics Chart & Monthly Summaries */}
                                     <div className="bg-[#0f172a] p-6 md:p-8 rounded-2xl border border-slate-850 shadow-xl space-y-6">
                                         <div>
                                             <h4 className="font-semibold text-white text-sm tracking-wide">Operational Cost Breakdown (FY {selectedYear})</h4>
+                                            <p className="text-[10px] text-slate-400 mt-1">แสดงค่าใช้จ่ายประจำเดือน (฿) เฉพาะชิ้นงานที่ปิดเสร็จสิ้นเรียบร้อยแล้ว</p>
                                         </div>
-                                        <div className="flex items-end h-56 gap-3 sm:gap-4 border-b border-slate-800/80 pb-4 pt-4">
+                                        
+                                        {/* Chart Visualization */}
+                                        <div className="flex items-end h-64 gap-2 sm:gap-4 border-b border-slate-800/80 pb-4 pt-8">
                                             {dashboardData.chart.map((c, i) => (
                                                 <div key={i} className="flex-1 flex flex-col items-center group h-full justify-end relative">
+                                                    {c.val > 0 && (
+                                                        <div className="absolute -top-6 text-[9px] sm:text-[10px] font-bold text-emerald-400 bg-slate-950/90 border border-emerald-950 px-1.5 py-0.5 rounded shadow-lg whitespace-nowrap">
+                                                            {c.val >= 1000000 ? `${(c.val / 1000000).toFixed(1)}M ฿` : c.val >= 1000 ? `${(c.val / 1000).toFixed(0)}k ฿` : `${c.val} ฿`}
+                                                        </div>
+                                                    )}
+                                                    
                                                     <div className="w-full flex items-end justify-center h-full pb-1">
                                                         <div 
-                                                            className={'w-full max-w-[32px] rounded-t-md transition-all duration-500 ' + 
-                                                                (c.val > 0 ? 'bg-gradient-to-t from-teal-500/20 via-teal-500/60 to-emerald-400' : 'bg-slate-900')} 
+                                                            className={'w-full max-w-[28px] sm:max-w-[32px] rounded-t-md transition-all duration-500 group-hover:scale-110 ' + 
+                                                                (c.val > 0 ? 'bg-gradient-to-t from-emerald-600/30 via-teal-500/60 to-emerald-400' : 'bg-slate-900')} 
                                                             style={{ height: c.height + '%' }}
                                                         />
                                                     </div>
-                                                    <div className="text-[10px] mt-2 text-slate-500 font-medium">{c.label}</div>
+                                                    <div className="text-[10px] mt-2 text-slate-400 font-bold">{c.label}</div>
                                                 </div>
                                             ))}
+                                        </div>
+
+                                        {/* 📊 ตารางสรุปจำนวน Action Open และ Close รายเดือนใต้กราฟ */}
+                                        <div className="pt-4 border-t border-slate-800/60">
+                                            <h5 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                                                <Icon name="Calendar" size={14} className="text-teal-400" />
+                                                ตารางสรุปจำนวนงานสะสมรายเดือน (MONTHLY STATUS SUMMARY)
+                                            </h5>
+                                            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-12 gap-2">
+                                                {dashboardData.chart.map((c, i) => (
+                                                    <div key={i} className="p-2.5 bg-slate-950/40 rounded-xl border border-slate-800/50 flex flex-col justify-between hover:border-slate-700 transition">
+                                                        <span className="font-bold text-slate-300 text-xs block text-center border-b border-slate-800/50 pb-1">{c.label}</span>
+                                                        <div className="mt-2 space-y-1">
+                                                            {/* 🛠️ เปลี่ยน Label เป็น Opened และดึงยอดจากจำนวนงานที่ Open ในเดือนนั้นจริงๆ */}
+                                                            <div className="flex justify-between items-center text-[10px]">
+                                                                <span className="text-amber-500 font-semibold">Opened</span>
+                                                                <span className="font-bold text-white font-mono">{c.openCount}</span>
+                                                            </div>
+                                                            <div className="flex justify-between items-center text-[10px]">
+                                                                <span className="text-emerald-400 font-semibold">Closed</span>
+                                                                <span className="font-bold text-white font-mono">{c.closedCount}</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -1057,8 +1316,14 @@
                                         </div>
                                         <form onSubmit={handleAddItem} className="space-y-5">
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                <FormInput label="Job ID" val={newItem['Action Id']} onChange={v => setNewItem({...newItem, 'Action Id': v})} placeholder="2026-X" />
-                                                <FormInput label="Objective" val={newItem.Title} onChange={v => setNewItem({...newItem, 'Title': v})} placeholder="ชื่องานดำเนินการ" />
+                                                <FormInput 
+                                                    label="Job ID (Auto-Generated)" 
+                                                    val={newItem['Action Id']} 
+                                                    onChange={() => {}} 
+                                                    disabled={true} 
+                                                    placeholder="ระบบกำลังสร้างรหัสงานอัตโนมัติ..." 
+                                                />
+                                                <FormInput label="Objective (Title)" val={newItem.Title} onChange={v => setNewItem({...newItem, 'Title': v})} placeholder="ชื่องานดำเนินการ" />
                                             </div>
                                             <div className="space-y-1.5">
                                                 <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Action Detail</label>
@@ -1109,7 +1374,7 @@
                                             </div>
                                             <button 
                                                 type="submit" 
-                                                className="w-full py-4 mt-2 bg-gradient-to-r from-teal-500 to-emerald-500 text-slate-950 rounded-xl font-bold uppercase text-xs tracking-wider shadow-lg hover:opacity-95 transition-all duration-200 active:scale-[0.98]"
+                                                className="w-full py-4 mt-2 bg-gradient-to-r from-teal-500 to-emerald-400 text-slate-950 rounded-xl font-bold uppercase text-xs tracking-wider shadow-lg hover:opacity-95 transition-all duration-200 active:scale-[0.98]"
                                             >
                                                 COMMIT ACTION TO DATABASE
                                             </button>
@@ -1180,16 +1445,19 @@
                                                     className="p-5 flex items-center justify-between cursor-pointer hover:bg-slate-900/30 transition-colors duration-150"
                                                 >
                                                     <div className="flex items-center gap-4 min-w-0 flex-1">
-                                                        <div className="flex flex-col w-24 shrink-0 text-xs text-slate-500">
+                                                        <div className="flex flex-col w-32 shrink-0 text-xs text-slate-500">
                                                             <span className="font-bold text-teal-400">FY {selectedYear}</span>
-                                                            <span className="font-mono mt-0.5">{t['Action Id']?.slice(-10)}</span>
+                                                            <span className="font-mono mt-0.5 text-slate-400 truncate">{t['Action Id']}</span>
                                                         </div>
-                                                        <h4 className={'text-sm md:text-base font-medium truncate pr-4 ' + 
+                                                        <h4 className={'text-xs sm:text-sm md:text-base font-semibold truncate pr-4 flex-1 max-w-[200px] xs:max-w-xs sm:max-w-md md:max-w-lg lg:max-w-2xl ' + 
                                                             (String(t.Status).toLowerCase().includes('close') ? 'text-slate-600 line-through' : 'text-slate-200')}>
-                                                            {t.Title || 'Untitled'}
+                                                            {t.Title || t.Description || '--- No Specifications Defined ---'}
                                                         </h4>
                                                     </div>
                                                     <div className="flex items-center gap-3">
+                                                        <span className="text-xs font-semibold text-emerald-400 font-mono bg-emerald-950/20 border border-emerald-900/25 px-2.5 py-1 rounded-xl">
+                                                            {t.Cost ? `${parseFloat(t.Cost).toLocaleString()} ฿` : '0 ฿'}
+                                                        </span>
                                                         <span className="text-[10px] font-semibold bg-slate-950/60 text-slate-400 border border-slate-800 px-3 py-1.5 rounded-xl uppercase tracking-wider">
                                                             {t.Status}
                                                         </span>
@@ -1204,7 +1472,7 @@
                                                     </div>
                                                 </div>
 
-                                                {}
+                                                {/* Expanded Area */}
                                                 {expandedId === t._id && (
                                                     <div className="p-6 bg-slate-950/70 border-t border-slate-800/80 grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fadeIn">
                                                         <div className="space-y-4">
@@ -1244,7 +1512,7 @@
                                                                             {t.Description || '--- No Specifications Defined ---'}
                                                                         </div>
                                                                         <div className="mt-4 pt-4 border-t border-slate-800/80" onClick={(e) => e.stopPropagation()}>
-                                                                            <AiNextStep title={t.Title} description={t.Description} setMsg={showToast} fetchGemini={fetchGemini} userApiKey={userApiKey} setShowApiKeyModal={setShowApiKeyModal} isReadOnly={isReadOnly}/>
+                                                                            <AiNextStep title={t.Title} description={t.Description} setMsg={showToast} fetchGemini={fetchGemini} userApiKey={userApiKey} setShowApiKeyModal={setShowApiKeyModal} isReadOnly={isReadOnly} activeModel={selectedModel}/>
                                                                         </div>
                                                                     </div>
                                                                 )}
@@ -1301,6 +1569,9 @@
                                                                         isLight={false}
                                                                     />
                                                                 )}
+
+                                                                <DetailRow label="Opening Date" val={formatDate(t['Opening Date'])} isLight={true} />
+                                                                <DetailRow label="Closed Date" val={formatDate(t['Closed Date'])} isLight={true} />
                                                             </div>
                                                         </div>
 
@@ -1402,7 +1673,6 @@
                         </div>
                     </main>
 
-                    {}
                     {/* Media Preview Modal */}
                     {previewUrl && (
                         <div className="fixed inset-0 bg-black/95 backdrop-blur-sm z-[400] flex items-center justify-center p-4 animate-fadeIn" onClick={() => setPreviewUrl(null)}>
@@ -1454,18 +1724,40 @@
                     {showApiKeyModal && !isReadOnly && (
                         <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/85 backdrop-blur-sm animate-fadeIn">
                             <div className="bg-[#0f172a] p-8 rounded-2xl max-w-md w-full border border-slate-800 shadow-2xl">
-                                <h3 className="font-bold text-white uppercase tracking-wider text-sm mb-2">Gemini API Setup</h3>
-                                <p className="text-slate-500 text-xs mb-4">กุญแจ API จะถูกจัดเก็บไว้ใน Browser ของท่านอย่างปลอดภัย</p>
-                                <input 
-                                    type="password" 
-                                    placeholder="AIzaSy..." 
-                                    className="w-full p-4 bg-slate-950 border border-slate-850 rounded-xl mb-6 text-xs font-mono text-slate-200 outline-none focus:border-teal-500 transition-colors" 
-                                    value={tempApiKey} 
-                                    onChange={e => setTempApiKey(e.target.value)} 
-                                />
-                                <div className="flex gap-2">
+                                <h3 className="font-bold text-white uppercase tracking-wider text-sm mb-2">Gemini AI Setup</h3>
+                                <p className="text-slate-500 text-xs mb-4">กุญแจ API และการตั้งค่าโมเดลจะถูกเก็บไว้ใน Browser ของคุณอย่างปลอดภัย</p>
+                                
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Gemini API Key</label>
+                                        <input 
+                                            type="password" 
+                                            placeholder="AIzaSy..." 
+                                            className="w-full p-4 bg-slate-950 border border-slate-850 rounded-xl text-xs font-mono text-slate-200 outline-none focus:border-teal-500 transition-colors" 
+                                            value={tempApiKey} 
+                                            onChange={e => setTempApiKey(e.target.value)} 
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Active AI Model</label>
+                                        <input 
+                                            type="text" 
+                                            placeholder="gemini-2.5-flash-preview-09-2025" 
+                                            className="w-full p-4 bg-slate-950 border border-slate-850 rounded-xl text-xs font-mono text-slate-200 outline-none focus:border-teal-500 transition-colors" 
+                                            value={tempModelSelection} 
+                                            onChange={e => setTempModelSelection(e.target.value)} 
+                                        />
+                                        <span className="text-[10px] text-slate-500 mt-1 block">
+                                            โมเดลแนะนำสำหรับการพรีวิว: <span className="text-teal-400">gemini-2.5-flash-preview-09-2025</span><br />
+                                            โมเดลอัปเดตอื่น ๆ: <span className="text-slate-400">gemini-2.5-flash, gemini-1.5-flash</span> เป็นต้น
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div className="flex gap-2 mt-6">
                                     <button onClick={() => setShowApiKeyModal(false)} className="py-3 px-4 bg-slate-900 text-slate-400 hover:text-slate-200 rounded-xl text-xs font-bold uppercase transition">Cancel</button>
-                                    <button onClick={clearApiKey} className="py-3 px-4 bg-red-950/20 text-red-400 hover:bg-red-950/40 rounded-xl text-xs font-bold uppercase transition mr-auto">Clear Key</button>
+                                    <button onClick={clearApiKey} className="py-3 px-4 bg-red-950/20 text-red-400 hover:bg-red-950/40 rounded-xl text-xs font-bold uppercase transition mr-auto">Clear Settings</button>
                                     <button onClick={saveApiKey} className="py-3 px-5 bg-teal-500 text-slate-950 rounded-xl text-xs font-bold uppercase transition">Save Key</button>
                                 </div>
                             </div>
@@ -1476,13 +1768,14 @@
         };
     </script>
 
+    <!-- Secure Compilation and Execution Sandbox Engine -->
     <script>
         function compileAndRun() {
             try {
                 const rawText = document.getElementById('react-code-holder').textContent;
                 const compiled = Babel.transform(rawText, {
                     presets: [
-                        ['react', { runtime: 'classic' }]
+                        ['react', { runtime: 'classic' }] 
                     ]
                 }).code;
                 
