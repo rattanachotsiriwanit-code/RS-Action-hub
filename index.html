@@ -46,7 +46,6 @@
     <script id="react-code-holder" type="text/plain">
         const { useState, useEffect, useMemo, Fragment } = React;
 
-        // --- SAFE STORAGE HELPERS ---
         const safeLocalStorage = {
             getItem: (key) => {
                 try { return localStorage.getItem(key); } catch (e) { return null; }
@@ -71,7 +70,6 @@
             }
         };
 
-        // --- UTILITY SECURITY FUNCTIONS ---
         const obfuscate = (text) => {
             if (!text) return "";
             try {
@@ -130,7 +128,6 @@
             }
         ];
 
-        // 🛠️ ฟังก์ชันการล้างข้อมูล ID และสร้างรหัสให้ดูเป็นระบบ มีโครงสร้างสากล
         const cleanAndFormatId = (rawId) => {
             if (!rawId) return '';
             let clean = String(rawId).replace(/[\s,'"]/g, '').trim();
@@ -163,7 +160,6 @@
             return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ /g, '-');
         };
 
-        // ⚙️ อัปเดตเพื่อรองรับ Multimodal (การทำ Image-to-Text ด้วยรูป base64)
         const fetchGemini = async (prompt, userKey, systemPrompt = "คุณคือผู้ช่วยจัดการโครงการอุตสาหกรรมมืออาชีพ", modelName = "gemini-2.5-flash-preview-09-2025", base64Image = null) => {
             if (!userKey) throw new Error("NO_API_KEY");
             const cleanKey = String(userKey).trim();
@@ -173,7 +169,6 @@
             
             let contentsPayload = [];
             if (base64Image) {
-                // แยก prefix ของ base64 ออกหากมี
                 const pureBase64 = base64Image.includes(',') ? base64Image.split(',')[1] : base64Image;
                 contentsPayload = [{
                     role: "user",
@@ -351,7 +346,7 @@
                             </div>
                             <h2 className="text-xl font-bold tracking-tight text-white leading-none">Rattanachot Task</h2>
                             <span className="text-[9px] font-bold text-teal-400 uppercase tracking-widest mt-2 bg-teal-950/40 px-3 py-1 border border-teal-800/30 rounded-full">
-                                OPERATIONAL ACCESS CONTROL (SHEET2 LINKED)
+                                OPERATIONAL ACCESS CONTROL
                             </span>
                         </div>
 
@@ -379,10 +374,8 @@
                                                 <li>เปิดสคริปต์ Apps Script ในไฟล์ Google Sheets</li>
                                                 <li>ตรวจสอบว่ามีคำสั่ง <strong className="text-teal-400">`var SHEET_NAME = "Sheet1";`</strong> อยู่ด้านบนสุดแล้วหรือยัง</li>
                                                 <li>กดปุ่ม <span className="font-semibold text-white">Deploy &gt; New deployment</span> (การทำให้ใช้งานได้ใหม่)</li>
-                                                <li>ตรวจสอบตรงสิทธิ์ <span className="text-white">Who has access</span> ว่าได้ตั้งค่าเป็น <strong className="text-teal-400">"Anyone" (ทุกคน)</strong> แล้วหรือยัง *(หากเป็น "Only me" เบราว์เซอร์จะบล็อกคำขอทันที)*</li>
+                                                <li>ตรวจสอบตรงสิทธิ์ <span className="text-white">Who has access</span> ว่าได้ตั้งค่าเป็น <strong className="text-teal-400">"Anyone" (ทุกคน)</strong> แล้วหรือยัง</li>
                                                 <li>ตรวจสอบช่อง <span className="text-white">Execute as</span> ต้องเป็น <strong className="text-teal-400">"Me" (อีเมลของคุณ)</strong></li>
-                                                <li>ตรวจสอบในสเปรดชีตว่า มีแผ่นงานที่ชื่อว่า <strong className="text-white">"Sheet2"</strong> อยู่จริง</li>
-                                                <li>กด Deploy เวอร์ชันใหม่ แล้วกดยอมรับสิทธิ์การเข้าถึงข้อมูล (Authorization) ให้สมบูรณ์</li>
                                             </ol>
                                         </div>
                                     )}
@@ -432,10 +425,10 @@
             // 💾 ฐานข้อมูล Local Storage
             const [allData, setAllData] = useState([]);
 
-            // ☁️ Google Sheets API Setup - ตั้งค่าเริ่มต้นเป้าหมายที่ผู้ใช้งานส่งมาให้เรียบร้อยแล้ว
+            // ☁️ Google Sheets API Setup - ฝังลิงก์ Web App หลักของคุณรัตนโชติโดยตรง ป้องกันความยุ่งยาก
             const [sheetUrl, setSheetUrl] = useState(() => {
                 const stored = safeLocalStorage.getItem('rs_google_sheet_api_url_enc');
-                return stored ? deobfuscate(stored) : 'https://script.google.com/macros/s/AKfycbwSLPQ6bVp4lzGOrADOBTkaghnMLEBWJEtaMKc7DKejJXc-Tslu8coVraSf-rrFRfyYqw/exec';
+                return stored ? deobfuscate(stored) : 'https://script.google.com/macros/s/AKfycby_1gweigaQeiWTVlEXwrAVZl5KvgcqSy7S-RAkGMznSG9QsS2ElbMpEkZ9u372Roop/exec';
             });
             const [isCloudSyncing, setIsCloudSyncing] = useState(false);
             const [showCorsAlert, setShowCorsAlert] = useState(false); 
@@ -469,7 +462,7 @@
             const [tempAttachment, setTempAttachment] = useState('');
             const [previewUrl, setPreviewUrl] = useState(null);
 
-            // ดึงค่าสิทธิ์การเชื่อมโยง AI ที่บดบังข้อมูลไว้
+            // ดึงค่าสิทธิ์การเชื่อมโยง AI
             const [userApiKey, setUserApiKey] = useState(() => {
                 const stored = safeLocalStorage.getItem('gemini_api_key_enc');
                 return stored ? deobfuscate(stored) : (safeLocalStorage.getItem('gemini_api_key') || '');
@@ -482,7 +475,7 @@
             // ✨ AI New States
             const [aiSummary, setAiSummary] = useState("");
             const [isAiLoading, setIsAiLoading] = useState(false);
-            const [aiImageAnalysis, setAiImageAnalysis] = useState(null); // เก็บข้อมูลผลการวิเคราะห์รูปภาพ
+            const [aiImageAnalysis, setAiImageAnalysis] = useState(null); 
             const [isAiChatOpen, setIsAiChatOpen] = useState(false);
             const [aiChatInput, setChatInput] = useState("");
             const [aiChatHistory, setAiChatHistory] = useState([
@@ -496,27 +489,23 @@
 
             const isReadOnly = session === 'view_only';
 
-            // ⚡ บังคับดึงข้อมูลใหม่โดยตรงจากคลาวด์สด ๆ ทันทีเมื่อเปิดตัวแอปพลิเคชัน
             useEffect(() => {
                 if (session) {
                     if (sheetUrl) {
                         pullFromGoogleSheets();
                     } else {
-                        // หากไม่มี Cloud API ให้ใช้ข้อมูลตั้งต้นเป็น Sample ไปก่อน
                         const local = safeLocalStorage.getItem('rs_local_actions_db_v3');
                         setAllData(local ? JSON.parse(local) : INITIAL_SAMPLE_DATA);
                     }
                 }
             }, [sheetUrl, session]);
 
-            // บันทึกลง LocalStorage เฉพาะเมื่อข้อมูลมีการขยับจริง ๆ
             useEffect(() => {
                 if (allData && allData.length > 0) {
                     safeLocalStorage.setItem('rs_local_actions_db_v3', JSON.stringify(allData));
                 }
             }, [allData]);
 
-            // 🛠️ ยิงคำสั่งสร้าง ID อัตโนมัติใส่เข้าไปในแบบฟอร์มตอนเปิดหน้า Add
             useEffect(() => {
                 if (view === 'add') {
                     setNewItem(prev => ({
@@ -626,7 +615,6 @@
                 try {
                     const cleanPayload = { ...dataPayload };
                     
-                    // ป้องกันค่าร่วงเป็นค่าว่าง หากรูปถูกบีบอัดจนพอดีแล้วแต่มีขีดจำกัดอื่น ให้ตัดตัวอักษรบางส่วนแทนการลบทิ้งทั้งชิ้น
                     if (cleanPayload.Image && cleanPayload.Image.length > 48000) {
                         cleanPayload.Image = cleanPayload.Image.slice(0, 47900);
                     }
@@ -701,11 +689,7 @@
                     }
                 } catch (e) {
                     console.error("Login fetch crashed: ", e);
-                    if (String(e).includes('Failed to fetch') || String(e).includes('TypeError')) {
-                        setAuthError('ไม่สามารถเชื่อมโยงและยืนยันสิทธิ์กับสเปรดชีตได้ (Failed to Fetch) มีโอกาสสูงมากที่คุณรัตนโชติจะยังไม่ได้ประกาศตัวแปร `var SHEET_NAME = "Sheet1";` ไว้ที่ส่วนบนสุดของแผ่นงาน Apps Script หรือตั้งค่าแชร์แอปสิทธิ์ไม่ถูกต้องครับ โปรดคลี่แผงช่วยเหลือด้านล่างนี้เพื่อดำเนินการแก้ไขครับ');
-                    } else {
-                        setAuthError('ตรวจพบบั๊กระหว่างรันคำขอเชื่อมโยง: ' + e.message);
-                    }
+                    setAuthError('ไม่สามารถเชื่อมโยงและยืนยันสิทธิ์ได้ โปรดตรวจ Apps Script เผยแพร่เป็นแบบ Anyone หรือไม่');
                 } finally {
                     setLoginLoading(false);
                 }
@@ -801,7 +785,7 @@
                         }
                         
                         setAllData(updated);
-                        showToast(`สกัดสำเร็จ! นำเข้าเฉพาะงานของ Rattanachot ${acceptedCount} จากทั้งหมด ${dataRows.length} รายการ`);
+                        showToast(`สกัดสำเร็จ! นำเข้าเฉพาะงานของ Rattanachot ${acceptedCount} รายการ`);
                     } catch (err) { 
                         console.error(err);
                         showToast("❌ การนำเข้าข้อมูลไฟล์ CSV ขัดข้อง"); 
@@ -1005,7 +989,6 @@
                 setTempModelSelection('gemini-2.5-flash-preview-09-2025');
             };
 
-            // ✨ ฟีเจอร์ AI: วิเคราะห์ปัญหาคอขวดรวมแบบอัจฉริยะบน Dashboard
             const handleGenerateSummary = async () => {
                 if (myAllTasks.length === 0) {
                     showToast("ไม่มีงานในระบบที่จะวิเคราะห์");
@@ -1038,7 +1021,6 @@
                 setIsAiLoading(false);
             };
 
-            // ✨ ฟีเจอร์ AI: ช่วยเขียนร่างรายละเอียดงานวิศวกรรมให้ช่างอัตโนมัติ
             const handleSuggestDescription = async () => {
                 if (!newItem.Title) { showToast("กรุณาระบุหัวข้อหลักก่อนเพื่อให้ AI ช่วยวิเคราะห์"); return; }
                 if (!userApiKey) { setShowApiKeyModal(true); return; }
@@ -1054,7 +1036,6 @@
                 setIsAiLoading(false);
             };
 
-            // ✨ ฟีเจอร์ AI: บันทึกและวิเคราะห์คำถามแชทอัจฉริยะ (Rattanachot AI Assistant Agent)
             const sendAiChatMessage = async () => {
                 if (!aiChatInput.trim() || isChatSending) return;
                 if (!userApiKey) { setShowApiKeyModal(true); return; }
@@ -1064,7 +1045,6 @@
                 setIsChatSending(true);
 
                 try {
-                    // แนบรายละเอียดบริบทงานปัจจุบันเพื่อให้ AI ตอบได้ตรงประเด็นโรงงานคุณมากที่สุด
                     const pendingTasksDesc = myAllTasks
                         .filter(t => !String(t.Status || '').toLowerCase().includes('close'))
                         .map(t => `- [${t['Action Id']}] ${t.Title} (${t.Line})`)
@@ -1233,7 +1213,6 @@
                         canvas.height = height;
                         canvas.getContext('2d').drawImage(img, 0, 0, width, height);
                         
-                        // Smart Loop Compression: ค่อย ๆ ลดคุณภาพลงหาก Base64 เกินลิมิตแอดมิน เพื่อความเสถียร
                         let compressionQuality = 0.35;
                         let base64Img = canvas.toDataURL('image/jpeg', compressionQuality);
                         
@@ -1297,7 +1276,7 @@
                             </div>
                             <h1 className="font-semibold text-white text-base leading-none">Rattanachot Task</h1>
                             <span className={'text-[9px] font-bold uppercase tracking-widest mt-2.5 px-3 py-1 rounded-full border ' + (isReadOnly ? 'text-teal-400 bg-teal-950/20 border-teal-900/30' : 'text-emerald-400 bg-emerald-950/20 border-emerald-900/30')}>
-                                {isReadOnly ? `READ-ONLY (${session.toUpperCase()})` : 'SECURE ADMIN'}
+                                {isReadOnly ? `READ-ONLY` : 'SECURE ADMIN'}
                             </span>
                         </div>
                         
@@ -1320,7 +1299,7 @@
                                 className="w-full py-2.5 bg-slate-950 border border-slate-800 hover:border-teal-500/40 rounded-xl text-xs font-semibold text-teal-400 flex items-center justify-center gap-2 transition duration-150 disabled:opacity-50"
                             >
                                 <Icon name="Cloud" size={14} className={isCloudSyncing ? "animate-spin" : ""} />
-                                {isCloudSyncing ? "SYNCING..." : (sheetUrl && isValidUrl(sheetUrl)) ? "รีเฟรชข้อมูลคลาวด์" : "เชื่อม Google Sheets"}
+                                {isCloudSyncing ? "SYNCING..." : "รีเฟรชข้อมูลคลาวด์"}
                             </button>
                         </div>
 
@@ -1413,46 +1392,11 @@
                                     </div>
                                     <div className="space-y-2 text-xs md:text-sm">
                                         <h4 className="font-bold text-white text-sm">ตรวจพบบัญชีสิทธิ์ CORS ของ Google Apps Script ขัดข้อง</h4>
-                                        <p className="text-slate-300 leading-relaxed font-light">
-                                            ตัวแอปได้รับการจำกัดสิทธิ์การเข้าถึงจากโดเมนสเปรดชีตของคุณ โปรดแก้ไขสิทธิ์ในสคริปต์ Google Sheets ตามข้อแนะนำดังนี้:
-                                        </p>
-                                        <ul className="list-decimal pl-5 space-y-1 text-slate-300 font-light">
-                                            <li>เปิดไฟล์สเปรดชีตหลักของคุณ &gt; ไปที่ <span className="font-semibold text-white">Extensions (ส่วนขยาย) &gt; Apps Script</span></li>
-                                            <li>กดปุ่ม <span className="font-semibold text-white">Deploy (การทำให้ใช้งานได้) &gt; Manage deployments (จัดการการทำให้ใช้งานได้)</span></li>
-                                            <li>กดสัญลักษณ์ดินสอเพื่อแก้ไข และให้เลือกเวอร์ชันเป็น <span className="font-semibold text-white">New Version (เวอร์ชันใหม่)</span> ทุกครั้งที่มีการบันทึก</li>
-                                            <li>ตรวจสอบให้แน่ใจว่าได้ปรับ <span className="font-semibold text-white">Execute as</span> เป็น <span className="font-semibold text-teal-400">"Me"</span> และปรับ <span className="font-semibold text-white">Who has access</span> เป็น <span className="font-semibold text-teal-400">"Anyone" (ทุกคน)</span> แล้วกด Deploy ใหม่</li>
-                                        </ul>
                                         <button 
                                             onClick={() => setShowCorsAlert(false)} 
                                             className="mt-3 px-4 py-1.5 bg-amber-900/30 hover:bg-amber-900/50 text-amber-300 rounded-lg text-xs font-bold transition"
                                         >
                                             รับทราบและปิดการแจ้งเตือน
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-
-                            {cloudDebugInfo && (
-                                <div className="mb-6 p-5 bg-teal-950/20 border border-teal-800/40 rounded-2xl flex gap-4 items-start animate-fadeIn text-teal-300">
-                                    <div className="p-2 bg-teal-900/30 rounded-xl text-teal-400 shrink-0">
-                                        <Icon name="Cloud" size={24} />
-                                    </div>
-                                    <div className="space-y-2 text-xs md:text-sm w-full">
-                                        <h4 className="font-bold text-white text-sm">แผงวิเคราะห์โครงสร้างข้อมูลจาก Google Sheets (Cloud Diagnosis)</h4>
-                                        <div className="grid grid-cols-2 gap-4 text-xs font-mono bg-slate-950/60 p-3 rounded-xl border border-slate-800 my-2">
-                                            <div>โครงสร้างส่งค่าเป็น Array: <span className={cloudDebugInfo.isArray ? "text-teal-400" : "text-red-400"}>{cloudDebugInfo.isArray ? "ใช่ (ถูกต้อง)" : "ไม่ใช่ ❌"}</span></div>
-                                            <div>จำนวนรายการที่พบ: <span className="text-white font-semibold">{cloudDebugInfo.length} แถว</span></div>
-                                        </div>
-                                        <p className="text-slate-300 leading-relaxed font-light">
-                                            หากดึงรายการขึ้นมาได้ครบถ้วน แต่รายชื่อข้อมูลไม่ปรากฏบนแอป เป็นเพราะหัวตารางแถวแรกสุด (Row 1) สะกดไม่ตรงกับแอป ให้ตรวจตามนี้ครับ:
-                                            <br />
-                                            <span className="text-teal-400 font-mono">Action Id, Title, Description, Cost, Opening Date, Due Date, Closed Date, Status, In_Charge, Line, Attachment, Note</span>
-                                        </p>
-                                        <button 
-                                            onClick={() => setCloudDebugInfo(null)} 
-                                            className="px-4 py-1.5 bg-teal-900/30 hover:bg-teal-900/50 text-teal-300 rounded-lg text-xs font-bold transition"
-                                        >
-                                            ปิดแผงวิเคราะห์ข้อมูล
                                         </button>
                                     </div>
                                 </div>
@@ -1513,7 +1457,7 @@
                                                     <Icon name="Sparkle" className="text-teal-400" />
                                                     ✨ AI Bottleneck Analyzer
                                                 </h4>
-                                                <p className="text-[10px] text-slate-400 leading-relaxed">วิเคราะห์ความขัดข้องสะสมแบบเรียลไทม์ พร้อมเสนอแนะแนวทางการซ่อมบำรุงเชิงรุกเพื่อลดโอกาสเกิด Downtime ด้วย Gemini LLM</p>
+                                                <p className="text-[10px] text-slate-400 leading-relaxed">วิเคราะห์ความขัดข้องสะสมแบบเรียลไทม์ พร้อมเสนอแนะแนวทางการซ่อมบำรุงเชิงรุก</p>
                                                 
                                                 {aiSummary ? (
                                                     <div className="bg-slate-950/70 border border-teal-500/20 rounded-xl p-4 text-xs text-slate-300 leading-relaxed max-h-[190px] overflow-y-auto whitespace-pre-line border-l-4 border-l-teal-500 font-light">
@@ -1535,30 +1479,6 @@
                                                 <Icon name="Sparkle" size={14} className={isAiLoading ? "animate-spin" : ""} />
                                                 {isAiLoading ? "กำลังประมวลวิเคราะห์..." : "✨ วิเคราะห์คอขวดด้วย AI"}
                                             </button>
-                                        </div>
-                                    </div>
-
-                                    <div className="bg-[#0f172a] p-6 md:p-8 rounded-2xl border border-slate-850 shadow-xl">
-                                        <h5 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
-                                            <Icon name="Calendar" size={14} className="text-teal-400" />
-                                            ตารางสรุปจำนวนงานสะสมรายเดือน (MONTHLY STATUS SUMMARY)
-                                        </h5>
-                                        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-12 gap-2">
-                                            {dashboardData.chart.map((c, i) => (
-                                                <div key={i} className="p-2.5 bg-slate-950/40 rounded-xl border border-slate-800/50 flex flex-col justify-between hover:border-slate-700 transition">
-                                                    <span className="font-bold text-slate-300 text-xs block text-center border-b border-slate-800/50 pb-1">{c.label}</span>
-                                                    <div className="mt-2 space-y-1">
-                                                        <div className="flex justify-between items-center text-[10px]">
-                                                            <span className="text-amber-500 font-semibold">Opened</span>
-                                                            <span className="font-bold text-white font-mono">{c.openCount + c.closedCount}</span>
-                                                        </div>
-                                                        <div className="flex justify-between items-center text-[10px]">
-                                                            <span className="text-emerald-400 font-semibold">Closed</span>
-                                                            <span className="font-bold text-white font-mono">{c.closedCount}</span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            ))}
                                         </div>
                                     </div>
                                 </div>
@@ -1617,30 +1537,6 @@
                                                 <div className="space-y-1.5 text-left">
                                                     <div className="flex justify-between items-center">
                                                         <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider ml-1">Cost (THB)</label>
-                                                        {newItem.Title && (
-                                                            <button 
-                                                                type="button"
-                                                                onClick={async () => {
-                                                                    if (!userApiKey) { setShowApiKeyModal(true); return; }
-                                                                    setIsAiLoading(true);
-                                                                    try {
-                                                                        const prompt = `ประเมินงบประมาณวิศวกรรมอย่างคร่าวสำหรับชื่องาน: "${newItem.Title}". และรายละเอียด: "${newItem.Description}". ขอผลลัพธ์เป็นตัวเลขงบประมาณเฉลี่ย THB เท่านั้นอย่างกระชับ เช่น 12000 หรือช่วงตัวเลข (ไม่ต้องมีคำอธิบายขยายความ)`;
-                                                                        const res = await fetchGemini(prompt, userApiKey, "คุณคือผู้เชี่ยวชาญการจัดสรรต้นทุนและวิเคราะห์งบประมาณเชิงอุตสาหกรรม", selectedModel);
-                                                                        const numericOnly = res.replace(/[^0-9-]/g, '');
-                                                                        setNewItem(prev => ({ ...prev, Cost: numericOnly }));
-                                                                        showToast("✨ ประมาณการต้นทุนสำเร็จ!");
-                                                                    } catch (e) {
-                                                                        showToast("ประเมินราคาขัดข้อง โปรดตั้งค่าคีย์ AI");
-                                                                    }
-                                                                    setIsAiLoading(false);
-                                                                }}
-                                                                disabled={isAiLoading}
-                                                                className="text-[10px] font-bold text-teal-400 flex items-center gap-1 hover:text-teal-300 transition"
-                                                            >
-                                                                <Icon name="Sparkle" size={12} />
-                                                                ✨ ให้ AI ประเมินต้นทุน
-                                                            </button>
-                                                        )}
                                                     </div>
                                                     <input 
                                                         type="text" 
@@ -1787,6 +1683,7 @@
                                                     </div>
                                                 </div>
 
+                                                {}
                                                 {expandedId === t._id && (
                                                     <div className="p-6 bg-slate-950/70 border-t border-slate-800/80 grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fadeIn">
                                                         <div className="space-y-4">
@@ -1889,6 +1786,7 @@
                                                             </div>
                                                         </div>
 
+                                                        {}
                                                         <div className="space-y-4 text-left">
                                                             <textarea 
                                                                 className="w-full p-4 bg-[#0f172a]/60 border border-slate-800 rounded-xl text-xs text-slate-200 h-24 placeholder-slate-600 outline-none focus:border-slate-700 font-light" 
@@ -1951,7 +1849,6 @@
                                                                 )}
                                                             </div>
 
-                                                            {/* ✨ ฟีเจอร์ AI: วิเคราะห์อาการขัดข้องจากภาพถ่ายด้วยโมเดล Gemini Vision (Multimodal) */}
                                                             {t.Image && (
                                                                 <div className="space-y-2 mt-2 bg-slate-950/50 p-3 rounded-2xl border border-slate-850">
                                                                     <img 
@@ -1969,7 +1866,7 @@
                                                                                 const res = await fetchGemini(prompt, userApiKey, "คุณคือเครื่องมือวิเคราะห์ภาพชำรุดเชิงวิศวกรรมการผลิต", selectedModel, t.Image);
                                                                                 setAiImageAnalysis({ title: t.Title, report: res, taskId: t._id });
                                                                             } catch (e) {
-                                                                                showToast("การวิเคราะห์ภาพขัดข้อง โปรดตรวจขนาดภาพหรือความกว้างของเครือข่ายอินเทอร์เน็ต");
+                                                                                showToast("การวิเคราะห์ภาพขัดข้อง โปรดตรวจขนาดภาพ");
                                                                             }
                                                                         }}
                                                                         className="w-full py-2 bg-teal-950/40 border border-teal-500/30 hover:border-teal-400 text-teal-400 font-bold rounded-xl text-[10px] uppercase transition flex items-center justify-center gap-1.5 active:scale-[0.98]"
@@ -2007,7 +1904,7 @@
                         </div>
                     </main>
 
-                    {/* ✨ ฟีเจอร์ AI: หน้าต่างสำหรับแสดงผลรายงานวิเคราะห์รูปถ่ายอย่างละเอียดพร้อมตัวเลือกลงบันทึก */}
+                    {}
                     {aiImageAnalysis && (
                         <div className="fixed inset-0 bg-black/85 backdrop-blur-sm z-[300] flex items-center justify-center p-4 animate-fadeIn">
                             <div className="bg-[#0f172a] p-6 md:p-8 rounded-3xl max-w-lg w-full border border-slate-800 shadow-2xl relative text-left">
@@ -2130,9 +2027,6 @@
                                             value={tempModelSelection} 
                                             onChange={e => setTempModelSelection(e.target.value)} 
                                         />
-                                        <span className="text-[10px] text-slate-500 mt-1 block">
-                                            โมเดลแนะนำหลักสำหรับการซ่อมบำรุง: <span className="text-teal-400">gemini-2.5-flash-preview-09-2025</span><br />
-                                        </span>
                                     </div>
                                 </div>
 
@@ -2145,7 +2039,6 @@
                         </div>
                     )}
 
-                    {/* ✨ ฟีเจอร์ AI: ปุ่มเรียกใช้งานและหน้ารูปแบบ Chatbot (Rattanachot AI Assistant Drawer) */}
                     {session && (
                         <button 
                             onClick={() => setIsAiChatOpen(!isAiChatOpen)}
