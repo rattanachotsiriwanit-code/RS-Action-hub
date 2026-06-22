@@ -1349,7 +1349,6 @@
                             </div>
                         </div>
 
-                        {}
                         <div className="p-4 border-t border-slate-900 bg-[#060a12]/50 flex flex-col gap-1.5">
                             <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
                                 <Icon name="Calendar" size={12} className="text-teal-400" /> SELECT MONTH
@@ -1486,7 +1485,6 @@
                                                             </div>
                                                         )}
                                                         
-                                                        {}
                                                         <div className="w-full flex items-end justify-center h-full pb-1">
                                                             <div 
                                                                 className={'w-full max-w-[28px] sm:max-w-[32px] rounded-t-md transition-all duration-500 group-hover:scale-110 ' + 
@@ -1501,6 +1499,51 @@
                                                         <div className="text-[10px] mt-2 text-slate-400 font-bold">{c.label}</div>
                                                     </div>
                                                 ))}
+                                            </div>
+
+                                            {/* ✨ เพิ่มตารางวิเคราะห์ความเคลื่อนไหว Active & Closed Actions ประจำรายเดือนด้านล่างกราฟ */}
+                                            <div className="pt-4 border-t border-slate-800/60 overflow-x-auto">
+                                                <div className="flex items-center justify-between mb-3">
+                                                    <h5 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">ตารางสรุปผลงานรายเดือน (Monthly Activity Report)</h5>
+                                                    <span className="text-[9px] font-bold text-teal-400 bg-teal-950/30 px-2 py-0.5 rounded-full border border-teal-900/30">FY {selectedYear}</span>
+                                                </div>
+                                                <table className="w-full text-left border-collapse text-xs">
+                                                    <thead>
+                                                        <tr className="border-b border-slate-800 text-slate-500 font-bold uppercase tracking-wider text-[9px] bg-slate-950/30">
+                                                            <th className="py-2 px-3">เดือน</th>
+                                                            <th className="py-2 px-3 text-center">Active Actions (รอดำเนินการ)</th>
+                                                            <th className="py-2 px-3 text-center">Closed Actions (เสร็จสิ้น)</th>
+                                                            <th className="py-2 px-3 text-right">ค่าใช้จ่ายจริง (THB)</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-slate-900/40 text-slate-300">
+                                                        {dashboardData.chart.map((c, i) => {
+                                                            const isHighlighted = selectedMonth !== 'All' && Number(selectedMonth) === i;
+                                                            return (
+                                                                <tr 
+                                                                    key={i} 
+                                                                    className={`hover:bg-slate-900/20 transition-colors duration-150 ${isHighlighted ? 'bg-teal-950/25 text-teal-400 border-y border-teal-800/30 font-medium' : ''}`}
+                                                                >
+                                                                    <td className="py-2.5 px-3 font-semibold">
+                                                                        <span className="flex items-center gap-1.5">
+                                                                            {isHighlighted && <span className="inline-block w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse"></span>}
+                                                                            {monthNamesThai[i]}
+                                                                        </span>
+                                                                    </td>
+                                                                    <td className={`py-2.5 px-3 text-center font-mono ${isHighlighted ? 'text-teal-400 font-bold' : 'text-amber-500 font-medium'}`}>
+                                                                        {c.openCount}
+                                                                    </td>
+                                                                    <td className={`py-2.5 px-3 text-center font-mono ${isHighlighted ? 'text-teal-400 font-bold' : 'text-emerald-400 font-medium'}`}>
+                                                                        {c.closedCount}
+                                                                    </td>
+                                                                    <td className={`py-2.5 px-3 text-right font-mono ${isHighlighted ? 'text-teal-400 font-bold' : 'text-slate-400'}`}>
+                                                                        {c.val > 0 ? `${c.val.toLocaleString()} ฿` : '-'}
+                                                                    </td>
+                                                                </tr>
+                                                            );
+                                                        })}
+                                                    </tbody>
+                                                </table>
                                             </div>
                                         </div>
 
